@@ -1,0 +1,40 @@
+class ApiConstants {
+  static const String baseUrl = 'http://193.70.84.182:5050';
+  static const String login = '/api/auth/login';
+  static const String register = '/api/auth/register';
+  static const String refreshToken = '/api/auth/refresh';
+  static const String me = '/api/auth/me';
+  static const String selectTeam = '/api/auth/select-team';
+  static const String myTeams = '/api/auth/teams';
+  static const String createTeam = '/api/auth/create-team';
+  static const String joinTeam = '/api/auth/join-team';
+  static const String inviteCode = '/api/auth/invite-code';
+
+  static String team(int teamId) => '/api/teams/$teamId';
+  static String players(int teamId) => '/api/teams/$teamId/players';
+  static String player(int teamId, int playerId) => '/api/teams/$teamId/players/$playerId';
+  static String matches(int teamId) => '/api/teams/$teamId/matches';
+  static String match(int teamId, int matchId) => '/api/teams/$teamId/matches/$matchId';
+  static String matchStato(int teamId, int matchId) => '/api/teams/$teamId/matches/$matchId/stato';
+  static String matchConvocations(int matchId) => '/api/matches/$matchId/convocations';
+  static String respondConvocation(int convocationId) => '/api/convocations/$convocationId/respond';
+  static String pendingConvocations(int playerId) => '/api/players/$playerId/convocations/pending';
+  static String matchAttendance(int matchId) => '/api/matches/$matchId/attendance';
+  static String playerAttendance(int matchId, int playerId) => '/api/matches/$matchId/attendance/$playerId';
+  static String teamTokens(int teamId) => '/api/teams/$teamId/tokens';
+  static String playerTokens(int playerId) => '/api/players/$playerId/tokens';
+  static String teamPayments(int teamId) => '/api/teams/$teamId/payments';
+  static String playerPayments(int playerId) => '/api/players/$playerId/payments';
+  static String payment(int paymentId) => '/api/payments/$paymentId';
+  static String dashboard(int teamId) => '/api/teams/$teamId/dashboard';
+  static String matchAvailability(int matchId) => '/api/matches/$matchId/availability';
+  static String nextAvailability(int teamId) => '/api/teams/$teamId/next-availability';
+  static String teamStats(int teamId) => '/api/teams/$teamId/stats';
+  static String playerStats(int playerId) => '/api/players/$playerId/stats';
+  static String calendarIcs(int teamId) => '/api/teams/$teamId/matches/calendar.ics';
+  static String announcements(int teamId) => '/api/teams/$teamId/announcements';
+  static String announcement(int teamId, int id) => '/api/teams/$teamId/announcements/$id';
+  static String announcementAcknowledge(int teamId, int id) => '/api/teams/$teamId/announcements/$id/acknowledge';
+  static String playerResetPassword(int teamId, int playerId) => '/api/teams/$teamId/players/$playerId/reset-password';
+  static String myProfile(int teamId) => '/api/teams/$teamId/players/me';
+}
