@@ -511,8 +511,8 @@ def t_non_in(pezzo, occhiello):
 
 if __name__ == "__main__":
     for slug, titolo in (
-        ("manuale-giocatore", "CalcioAcinque - Manuale giocatori"),
-        ("manuale-staff", "CalcioAcinque - Manuale staff"),
+        ("manuale-giocatore", "InCampo - Manuale giocatori"),
+        ("manuale-staff", "InCampo - Manuale staff"),
     ):
         out = converti(SCRATCH / f"{slug}.html", DOCS / f"{titolo}.docx", titolo)
         print(out.name, "->", f"{out.stat().st_size // 1024} KB")

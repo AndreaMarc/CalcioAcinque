@@ -19,8 +19,8 @@ CHROME_CANDIDATI = [
 ]
 
 MANUALI = {
-    "manuale-giocatore": "CalcioAcinque - Manuale giocatori",
-    "manuale-staff": "CalcioAcinque - Manuale staff",
+    "manuale-giocatore": "InCampo - Manuale giocatori",
+    "manuale-staff": "InCampo - Manuale staff",
 }
 
 # L'artifact pubblicato avvolge il file in questo scheletro: per il PDF va
