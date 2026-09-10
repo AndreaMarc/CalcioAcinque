@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:web/web.dart' as web;
 
 import 'core/storage/secure_storage.dart';
@@ -41,6 +42,10 @@ import 'screens/club_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('it_IT', null);
+  // Space Grotesk e Bebas Neue sono asset del pacchetto (pubspec: assets/google_fonts/):
+  // niente FOUT al primo frame, funzionano offline, nessuna chiamata a Google.
+  // In debug un peso mancante lancia un'eccezione esplicita: e' voluto.
+  GoogleFonts.config.allowRuntimeFetching = false;
   runApp(const InCampoApp());
   WidgetsBinding.instance.addPostFrameCallback((_) => _removeSplash());
 }

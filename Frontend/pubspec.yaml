@@ -27,3 +27,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # Font bundlati: google_fonts li cerca qui per nome ({Famiglia}-{Peso}.ttf)
+  # invece di scaricarli a runtime da Google (vedi allowRuntimeFetching in main.dart).
+  # Licenza OFL nei due file OFL-*.txt della stessa cartella.
+  assets:
+    - assets/google_fonts/
