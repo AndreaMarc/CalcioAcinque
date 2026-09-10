@@ -527,7 +527,7 @@ class _TicketCard extends StatelessWidget {
                       const SizedBox(height: 14),
                       VsLayout(
                         homeCrest:
-                            CrestBox(initials: teamInitials, size: 48, fontSize: 20),
+                            CrestBox(initials: teamInitials, size: 48, fontSize: 20, showTeamLogo: true),
                         homeName: 'Casa',
                         awayCrest: CrestBox(
                           initials: awayInitials,

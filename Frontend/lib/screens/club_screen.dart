@@ -69,6 +69,7 @@ class _ClubScreenState extends State<ClubScreen> {
           children: [
             AppTopBar(
               teamInitials: teamInitials(selected?.nome ?? theme.teamName, fallback: 'SC'),
+              showTeamLogo: false,
               title: 'Societa',
               subtitle: selected?.nome ?? 'Nessuna societa',
               onBack: () => context.go('/dashboard'),
@@ -638,10 +639,7 @@ class _TeamsSection extends StatelessWidget {
                               ],
                             ),
                           ),
-                          AppChip(
-                            text: t.formato.shortLabel,
-                            variant: AppChipVariant.brand,
-                          ),
+                          FormatBadge(t.formato, tone: FormatBadgeTone.soft),
                           if (t.mioPlayerId != null)
                             const Padding(
                               padding: EdgeInsets.only(left: 6),

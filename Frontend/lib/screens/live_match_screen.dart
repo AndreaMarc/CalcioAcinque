@@ -655,6 +655,7 @@ class _Scoreboard extends StatelessWidget {
                     size: 64,
                     radius: 16,
                     fontSize: 26,
+                    showTeamLogo: true,
                   ),
                   const SizedBox(height: 10),
                   Text(

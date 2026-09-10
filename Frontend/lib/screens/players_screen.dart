@@ -83,10 +83,13 @@ class _PlayersScreenState extends State<PlayersScreen> {
             AppTopBar(
               teamInitials: initials,
               title: 'Rosa',
-              subtitle: [
-                '${players.length} giocatori',
-                context.watch<ClubProvider>().teamConfig?.formatoLabel,
-              ].whereType<String>().join(' · '),
+              titleTrailing: context.watch<ClubProvider>().teamConfig != null
+                  ? FormatBadge(
+                      context.watch<ClubProvider>().teamConfig!.formato,
+                      fontSize: 11,
+                    )
+                  : null,
+              subtitle: '${players.length} giocatori',
               actions: [
                 if (auth.puoGestireSquadra)
                   AppTopBar.iconAction(

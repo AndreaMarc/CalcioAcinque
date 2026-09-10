@@ -99,6 +99,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         AppTopBar(
           teamInitials: initials,
           title: theme.teamName,
+          titleTrailing: auth.currentMembership != null
+              ? FormatBadge(auth.currentMembership!.formato, fontSize: 11)
+              : null,
           subtitle: greeting,
           actions: [
             AppTopBar.iconAction(
@@ -388,7 +391,7 @@ class _HeroMatchCard extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             VsLayout(
-              homeCrest: CrestBox(initials: teamInitials, filled: true),
+              homeCrest: CrestBox(initials: teamInitials, filled: true, showTeamLogo: true),
               homeName: 'Squadra',
               awayCrest: CrestBox(initials: awayInitials, filled: false),
               awayName: opponent,

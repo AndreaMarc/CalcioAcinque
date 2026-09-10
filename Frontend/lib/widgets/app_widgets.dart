@@ -1,6 +1,11 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../models/team_format.dart';
+import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
+import 'team_utils.dart';
 
 /// Safe initials extractor: returns 1-2 uppercase chars, falls back to [fallback].
 String teamInitials(String name, {String fallback = 'IC'}) {
@@ -27,6 +32,18 @@ class AppTopBar extends StatelessWidget {
   final List<Widget> actions;
   final Color? crestColor;
 
+  /// Widget a destra del titolo (es. [FormatBadge]).
+  final Widget? titleTrailing;
+
+  /// Logo esplicito nel crest. Se `null` e [showTeamLogo] e' vero, si usa il
+  /// logo della squadra attiva salvato in [ThemeProvider].
+  final Uint8List? logo;
+  final bool showTeamLogo;
+
+  /// Tap sul crest. Se `null` e non c'e' [onBack], con piu' squadre si apre lo
+  /// sheet di cambio squadra.
+  final VoidCallback? onCrestTap;
+
   const AppTopBar({
     super.key,
     this.teamInitials = 'IC',
@@ -35,6 +52,10 @@ class AppTopBar extends StatelessWidget {
     this.onBack,
     this.actions = const [],
     this.crestColor,
+    this.titleTrailing,
+    this.logo,
+    this.showTeamLogo = true,
+    this.onCrestTap,
   });
 
   @override
@@ -58,39 +79,33 @@ class AppTopBar extends StatelessWidget {
               fg: textColor,
             )
           else
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: crestColor ?? (isDark ? Colors.white : AppTokens.ink),
-                borderRadius: BorderRadius.circular(9),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                teamInitials,
-                style: _display(
-                  18,
-                  color: isDark ? AppTokens.ink : AppTokens.brand,
-                  letter: 0.04,
-                ),
-              ),
-            ),
+            _crest(context, isDark),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  title,
-                  style: GoogleFonts.spaceGrotesk(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                    letterSpacing: -0.01,
-                    color: textColor,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        title,
+                        style: GoogleFonts.spaceGrotesk(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          letterSpacing: -0.01,
+                          color: textColor,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (titleTrailing != null) ...[
+                      const SizedBox(width: 8),
+                      titleTrailing!,
+                    ],
+                  ],
                 ),
                 if (subtitle != null)
                   Text(
@@ -110,6 +125,42 @@ class AppTopBar extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _crest(BuildContext context, bool isDark) {
+    final logoBytes = logo ?? (showTeamLogo ? teamLogoOf(context) : null);
+    final onTap = onCrestTap ?? _teamSwitcherIfMany(context);
+    final crest = TeamCrest(
+      initials: teamInitials,
+      logo: logoBytes,
+      size: 32,
+      radius: 9,
+      fontSize: 18,
+      bg: crestColor ?? (isDark ? Colors.white : AppTokens.ink),
+      fg: isDark ? AppTokens.ink : AppTokens.brand,
+    );
+    if (onTap == null) return crest;
+    return Semantics(
+      button: true,
+      label: 'Cambia squadra',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(9),
+        child: crest,
+      ),
+    );
+  }
+
+  /// Con piu' squadre il crest apre lo sheet di cambio squadra.
+  static VoidCallback? _teamSwitcherIfMany(BuildContext context) {
+    int count;
+    try {
+      count = context.select<AuthProvider, int>((a) => a.teams?.length ?? 0);
+    } on ProviderNotFoundException {
+      return null;
+    }
+    if (count < 2) return null;
+    return () => showTeamSwitcher(context);
   }
 
   static Widget iconAction(
@@ -625,6 +676,12 @@ class CrestBox extends StatelessWidget {
   final Color? bg;
   final Color? fg;
 
+  /// Logo esplicito; se `null` e [showTeamLogo] e' vero si usa quello della
+  /// squadra attiva. Di default spento: CrestBox serve anche per avversari e
+  /// persone.
+  final Uint8List? logo;
+  final bool showTeamLogo;
+
   const CrestBox({
     super.key,
     required this.initials,
@@ -634,33 +691,155 @@ class CrestBox extends StatelessWidget {
     this.fontSize = 22,
     this.bg,
     this.fg,
+    this.logo,
+    this.showTeamLogo = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    return TeamCrest(
+      initials: initials,
+      logo: logo ?? (showTeamLogo ? teamLogoOf(context) : null),
+      size: size,
+      radius: radius,
+      fontSize: fontSize,
+      bg: filled ? (bg ?? AppTokens.brand) : Colors.white.withOpacity(0.08),
+      fg: filled ? (fg ?? AppTokens.brandInk) : Colors.white.withOpacity(0.7),
+      border: filled ? null : Border.all(color: Colors.white.withOpacity(0.2)),
+    );
+  }
+}
+
+/// Logo della squadra attiva (gia' decodificato e cachato dal provider),
+/// `null` se non c'e' o se non siamo sotto un [ThemeProvider].
+Uint8List? teamLogoOf(BuildContext context) {
+  try {
+    return context.select<ThemeProvider, Uint8List?>((t) => t.logoBytes);
+  } on ProviderNotFoundException {
+    return null;
+  }
+}
+
+/// Stemma squadra: il logo caricato se c'e', altrimenti le iniziali.
+/// Unifica i quadratini fotocopia di top bar, VsLayout, liste squadre.
+class TeamCrest extends StatelessWidget {
+  final String initials;
+  final Uint8List? logo;
+  final double size;
+  final double radius;
+  final double fontSize;
+  final Color bg;
+  final Color fg;
+  final BoxBorder? border;
+
+  const TeamCrest({
+    super.key,
+    required this.initials,
+    this.logo,
+    this.size = 40,
+    this.radius = 10,
+    this.fontSize = 18,
+    this.bg = AppTokens.ink,
+    this.fg = AppTokens.brand,
+    this.border,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = logo;
     return Container(
       width: size,
       height: size,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: filled ? (bg ?? AppTokens.brand) : Colors.white.withOpacity(0.08),
+        color: bg,
         borderRadius: BorderRadius.circular(radius),
-        border: filled
-            ? null
-            : Border.all(
-                color: Colors.white.withOpacity(0.2),
-                width: 1,
-                style: BorderStyle.solid,
-              ),
+        border: border,
       ),
       alignment: Alignment.center,
-      child: Text(
+      child: bytes == null
+          ? _initialsText()
+          : Image.memory(
+              bytes,
+              fit: BoxFit.cover,
+              gaplessPlayback: true,
+              filterQuality: FilterQuality.medium,
+              // Decodifica alla dimensione mostrata, non a quella del file.
+              cacheWidth: (size * MediaQuery.devicePixelRatioOf(context)).round(),
+              errorBuilder: (_, __, ___) => _initialsText(),
+            ),
+    );
+  }
+
+  Widget _initialsText() => Text(
         initials,
-        style: _display(
-          fontSize,
-          color: filled
-              ? (fg ?? AppTokens.brandInk)
-              : Colors.white.withOpacity(0.7),
-        ),
+        style: _display(fontSize, color: fg, letter: 0.04),
+      );
+}
+
+/// Tono del [FormatBadge].
+enum FormatBadgeTone {
+  /// Pill ink con testo brand (bianca con testo ink in tema scuro): top bar su paper.
+  ink,
+
+  /// Pill brand con testo brandInk: elemento selezionato / in evidenza.
+  brand,
+
+  /// Pill traslucida bianca: su superfici ink.
+  onInk,
+
+  /// Pill brandSoft con testo brandInk: liste neutre.
+  soft,
+}
+
+/// Badge del formato di gioco (A5, A7, A8, A11).
+class FormatBadge extends StatelessWidget {
+  final TeamFormat format;
+  final FormatBadgeTone tone;
+  final double fontSize;
+
+  const FormatBadge(
+    this.format, {
+    super.key,
+    this.tone = FormatBadgeTone.ink,
+    this.fontSize = 12,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    Color bg;
+    Color fg;
+    BoxBorder? border;
+    switch (tone) {
+      case FormatBadgeTone.ink:
+        bg = isDark ? Colors.white : AppTokens.ink;
+        fg = isDark ? AppTokens.ink : AppTokens.brand;
+        break;
+      case FormatBadgeTone.brand:
+        bg = AppTokens.brand;
+        fg = AppTokens.brandInk;
+        break;
+      case FormatBadgeTone.onInk:
+        bg = Colors.white.withOpacity(0.10);
+        fg = Colors.white;
+        border = Border.all(color: Colors.white.withOpacity(0.18));
+        break;
+      case FormatBadgeTone.soft:
+        bg = isDark ? AppTokens.brand.withOpacity(0.15) : AppTokens.brandSoft;
+        fg = isDark ? AppTokens.darkBrand : AppTokens.brandInk;
+        break;
+    }
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: fontSize * 0.7, vertical: fontSize * 0.2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(AppTokens.rChip),
+        border: border,
+      ),
+      child: Text(
+        format.shortLabel,
+        style: _display(fontSize, color: fg, letter: 0.06 * fontSize, height: 1.1),
       ),
     );
   }

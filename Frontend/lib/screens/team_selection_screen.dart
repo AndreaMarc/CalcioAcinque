@@ -599,34 +599,40 @@ class _TeamTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: selected ? AppTokens.brand : Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                team.formatoShortLabel.isNotEmpty ? team.formatoShortLabel : initials,
-                style: GoogleFonts.bebasNeue(
-                  fontSize: 20,
-                  color: selected ? AppTokens.brandInk : Colors.white,
-                ),
-              ),
+            TeamCrest(
+              initials: initials,
+              logo: context.watch<ThemeProvider>().logoBytesForTeam(team.teamId),
+              size: 52,
+              radius: 14,
+              fontSize: 20,
+              bg: selected ? AppTokens.brand : Colors.white.withOpacity(0.1),
+              fg: selected ? AppTokens.brandInk : Colors.white,
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    team.teamName,
-                    style: GoogleFonts.spaceGrotesk(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          team.teamName,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.spaceGrotesk(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      FormatBadge(
+                        team.formato,
+                        tone: selected ? FormatBadgeTone.brand : FormatBadgeTone.onInk,
+                        fontSize: 11,
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 2),
                   Text(

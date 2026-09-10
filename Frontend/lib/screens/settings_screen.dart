@@ -1996,23 +1996,14 @@ class _TeamsCard extends StatelessWidget {
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(
                       horizontal: 14, vertical: 4),
-                  leading: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: isActive ? AppTokens.brand : AppTokens.ink,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      teamInitial,
-                      style: GoogleFonts.bebasNeue(
-                        fontSize: 18,
-                        color: isActive
-                            ? AppTokens.brandInk
-                            : AppTokens.brand,
-                      ),
-                    ),
+                  leading: TeamCrest(
+                    initials: teamInitial,
+                    logo: context.watch<ThemeProvider>().logoBytesForTeam(team.teamId),
+                    size: 40,
+                    radius: 10,
+                    fontSize: 18,
+                    bg: isActive ? AppTokens.brand : AppTokens.ink,
+                    fg: isActive ? AppTokens.brandInk : AppTokens.brand,
                   ),
                   title: Row(
                     children: [
@@ -2029,10 +2020,10 @@ class _TeamsCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       // Con due squadre nella stessa societa il nome non basta a distinguerle
-                      AppChip(
-                        text: team.formatoShortLabel,
-                        variant: AppChipVariant.neutral,
-                        fontSize: 9,
+                      FormatBadge(
+                        team.formato,
+                        tone: FormatBadgeTone.soft,
+                        fontSize: 10,
                       ),
                     ],
                   ),

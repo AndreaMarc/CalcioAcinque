@@ -126,6 +126,12 @@ class ThemeProvider extends ChangeNotifier {
   Color _primaryColor = AppTokens.brand;
   Color _accentColor = AppTokens.ink;
   String? _logoBase64;
+  // Bytes del logo decodificati UNA volta: MemoryImage confronta i bytes per
+  // identita', un nuovo Uint8List a ogni build farebbe ridecodificare l'immagine
+  // a ogni frame.
+  Uint8List? _logoBytes;
+  SharedPreferences? _prefs;
+  final Map<int, Uint8List?> _teamLogoCache = {};
   bool _dark = false;
 
   String get teamName => _teamName;
@@ -136,10 +142,25 @@ class ThemeProvider extends ChangeNotifier {
   int? get currentTeamId => _currentTeamId;
   bool get isDark => _dark;
 
-  Uint8List? get logoBytes {
-    if (_logoBase64 == null || _logoBase64!.isEmpty) return null;
+  Uint8List? get logoBytes => _logoBytes;
+
+  /// Logo salvato su questo browser per una squadra qualsiasi (non solo quella
+  /// attiva): serve alle liste di squadre. `null` se non c'e' o non e' ancora
+  /// stato caricato nulla da SharedPreferences.
+  Uint8List? logoBytesForTeam(int teamId) {
+    if (teamId == _currentTeamId) return _logoBytes;
+    if (_teamLogoCache.containsKey(teamId)) return _teamLogoCache[teamId];
+    final prefs = _prefs;
+    if (prefs == null) return null;
+    final bytes = _decode(prefs.getString('team_${teamId}_logo_base64'));
+    _teamLogoCache[teamId] = bytes;
+    return bytes;
+  }
+
+  static Uint8List? _decode(String? b64) {
+    if (b64 == null || b64.isEmpty) return null;
     try {
-      return base64Decode(_logoBase64!);
+      return base64Decode(b64);
     } catch (_) {
       return null;
     }
@@ -171,7 +192,9 @@ class ThemeProvider extends ChangeNotifier {
     _primaryColor = primaryValue != null ? Color(primaryValue) : AppTokens.brand;
     final accentValue = prefs.getInt(_keyAccentColor());
     _accentColor = accentValue != null ? Color(accentValue) : AppTokens.ink;
+    _prefs = prefs;
     _logoBase64 = prefs.getString(_keyLogoBase64());
+    _logoBytes = _decode(_logoBase64);
     _dark = prefs.getBool(_keyDarkMode) ?? prefs.getBool(_legacyKeyDarkMode) ?? false;
     notifyListeners();
   }
@@ -199,6 +222,8 @@ class ThemeProvider extends ChangeNotifier {
 
   Future<void> setLogo(Uint8List bytes) async {
     _logoBase64 = base64Encode(bytes);
+    _logoBytes = bytes;
+    if (_currentTeamId != null) _teamLogoCache[_currentTeamId!] = bytes;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyLogoBase64(), _logoBase64!);
     notifyListeners();
@@ -206,6 +231,8 @@ class ThemeProvider extends ChangeNotifier {
 
   Future<void> removeLogo() async {
     _logoBase64 = null;
+    _logoBytes = null;
+    if (_currentTeamId != null) _teamLogoCache.remove(_currentTeamId);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyLogoBase64());
     notifyListeners();
