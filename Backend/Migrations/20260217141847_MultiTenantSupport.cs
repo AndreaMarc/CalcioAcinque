@@ -10,6 +10,10 @@ namespace CalcioAcinque.Backend.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropForeignKey(
+                name: "FK_players_users_UserId",
+                table: "players");
+
             migrationBuilder.DropIndex(
                 name: "IX_players_UserId",
                 table: "players");
@@ -26,6 +30,14 @@ namespace CalcioAcinque.Backend.Migrations
                 name: "IX_players_UserId",
                 table: "players",
                 column: "UserId");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_players_users_UserId",
+                table: "players",
+                column: "UserId",
+                principalTable: "users",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
         }
 
         /// <inheritdoc />

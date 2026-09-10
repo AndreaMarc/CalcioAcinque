@@ -1,0 +1,42 @@
+services:
+  backend:
+    build: ./Backend
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Server=infra-mysql-1;Database=calcioacinque;User=root;Password=RocketStudio2026!;
+      # Notifiche push. Generare le chiavi UNA volta con:
+      #   dotnet run --project Backend -- --generate-vapid
+      # e passarle dall'ambiente della shell (docker compose le legge da li'),
+      # cosi' la chiave privata non finisce nel repo. Senza chiavi il push resta spento.
+      - Push__VapidPublicKey=${PUSH_VAPID_PUBLIC_KEY:-}
+      - Push__VapidPrivateKey=${PUSH_VAPID_PRIVATE_KEY:-}
+      - Push__Subject=${PUSH_SUBJECT:-mailto:admin@calcioacinque.it}
+    networks:
+      - web
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.calcioacinque-api.rule=Host(`calcioacinque-api.studiorocket.it`)
+      - traefik.http.routers.calcioacinque-api.entrypoints=websecure
+      - traefik.http.routers.calcioacinque-api.tls.certresolver=letsencrypt
+      - traefik.http.routers.calcioacinque-api-http.rule=Host(`calcioacinque-api.studiorocket.it`)
+      - traefik.http.routers.calcioacinque-api-http.entrypoints=web
+      - traefik.http.services.calcioacinque-api.loadbalancer.server.port=8080
+
+  frontend:
+    build: ./Frontend
+    restart: always
+    networks:
+      - web
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.calcioacinque.rule=Host(`calcioacinque.studiorocket.it`)
+      - traefik.http.routers.calcioacinque.entrypoints=websecure
+      - traefik.http.routers.calcioacinque.tls.certresolver=letsencrypt
+      - traefik.http.routers.calcioacinque-http.rule=Host(`calcioacinque.studiorocket.it`)
+      - traefik.http.routers.calcioacinque-http.entrypoints=web
+      - traefik.http.services.calcioacinque.loadbalancer.server.port=80
+
+networks:
+  web:
+    external: true

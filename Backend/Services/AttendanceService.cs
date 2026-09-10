@@ -52,6 +52,13 @@ public class AttendanceService : IAttendanceService
         var useGettoni = team?.UseGettoni ?? true;
 
         // Gestione campo "Presente" con consumo automatico gettone
+        // Congelato sulla transazione: l'admin puo' uscire dalla rosa, il
+        // movimento sui gettoni deve restare leggibile
+        var adminNome = !useGettoni ? "" : await _context.Players
+            .Where(p => p.Id == adminPlayerId)
+            .Select(p => p.Nome)
+            .FirstOrDefaultAsync() ?? "";
+
         if (dto.Presente.HasValue)
         {
             if (dto.Presente.Value && !attendance.Presente)
@@ -68,7 +75,8 @@ public class AttendanceService : IAttendanceService
                         {
                             PlayerId = playerId, MatchId = matchId, Tipo = TipoTransazione.ConsumoAutomatico,
                             Motivazione = $"Consumo automatico per presenza alla giornata {match.NumeroGiornata}",
-                            Quantita = -1, AdminId = adminPlayerId, Timestamp = DateTime.UtcNow
+                            Quantita = -1, AdminId = adminPlayerId, AdminNome = adminNome,
+                            Timestamp = DateTime.UtcNow
                         });
                     }
                     else
@@ -79,7 +87,8 @@ public class AttendanceService : IAttendanceService
                         {
                             PlayerId = playerId, MatchId = matchId, Tipo = TipoTransazione.ConsumoAutomatico,
                             Motivazione = $"Presenza alla giornata {match.NumeroGiornata} - GETTONI ESAURITI",
-                            Quantita = 0, AdminId = adminPlayerId, Timestamp = DateTime.UtcNow
+                            Quantita = 0, AdminId = adminPlayerId, AdminNome = adminNome,
+                            Timestamp = DateTime.UtcNow
                         });
                     }
                 }
@@ -94,7 +103,8 @@ public class AttendanceService : IAttendanceService
                     {
                         PlayerId = playerId, MatchId = matchId, Tipo = TipoTransazione.Override,
                         Motivazione = "Annullamento presenza - gettone restituito",
-                        Quantita = 1, AdminId = adminPlayerId, Timestamp = DateTime.UtcNow
+                        Quantita = 1, AdminId = adminPlayerId, AdminNome = adminNome,
+                        Timestamp = DateTime.UtcNow
                     });
                 }
                 attendance.Presente = false;

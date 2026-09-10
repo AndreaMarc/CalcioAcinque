@@ -4,6 +4,7 @@ using System.Security.Claims;
 using CalcioAcinque.Backend.DTOs.Tokens;
 using CalcioAcinque.Backend.Models;
 using CalcioAcinque.Backend.Services;
+using CalcioAcinque.Backend.Models.Enums;
 
 namespace CalcioAcinque.Backend.Controllers;
 
@@ -33,7 +34,7 @@ public class TokensController : ControllerBase
         return Ok(new ApiResponse<List<TokenTransactionDto>> { Success = true, Data = result });
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Ruoli.Gettoni)]
     [HttpPost("api/players/{playerId}/tokens")]
     public async Task<ActionResult<ApiResponse<TokenTransactionDto>>> ManualAdjust(
         int playerId, [FromBody] ManualTokenDto dto)

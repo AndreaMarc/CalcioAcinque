@@ -18,28 +18,45 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Convocazioni, presenze, gettoni e quote per le squadre della tua societa.">
+  <meta name="theme-color" content="#00D27F">
 
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="frontend">
+  <meta name="apple-mobile-web-app-title" content="CalcioAcinque">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>Calcio a 5</title>
+  <title>CalcioAcinque</title>
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
   <script>
-    // Unregister old service workers to avoid stale cache
+    // Registra il service worker delle notifiche.
+    //
+    // Prima qui c'era un unregister di TUTTI i service worker a ogni caricamento,
+    // messo per evitare cache stantia: con le push non si puo' piu' fare, perche'
+    // disiscrivere il worker cancella anche la subscription. Il caching di Flutter
+    // e' disattivato a monte (--pwa-strategy=none nel Dockerfile), quindi non c'e'
+    // piu' nulla da ripulire: si toglie solo l'eventuale worker di Flutter rimasto
+    // dalle versioni precedenti.
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for (let registration of registrations) {
-          registration.unregister();
-        }
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.getRegistrations().then(function (registrations) {
+          for (const registration of registrations) {
+            const url = registration.active && registration.active.scriptURL;
+            if (url && url.indexOf('flutter_service_worker.js') !== -1) {
+              registration.unregister();
+            }
+          }
+        });
+
+        navigator.serviceWorker.register('push-sw.js').catch(function (e) {
+          console.warn('Service worker notifiche non registrato:', e);
+        });
       });
     }
   </script>

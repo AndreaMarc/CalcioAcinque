@@ -3,11 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
 import '../providers/matches_provider.dart';
 import '../providers/attendance_provider.dart';
+import '../providers/club_provider.dart';
+import '../widgets/match_incasso_sheet.dart';
+import '../providers/theme_provider.dart';
 import '../models/match_model.dart';
 import '../models/attendance_model.dart';
+import '../widgets/gimmy_widgets.dart';
 
 enum StatType { goal, assist, ammonizione, espulsione, autogoal, goalSubiti }
 
@@ -19,24 +24,35 @@ class LiveMatchScreen extends StatefulWidget {
   State<LiveMatchScreen> createState() => _LiveMatchScreenState();
 }
 
-class _LiveMatchScreenState extends State<LiveMatchScreen> {
-  // Timer state
+class _LiveMatchScreenState extends State<LiveMatchScreen>
+    with SingleTickerProviderStateMixin {
   Timer? _timer;
+
+  /// Durata e numero di tempi vengono dalla configurazione della squadra
+  /// (a 5 sono 2x25, a 7 e a 8 2x30, a 11 2x45), con fallback sul calcio a 5.
+  int _minutiPerTempo = 25;
+  int _numeroTempi = 2;
   int _remainingSeconds = 25 * 60;
   int _currentHalf = 1;
   bool _isRunning = false;
+  late AnimationController _pulseCtrl;
 
   MatchModel? _match;
 
   @override
   void initState() {
     super.initState();
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..repeat(reverse: true);
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _pulseCtrl.dispose();
     super.dispose();
   }
 
@@ -44,63 +60,63 @@ class _LiveMatchScreenState extends State<LiveMatchScreen> {
     final auth = context.read<AuthProvider>();
     await context.read<MatchesProvider>().loadMatches(auth.teamId);
     await context.read<AttendanceProvider>().loadByMatch(widget.matchId);
+    final config = await context.read<ClubProvider>().loadTeamConfig(auth.teamId);
     if (mounted) {
       final matches = context.read<MatchesProvider>().matches;
       setState(() {
         _match = matches.where((m) => m.id == widget.matchId).firstOrNull;
+        if (config != null) {
+          _minutiPerTempo = config.minutiPerTempo;
+          _numeroTempi = config.numeroTempi;
+          // Il cronometro non e ancora partito: si riallinea alla durata reale
+          if (!_isRunning && _currentHalf == 1) {
+            _remainingSeconds = _minutiPerTempo * 60;
+          }
+        }
       });
     }
   }
 
-  // ── Timer controls ──
-
-  void _startTimer() {
-    if (_remainingSeconds <= 0) return;
-    setState(() => _isRunning = true);
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (_remainingSeconds > 0) {
-        setState(() => _remainingSeconds--);
-      } else {
-        _pauseTimer();
-      }
-    });
-  }
-
-  void _pauseTimer() {
-    _timer?.cancel();
-    setState(() => _isRunning = false);
-  }
-
   void _toggleTimer() {
     if (_isRunning) {
-      _pauseTimer();
+      _timer?.cancel();
+      setState(() => _isRunning = false);
     } else {
-      _startTimer();
+      if (_remainingSeconds <= 0) return;
+      setState(() => _isRunning = true);
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (_remainingSeconds > 0) {
+          setState(() => _remainingSeconds--);
+        } else {
+          _timer?.cancel();
+          setState(() => _isRunning = false);
+        }
+      });
     }
   }
 
-  void _startSecondHalf() {
-    _pauseTimer();
+  void _startNextHalf() {
+    if (_currentHalf >= _numeroTempi) return;
+    _timer?.cancel();
     setState(() {
-      _currentHalf = 2;
-      _remainingSeconds = 25 * 60;
-    });
-  }
-
-  void _resetHalf() {
-    _pauseTimer();
-    setState(() {
-      _remainingSeconds = 25 * 60;
+      _currentHalf++;
+      _remainingSeconds = _minutiPerTempo * 60;
+      _isRunning = false;
     });
   }
 
   String get _displayTime {
+    // Minuto di gioco complessivo, contando i tempi gia giocati
+    final elapsed = _currentHalf * _minutiPerTempo * 60 - _remainingSeconds;
+    final m = elapsed ~/ 60;
+    return "$m'";
+  }
+
+  String get _clockDisplay {
     final m = _remainingSeconds ~/ 60;
     final s = _remainingSeconds % 60;
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
-
-  // ── Quick action ──
 
   void _onQuickAction(StatType action) {
     final attendances = context.read<AttendanceProvider>().attendances;
@@ -111,545 +127,944 @@ class _LiveMatchScreenState extends State<LiveMatchScreen> {
       );
       return;
     }
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: GimmyTokens.ink2,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => _PlayerSelectorSheet(
         players: eligible,
         actionType: action,
         matchId: widget.matchId,
-        onComplete: () {
-          _loadData();
-        },
+        onComplete: _loadData,
       ),
     );
   }
-
-  // ── Conclude match ──
 
   Future<void> _concludeMatch() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Concludi Partita'),
-        content: const Text('Vuoi concludere la partita? Potrai comunque modificare le statistiche dopo.'),
+        content: const Text('Vuoi concludere la partita?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annulla')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Concludi')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Annulla')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Concludi')),
         ],
       ),
     );
     if (confirmed != true || !mounted) return;
-
     final auth = context.read<AuthProvider>();
-    final success = await context.read<MatchesProvider>().updateStato(
-      auth.teamId, widget.matchId, 'Conclusa');
-    if (success && mounted) {
-      _pauseTimer();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Partita conclusa!')),
-      );
-      _loadData();
-    }
+    await context
+        .read<MatchesProvider>()
+        .updateStato(auth.teamId, widget.matchId, 'Conclusa');
+    _timer?.cancel();
+    if (mounted) _loadData();
+    if (mounted) _proponiIncasso();
   }
 
-  // ── Stats dialog (same as MatchDayScreen) ──
-
-  void _showStatsDialog(BuildContext context, AttendanceModel att) {
-    final minutiCtrl = TextEditingController(text: '${att.minutiGiocati ?? ''}');
-    final goalCtrl = TextEditingController(text: '${att.goal ?? ''}');
-    final assistCtrl = TextEditingController(text: '${att.assist ?? ''}');
-    final autogoalCtrl = TextEditingController(text: '${att.autogoal ?? ''}');
-    final ammonizioniCtrl = TextEditingController(text: '${att.ammonizioni ?? ''}');
-    final espulsioniCtrl = TextEditingController(text: '${att.espulsioni ?? ''}');
-    final goalSubitiCtrl = TextEditingController(text: '${att.goalSubiti ?? ''}');
-
-    final cs = Theme.of(context).colorScheme;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.bar_chart, color: cs.primary),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(att.soprannome ?? att.nomeGiocatore,
-                style: const TextStyle(fontSize: 18)),
-            ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _statsField(minutiCtrl, 'Minuti giocati', Icons.timer_outlined, cs.primary),
-              const SizedBox(height: 10),
-              Row(children: [
-                Expanded(child: _statsField(goalCtrl, 'Goal', Icons.sports_soccer, Colors.green.shade700)),
-                const SizedBox(width: 10),
-                Expanded(child: _statsField(assistCtrl, 'Assist', Icons.handshake_outlined, Colors.purple.shade600)),
-              ]),
-              const SizedBox(height: 10),
-              Row(children: [
-                Expanded(child: _statsField(autogoalCtrl, 'Autogoal', Icons.sports_soccer, Colors.red.shade600)),
-                const SizedBox(width: 10),
-                Expanded(child: _statsField(goalSubitiCtrl, 'Goal subiti', Icons.shield_outlined, Colors.orange.shade700)),
-              ]),
-              const SizedBox(height: 10),
-              Row(children: [
-                Expanded(child: _statsField(ammonizioniCtrl, 'Ammonizioni', Icons.square, Colors.amber.shade700)),
-                const SizedBox(width: 10),
-                Expanded(child: _statsField(espulsioniCtrl, 'Espulsioni', Icons.square, Colors.red.shade700)),
-              ]),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
-          FilledButton.icon(
-            icon: const Icon(Icons.save, size: 18),
-            label: const Text('Salva'),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await context.read<AttendanceProvider>().updateAttendance(
-                widget.matchId, att.playerId,
-                minutiGiocati: int.tryParse(minutiCtrl.text) ?? 0,
-                goal: int.tryParse(goalCtrl.text) ?? 0,
-                assist: int.tryParse(assistCtrl.text) ?? 0,
-                autogoal: int.tryParse(autogoalCtrl.text) ?? 0,
-                ammonizioni: int.tryParse(ammonizioniCtrl.text) ?? 0,
-                espulsioni: int.tryParse(espulsioniCtrl.text) ?? 0,
-                goalSubiti: int.tryParse(goalSubitiCtrl.text) ?? 0,
-              );
-              _loadData();
-            },
-          ),
-        ],
+  /// Invito non bloccante a registrare l incasso. Non apre il foglio da solo:
+  /// a fine partita le presenze possono essere incomplete, e forzare un modale
+  /// qui costringerebbe a riaprire la partita per sistemarle.
+  void _proponiIncasso() {
+    if (!context.read<AuthProvider>().puoGestireSoldi) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: const Text('Partita conclusa. Vuoi registrare l incasso?'),
+      duration: const Duration(seconds: 8),
+      action: SnackBarAction(
+        label: 'Gestisci',
+        onPressed: () => MatchIncassoSheet.show(context, widget.matchId),
       ),
-    );
+    ));
   }
-
-  Widget _statsField(TextEditingController ctrl, String label, IconData icon, Color color) {
-    return TextField(
-      controller: ctrl,
-      keyboardType: TextInputType.number,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(fontSize: 13),
-        prefixIcon: Icon(icon, color: color, size: 20),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        isDense: true,
-      ),
-      style: const TextStyle(fontSize: 15),
-    );
-  }
-
-  // ── BUILD ──
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = context.watch<ThemeProvider>();
+    final initials = teamInitials(theme.teamName, fallback: 'CA');
 
     return Consumer2<MatchesProvider, AttendanceProvider>(
       builder: (context, matchProv, attProv, _) {
-        // Refresh match from provider
-        final match = matchProv.matches.where((m) => m.id == widget.matchId).firstOrNull ?? _match;
+        final match =
+            matchProv.matches.where((m) => m.id == widget.matchId).firstOrNull ??
+                _match;
         if (match == null || !attProv.hasLoaded) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            backgroundColor: GimmyTokens.ink,
+            body: Center(
+              child: CircularProgressIndicator(color: GimmyTokens.brand),
+            ),
+          );
         }
 
         final isLive = match.stato == 'InCorso';
         final isConclusa = match.stato == 'Conclusa';
         final attendances = attProv.attendances;
         final playing = attendances.where((a) => a.haGiocato).toList();
-
-        // Score
-        final goalsScored = attendances.fold<int>(0, (s, a) => s + (a.goal ?? 0));
-        final goalsConceded = attendances.fold<int>(0, (s, a) => s + (a.goalSubiti ?? 0));
+        final goalsScored =
+            attendances.fold<int>(0, (s, a) => s + (a.goal ?? 0));
+        final goalsConceded =
+            attendances.fold<int>(0, (s, a) => s + (a.goalSubiti ?? 0));
+        final opponent = (match.titolo ?? '').isNotEmpty
+            ? match.titolo!.toUpperCase()
+            : 'AVVERSARIO';
+        final awayInitials = opponent.length >= 2
+            ? opponent.substring(0, 2).toUpperCase()
+            : opponent;
 
         return Scaffold(
-          appBar: AppBar(
-            title: Text(isConclusa
-                ? 'Statistiche - ${match.displayTitle}'
-                : 'Live - ${match.displayTitle}'),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.pop(),
-            ),
-            actions: [
-              PopupMenuButton<String>(
-                onSelected: (val) {
-                  if (val == 'conclude') _concludeMatch();
-                  if (val == 'matchday') context.push('/match/${match.id}/day');
-                },
-                itemBuilder: (_) => [
-                  if (isLive)
-                    const PopupMenuItem(value: 'conclude',
-                      child: ListTile(
-                        leading: Icon(Icons.stop, color: Colors.red),
-                        title: Text('Concludi Partita'),
-                        contentPadding: EdgeInsets.zero,
-                      )),
-                  const PopupMenuItem(value: 'matchday',
-                    child: ListTile(
-                      leading: Icon(Icons.people),
-                      title: Text('Presenze (Match Day)'),
-                      contentPadding: EdgeInsets.zero,
-                    )),
-                ],
-              ),
-            ],
-          ),
-          body: Column(
-            children: [
-              // ── [1] TIMER / CONCLUSA BANNER ──
-              if (isLive)
-                _buildTimerCard(cs)
-              else if (isConclusa)
-                _buildConclusaBanner(cs),
-
-              // ── [2] SCORE ──
-              _buildScoreCard(goalsScored, goalsConceded, cs),
-
-              // ── [3] QUICK ACTIONS ──
-              _buildQuickActions(cs),
-
-              // ── [4] PLAYER LIST ──
-              if (playing.isEmpty)
-                Expanded(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.sports, size: 48, color: cs.onSurfaceVariant.withOpacity(0.4)),
-                        const SizedBox(height: 8),
-                        Text('Nessun giocatore in campo',
-                          style: TextStyle(color: cs.onSurfaceVariant)),
-                        const SizedBox(height: 4),
-                        Text('Segna i giocatori come "Giocato" nella schermata Match Day',
-                          style: TextStyle(color: cs.onSurfaceVariant.withOpacity(0.6), fontSize: 12)),
-                        const SizedBox(height: 12),
-                        OutlinedButton.icon(
-                          onPressed: () => context.push('/match/${match.id}/day'),
-                          icon: const Icon(Icons.people, size: 18),
-                          label: const Text('Vai a Match Day'),
-                        ),
-                      ],
+          backgroundColor: GimmyTokens.ink,
+          body: SafeArea(
+            child: Stack(
+              children: [
+                Positioned(
+                  top: -120,
+                  left: -100,
+                  child: Container(
+                    width: 400,
+                    height: 400,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          GimmyTokens.brand.withOpacity(0.2),
+                          Colors.transparent,
+                        ],
+                      ),
                     ),
                   ),
-                )
-              else
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: playing.length,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    itemBuilder: (context, index) {
-                      final att = playing[index];
-                      return _buildPlayerTile(att, cs);
-                    },
-                  ),
                 ),
-            ],
+                Column(
+                  children: [
+                    _LiveHeader(
+                      pulse: _pulseCtrl,
+                      onBack: () => context.pop(),
+                      onMore: () => _showMenu(context, isLive, match.id),
+                      isConclusa: isConclusa,
+                    ),
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        children: [
+                          const SizedBox(height: 8),
+                          _Scoreboard(
+                            teamInitials: initials,
+                            teamName: theme.teamName,
+                            awayInitials: awayInitials,
+                            awayName: opponent,
+                            homeGoals: goalsScored,
+                            awayGoals: goalsConceded,
+                            half: _currentHalf,
+                            timeLabel: _displayTime,
+                            pulse: _pulseCtrl,
+                          ),
+                          const SizedBox(height: 20),
+                          if (isLive) ...[
+                            _TimerControls(
+                              clockDisplay: _clockDisplay,
+                              isRunning: _isRunning,
+                              remainingSeconds: _remainingSeconds,
+                              currentHalf: _currentHalf,
+                              numeroTempi: _numeroTempi,
+                              onToggle: _toggleTimer,
+                              onNextHalf: _startNextHalf,
+                            ),
+                            const SizedBox(height: 20),
+                          ],
+                          _QuickActions(onTap: _onQuickAction),
+                          const SizedBox(height: 20),
+                          Text(
+                            'IN CAMPO',
+                            style: GoogleFonts.bebasNeue(
+                              fontSize: 20,
+                              color: Colors.white,
+                              letterSpacing: 0.04 * 20,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          if (playing.isEmpty)
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.04),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.08),
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    'Nessun giocatore in campo',
+                                    style: GoogleFonts.spaceGrotesk(
+                                      color: Colors.white.withOpacity(0.7),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  OutlinedButton.icon(
+                                    onPressed: () =>
+                                        context.push('/match/${match.id}/day'),
+                                    icon: const Icon(Icons.people, size: 16,
+                                        color: Colors.white),
+                                    label: Text(
+                                      'Match Day',
+                                      style: GoogleFonts.spaceGrotesk(
+                                          color: Colors.white),
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      side: BorderSide(
+                                          color:
+                                              Colors.white.withOpacity(0.2)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: playing.asMap().entries.map((e) {
+                                final i = e.key;
+                                final a = e.value;
+                                return _OnFieldTile(
+                                  number: i + 1,
+                                  attendance: a,
+                                  onTap: () => _showStatsDialog(context, a),
+                                );
+                              }).toList(),
+                            ),
+                          const SizedBox(height: 20),
+                          if ((goalsScored + goalsConceded) > 0) ...[
+                            Text(
+                              'TIMELINE',
+                              style: GoogleFonts.bebasNeue(
+                                fontSize: 20,
+                                color: Colors.white,
+                                letterSpacing: 0.04 * 20,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            ...attendances
+                                .where((a) => (a.goal ?? 0) > 0)
+                                .map((a) => _TimelineEvent(
+                                      name:
+                                          a.soprannome ?? a.nomeGiocatore,
+                                      count: a.goal ?? 0,
+                                      home: true,
+                                    )),
+                            if (goalsConceded > 0)
+                              _TimelineEvent(
+                                name: opponent,
+                                count: goalsConceded,
+                                home: false,
+                              ),
+                          ],
+                          const SizedBox(height: 20),
+                          if (isLive)
+                            FilledButton.icon(
+                              onPressed: _concludeMatch,
+                              icon: const Icon(Icons.stop, size: 18),
+                              label: const Text('Concludi Partita'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: GimmyTokens.bad,
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size(double.infinity, 50),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-  // ── Timer Card ──
-
-  Widget _buildTimerCard(ColorScheme cs) {
-    final timerColor = _remainingSeconds <= 60
-        ? Colors.red
-        : _remainingSeconds <= 5 * 60
-            ? Colors.orange
-            : cs.primary;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [cs.primaryContainer.withOpacity(0.3), cs.surface],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
-      child: Column(
-        children: [
-          // Half indicator
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _halfPill('1T', _currentHalf == 1, cs),
-              const SizedBox(width: 8),
-              _halfPill('2T', _currentHalf == 2, cs),
-            ],
-          ),
-          const SizedBox(height: 8),
-          // Countdown display
-          Text(
-            _displayTime,
-            style: TextStyle(
-              fontSize: 64,
-              fontWeight: FontWeight.w700,
-              fontFamily: 'monospace',
-              color: timerColor,
-              letterSpacing: 4,
-            ),
-          ),
-          const SizedBox(height: 8),
-          // Controls
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Play/Pause
-              FilledButton.icon(
-                onPressed: _toggleTimer,
-                icon: Icon(_isRunning ? Icons.pause : Icons.play_arrow),
-                label: Text(_isRunning ? 'Pausa' : 'Avvia'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: _isRunning ? Colors.orange : Colors.green,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Second half / Reset
-              if (_currentHalf == 1)
-                OutlinedButton.icon(
-                  onPressed: _remainingSeconds == 0 || !_isRunning ? _startSecondHalf : null,
-                  icon: const Icon(Icons.skip_next),
-                  label: const Text('2° Tempo'),
-                )
-              else
-                OutlinedButton.icon(
-                  onPressed: !_isRunning ? _resetHalf : null,
-                  icon: const Icon(Icons.replay),
-                  label: const Text('Reset'),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _halfPill(String label, bool active, ColorScheme cs) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: BoxDecoration(
-        color: active ? cs.primary : cs.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(label, style: TextStyle(
-        fontWeight: FontWeight.bold,
-        color: active ? cs.onPrimary : cs.onSurfaceVariant,
-      )),
-    );
-  }
-
-  // ── Conclusa Banner ──
-
-  Widget _buildConclusaBanner(ColorScheme cs) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      color: Colors.grey.shade100,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.flag, color: Colors.grey.shade600),
-          const SizedBox(width: 8),
-          Text('Partita Conclusa',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade600,
-            )),
-          const SizedBox(width: 8),
-          Text('(modifica statistiche)',
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
-        ],
-      ),
-    );
-  }
-
-  // ── Score Card ──
-
-  Widget _buildScoreCard(int goalsScored, int goalsConceded, ColorScheme cs) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: cs.outlineVariant.withOpacity(0.3)),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Column(
-            children: [
-              Text('$goalsScored', style: TextStyle(
-                fontSize: 40, fontWeight: FontWeight.w800, color: cs.primary)),
-              Text('NOI', style: TextStyle(fontSize: 11,
-                fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Text('-', style: TextStyle(
-              fontSize: 32, fontWeight: FontWeight.w300, color: cs.onSurfaceVariant)),
-          ),
-          Column(
-            children: [
-              Text('$goalsConceded', style: TextStyle(
-                fontSize: 40, fontWeight: FontWeight.w800, color: Colors.red.shade600)),
-              Text('LORO', style: TextStyle(fontSize: 11,
-                fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Quick Actions ──
-
-  Widget _buildQuickActions(ColorScheme cs) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        alignment: WrapAlignment.center,
-        children: [
-          _actionButton('Goal', Icons.sports_soccer, Colors.green.shade600, StatType.goal),
-          _actionButton('Assist', Icons.handshake, Colors.purple.shade600, StatType.assist),
-          _actionButton('Ammon.', Icons.square, Colors.amber.shade700, StatType.ammonizione),
-          _actionButton('Espuls.', Icons.square, Colors.red.shade700, StatType.espulsione),
-          _actionButton('Autogol', Icons.sports_soccer, Colors.orange.shade700, StatType.autogoal),
-          _actionButton('G. Subiti', Icons.shield, Colors.deepOrange, StatType.goalSubiti),
-        ],
-      ),
-    );
-  }
-
-  Widget _actionButton(String label, IconData icon, Color color, StatType type) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: () => _onQuickAction(type),
-      child: Container(
-        width: 72,
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
+  void _showMenu(BuildContext context, bool isLive, int matchId) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: GimmyTokens.ink2,
+      builder: (ctx) => SafeArea(
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 4),
-            Text(label, style: TextStyle(
-              fontSize: 10, fontWeight: FontWeight.w600, color: color),
-              textAlign: TextAlign.center,
+            ListTile(
+              leading: const Icon(Icons.people, color: Colors.white),
+              title: const Text('Match Day',
+                  style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.push('/match/$matchId/day');
+              },
             ),
+            if (isLive)
+              ListTile(
+                leading: const Icon(Icons.stop, color: GimmyTokens.bad),
+                title: const Text('Concludi Partita',
+                    style: TextStyle(color: GimmyTokens.bad)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _concludeMatch();
+                },
+              ),
           ],
         ),
       ),
     );
   }
 
-  // ── Player Tile ──
+  void _showStatsDialog(BuildContext context, AttendanceModel att) {
+    final goalCtrl = TextEditingController(text: '${att.goal ?? ''}');
+    final assistCtrl = TextEditingController(text: '${att.assist ?? ''}');
+    final ammCtrl = TextEditingController(text: '${att.ammonizioni ?? ''}');
+    final espCtrl = TextEditingController(text: '${att.espulsioni ?? ''}');
 
-  Widget _buildPlayerTile(AttendanceModel att, ColorScheme cs) {
-    final stats = <Widget>[];
-    if ((att.goal ?? 0) > 0) {
-      stats.add(_statBadge(Icons.sports_soccer, '${att.goal}', Colors.green.shade700));
-    }
-    if ((att.assist ?? 0) > 0) {
-      stats.add(_statBadge(Icons.handshake_outlined, '${att.assist}', Colors.purple.shade600));
-    }
-    if ((att.ammonizioni ?? 0) > 0) {
-      stats.add(_statBadge(Icons.square, '${att.ammonizioni}', Colors.amber.shade700));
-    }
-    if ((att.espulsioni ?? 0) > 0) {
-      stats.add(_statBadge(Icons.square, '${att.espulsioni}', Colors.red.shade700));
-    }
-    if ((att.autogoal ?? 0) > 0) {
-      stats.add(_statBadge(Icons.sports_soccer, '${att.autogoal} AG', Colors.orange.shade700));
-    }
-    if ((att.goalSubiti ?? 0) > 0) {
-      stats.add(_statBadge(Icons.shield_outlined, '${att.goalSubiti} GS', Colors.deepOrange));
-    }
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 6),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => _showStatsDialog(context, att),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: Colors.blue,
-                radius: 20,
-                child: Text(
-                  (att.soprannome ?? att.nomeGiocatore).substring(0, 1).toUpperCase(),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(att.soprannome ?? att.nomeGiocatore,
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
-                    if (stats.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Wrap(spacing: 4, runSpacing: 2, children: stats),
-                    ],
-                  ],
-                ),
-              ),
-              Icon(Icons.edit_outlined, size: 18, color: cs.onSurfaceVariant.withOpacity(0.4)),
-            ],
-          ),
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(att.soprannome ?? att.nomeGiocatore),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(children: [
+              Expanded(child: _f(goalCtrl, 'Gol')),
+              const SizedBox(width: 10),
+              Expanded(child: _f(assistCtrl, 'Assist')),
+            ]),
+            const SizedBox(height: 10),
+            Row(children: [
+              Expanded(child: _f(ammCtrl, 'Amm.')),
+              const SizedBox(width: 10),
+              Expanded(child: _f(espCtrl, 'Esp.')),
+            ]),
+          ],
         ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Annulla')),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await context
+                  .read<AttendanceProvider>()
+                  .updateAttendance(widget.matchId, att.playerId,
+                      goal: int.tryParse(goalCtrl.text) ?? 0,
+                      assist: int.tryParse(assistCtrl.text) ?? 0,
+                      ammonizioni: int.tryParse(ammCtrl.text) ?? 0,
+                      espulsioni: int.tryParse(espCtrl.text) ?? 0);
+              _loadData();
+            },
+            child: const Text('Salva'),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _statBadge(IconData icon, String text, Color color) {
+  Widget _f(TextEditingController c, String label) {
+    return TextField(
+      controller: c,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      decoration: InputDecoration(labelText: label, isDense: true),
+    );
+  }
+}
+
+class _LiveHeader extends StatelessWidget {
+  final AnimationController pulse;
+  final VoidCallback onBack;
+  final VoidCallback onMore;
+  final bool isConclusa;
+  const _LiveHeader({
+    required this.pulse,
+    required this.onBack,
+    required this.onMore,
+    required this.isConclusa,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+      child: Row(
+        children: [
+          _darkBtn(Icons.arrow_back, onBack),
+          const Spacer(),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: isConclusa
+                  ? Colors.white.withOpacity(0.08)
+                  : GimmyTokens.bad.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: isConclusa
+                    ? Colors.white.withOpacity(0.2)
+                    : GimmyTokens.bad.withOpacity(0.4),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (!isConclusa)
+                  AnimatedBuilder(
+                    animation: pulse,
+                    builder: (c, _) => Container(
+                      width: 8,
+                      height: 8,
+                      margin: const EdgeInsets.only(right: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF3838),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFFF3838).withOpacity(
+                              0.4 + 0.4 * pulse.value,
+                            ),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                Text(
+                  isConclusa ? 'FINE' : 'LIVE',
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Spacer(),
+          _darkBtn(Icons.more_vert, onMore),
+        ],
+      ),
+    );
+  }
+
+  Widget _darkBtn(IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.12)),
+        ),
+        child: Icon(icon, size: 18, color: Colors.white),
+      ),
+    );
+  }
+}
+
+class _Scoreboard extends StatelessWidget {
+  final String teamInitials;
+  final String teamName;
+  final String awayInitials;
+  final String awayName;
+  final int homeGoals;
+  final int awayGoals;
+  final int half;
+  final String timeLabel;
+  final AnimationController pulse;
+
+  const _Scoreboard({
+    required this.teamInitials,
+    required this.teamName,
+    required this.awayInitials,
+    required this.awayName,
+    required this.homeGoals,
+    required this.awayGoals,
+    required this.half,
+    required this.timeLabel,
+    required this.pulse,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: GimmyTokens.brand.withOpacity(0.14),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: GimmyTokens.brand.withOpacity(0.3),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedBuilder(
+                animation: pulse,
+                builder: (c, _) => Container(
+                  width: 6,
+                  height: 6,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: GimmyTokens.brand
+                        .withOpacity(0.5 + 0.5 * pulse.value),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+              Text(
+                '${half}° TEMPO · $timeLabel',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: GimmyTokens.brand,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                children: [
+                  CrestBox(
+                    initials: teamInitials,
+                    size: 64,
+                    radius: 16,
+                    fontSize: 26,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    teamName,
+                    style: GoogleFonts.spaceGrotesk(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: Colors.white,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                children: [
+                  Text(
+                    '$homeGoals',
+                    style: GoogleFonts.bebasNeue(
+                      fontSize: 90,
+                      height: 0.85,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '—',
+                    style: GoogleFonts.bebasNeue(
+                      fontSize: 48,
+                      color: Colors.white.withOpacity(0.4),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '$awayGoals',
+                    style: GoogleFonts.bebasNeue(
+                      fontSize: 90,
+                      height: 0.85,
+                      color: Colors.white.withOpacity(0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Column(
+                children: [
+                  CrestBox(
+                    initials: awayInitials,
+                    filled: false,
+                    size: 64,
+                    radius: 16,
+                    fontSize: 22,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    awayName,
+                    style: GoogleFonts.spaceGrotesk(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: Colors.white,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _TimerControls extends StatelessWidget {
+  final String clockDisplay;
+  final bool isRunning;
+  final int remainingSeconds;
+  final int currentHalf;
+  final int numeroTempi;
+  final VoidCallback onToggle;
+  final VoidCallback onNextHalf;
+
+  const _TimerControls({
+    required this.clockDisplay,
+    required this.isRunning,
+    required this.remainingSeconds,
+    required this.currentHalf,
+    required this.numeroTempi,
+    required this.onToggle,
+    required this.onNextHalf,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(10),
+        color: Colors.white.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 2),
-          Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'TEMPO $currentHalf/$numeroTempi · COUNTDOWN',
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: GimmyTokens.textOnInkMute,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  clockDisplay,
+                  style: GoogleFonts.bebasNeue(
+                    fontSize: 44,
+                    height: 0.9,
+                    color: remainingSeconds <= 60
+                        ? GimmyTokens.bad
+                        : remainingSeconds <= 300
+                            ? GimmyTokens.warn
+                            : Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          InkWell(
+            onTap: onToggle,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: GimmyTokens.brand,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: GimmyTokens.brand.withOpacity(0.4),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Icon(
+                isRunning ? Icons.pause : Icons.play_arrow,
+                color: GimmyTokens.brandInk,
+                size: 24,
+              ),
+            ),
+          ),
+          if (currentHalf < numeroTempi) ...[
+            const SizedBox(width: 8),
+            InkWell(
+              onTap: (remainingSeconds == 0 || !isRunning)
+                  ? onNextHalf
+                  : null,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withOpacity(0.12)),
+                ),
+                child: Text(
+                  '${currentHalf + 1}°T',
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: (remainingSeconds == 0 || !isRunning)
+                        ? Colors.white
+                        : Colors.white.withOpacity(0.3),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-// ── Player Selector Bottom Sheet ──
+class _QuickActions extends StatelessWidget {
+  final void Function(StatType) onTap;
+  const _QuickActions({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = [
+      _QA('GOL', Icons.sports_soccer, GimmyTokens.brand, StatType.goal,
+          brand: true),
+      _QA('ASSIST', Icons.handshake_outlined, Colors.white, StatType.assist),
+      _QA('AMM.', Icons.square, GimmyTokens.warn, StatType.ammonizione),
+      _QA('ESP.', Icons.square_outlined, GimmyTokens.bad, StatType.espulsione),
+      _QA('AG', Icons.sports_soccer, Colors.orange, StatType.autogoal),
+      _QA('SUBITO', Icons.shield_outlined, GimmyTokens.bad, StatType.goalSubiti),
+    ];
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: items.map((q) {
+        final brand = q.brand;
+        return InkWell(
+          onTap: () => onTap(q.type),
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              color: brand
+                  ? GimmyTokens.brand
+                  : Colors.white.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(14),
+              border: brand
+                  ? null
+                  : Border.all(color: Colors.white.withOpacity(0.1)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(q.icon,
+                    size: 16,
+                    color: brand ? GimmyTokens.brandInk : q.color),
+                const SizedBox(width: 6),
+                Text(
+                  q.label,
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: brand ? GimmyTokens.brandInk : Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _QA {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final StatType type;
+  final bool brand;
+  _QA(this.label, this.icon, this.color, this.type, {this.brand = false});
+}
+
+class _OnFieldTile extends StatelessWidget {
+  final int number;
+  final AttendanceModel attendance;
+  final VoidCallback onTap;
+
+  const _OnFieldTile({
+    required this.number,
+    required this.attendance,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final name = attendance.soprannome ?? attendance.nomeGiocatore;
+    final goals = attendance.goal ?? 0;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: 72,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: GimmyTokens.brand,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Text(
+                  '$number',
+                  style: GoogleFonts.bebasNeue(
+                    fontSize: 28,
+                    color: GimmyTokens.brandInk,
+                    height: 0.9,
+                  ),
+                ),
+                if (goals > 0)
+                  Positioned(
+                    top: -4,
+                    right: -12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 5, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: GimmyTokens.ink,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '⚽$goals',
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: GimmyTokens.brand,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+                color: GimmyTokens.brandInk,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TimelineEvent extends StatelessWidget {
+  final String name;
+  final int count;
+  final bool home;
+  const _TimelineEvent({
+    required this.name,
+    required this.count,
+    required this.home,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = home ? GimmyTokens.brand : const Color(0xFFFF5252);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.04),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withOpacity(0.08)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              '×$count',
+              style: GoogleFonts.bebasNeue(fontSize: 20, color: color),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    home ? 'GOL' : 'GOL SUBITO',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withOpacity(0.5),
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  Text(
+                    name,
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _PlayerSelectorSheet extends StatelessWidget {
   final List<AttendanceModel> players;
@@ -666,86 +1081,63 @@ class _PlayerSelectorSheet extends StatelessWidget {
 
   String get _actionLabel {
     switch (actionType) {
-      case StatType.goal: return 'Goal';
-      case StatType.assist: return 'Assist';
-      case StatType.ammonizione: return 'Ammonizione';
-      case StatType.espulsione: return 'Espulsione';
-      case StatType.autogoal: return 'Autogoal';
-      case StatType.goalSubiti: return 'Goal Subito';
+      case StatType.goal:
+        return 'GOL';
+      case StatType.assist:
+        return 'ASSIST';
+      case StatType.ammonizione:
+        return 'AMMONIZIONE';
+      case StatType.espulsione:
+        return 'ESPULSIONE';
+      case StatType.autogoal:
+        return 'AUTOGOL';
+      case StatType.goalSubiti:
+        return 'GOL SUBITO';
     }
   }
 
-  IconData get _actionIcon {
+  int _currentValue(AttendanceModel att) {
     switch (actionType) {
-      case StatType.goal: return Icons.sports_soccer;
-      case StatType.assist: return Icons.handshake;
-      case StatType.ammonizione: return Icons.square;
-      case StatType.espulsione: return Icons.square;
-      case StatType.autogoal: return Icons.sports_soccer;
-      case StatType.goalSubiti: return Icons.shield;
-    }
-  }
-
-  Color get _actionColor {
-    switch (actionType) {
-      case StatType.goal: return Colors.green.shade600;
-      case StatType.assist: return Colors.purple.shade600;
-      case StatType.ammonizione: return Colors.amber.shade700;
-      case StatType.espulsione: return Colors.red.shade700;
-      case StatType.autogoal: return Colors.orange.shade700;
-      case StatType.goalSubiti: return Colors.deepOrange;
-    }
-  }
-
-  int _getCurrentValue(AttendanceModel att) {
-    switch (actionType) {
-      case StatType.goal: return att.goal ?? 0;
-      case StatType.assist: return att.assist ?? 0;
-      case StatType.ammonizione: return att.ammonizioni ?? 0;
-      case StatType.espulsione: return att.espulsioni ?? 0;
-      case StatType.autogoal: return att.autogoal ?? 0;
-      case StatType.goalSubiti: return att.goalSubiti ?? 0;
+      case StatType.goal:
+        return att.goal ?? 0;
+      case StatType.assist:
+        return att.assist ?? 0;
+      case StatType.ammonizione:
+        return att.ammonizioni ?? 0;
+      case StatType.espulsione:
+        return att.espulsioni ?? 0;
+      case StatType.autogoal:
+        return att.autogoal ?? 0;
+      case StatType.goalSubiti:
+        return att.goalSubiti ?? 0;
     }
   }
 
   Future<void> _assign(BuildContext context, AttendanceModel att) async {
-    final current = _getCurrentValue(att);
+    final current = _currentValue(att);
     final newVal = current + 1;
-
     Navigator.pop(context);
-
     final provider = context.read<AttendanceProvider>();
     switch (actionType) {
       case StatType.goal:
         await provider.updateAttendance(matchId, att.playerId, goal: newVal);
       case StatType.assist:
-        await provider.updateAttendance(matchId, att.playerId, assist: newVal);
+        await provider.updateAttendance(matchId, att.playerId,
+            assist: newVal);
       case StatType.ammonizione:
-        await provider.updateAttendance(matchId, att.playerId, ammonizioni: newVal);
+        await provider.updateAttendance(matchId, att.playerId,
+            ammonizioni: newVal);
       case StatType.espulsione:
-        await provider.updateAttendance(matchId, att.playerId, espulsioni: newVal);
+        await provider.updateAttendance(matchId, att.playerId,
+            espulsioni: newVal);
       case StatType.autogoal:
-        await provider.updateAttendance(matchId, att.playerId, autogoal: newVal);
+        await provider.updateAttendance(matchId, att.playerId,
+            autogoal: newVal);
       case StatType.goalSubiti:
-        await provider.updateAttendance(matchId, att.playerId, goalSubiti: newVal);
+        await provider.updateAttendance(matchId, att.playerId,
+            goalSubiti: newVal);
     }
-
     onComplete();
-
-    if (context.mounted) {
-      final name = att.soprannome ?? att.nomeGiocatore;
-      final emoji = actionType == StatType.goal ? '\u26BD' :
-                    actionType == StatType.assist ? '\ud83e\udd1d' :
-                    actionType == StatType.ammonizione ? '\ud83d\udfe8' :
-                    actionType == StatType.espulsione ? '\ud83d\udfe5' :
-                    actionType == StatType.autogoal ? '\ud83d\ude2c' : '\ud83e\udee3';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$emoji $_actionLabel assegnato a $name ($newVal)'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
   }
 
   @override
@@ -756,28 +1148,24 @@ class _PlayerSelectorSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Handle
             Container(
-              width: 40, height: 4,
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 12),
-            // Title
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(_actionIcon, color: _actionColor, size: 24),
-                const SizedBox(width: 8),
-                Text('Assegna $_actionLabel',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _actionColor)),
-              ],
+            const SizedBox(height: 16),
+            Text(
+              'ASSEGNA $_actionLabel',
+              style: GoogleFonts.bebasNeue(
+                fontSize: 22,
+                color: GimmyTokens.brand,
+                letterSpacing: 0.04 * 22,
+              ),
             ),
-            const SizedBox(height: 8),
-            const Divider(height: 1),
-            // Player list
+            const SizedBox(height: 12),
             ConstrainedBox(
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(context).size.height * 0.5,
@@ -785,31 +1173,60 @@ class _PlayerSelectorSheet extends StatelessWidget {
               child: ListView.builder(
                 shrinkWrap: true,
                 itemCount: players.length,
-                itemBuilder: (context, index) {
-                  final att = players[index];
-                  final current = _getCurrentValue(att);
-                  return ListTile(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemBuilder: (context, i) {
+                  final att = players[i];
+                  final current = _currentValue(att);
+                  final name = att.soprannome ?? att.nomeGiocatore;
+                  return InkWell(
                     onTap: () => _assign(context, att),
-                    leading: CircleAvatar(
-                      backgroundColor: _actionColor.withOpacity(0.15),
-                      child: Text(
-                        (att.soprannome ?? att.nomeGiocatore).substring(0, 1).toUpperCase(),
-                        style: TextStyle(fontWeight: FontWeight.bold, color: _actionColor),
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                            color: Colors.white.withOpacity(0.08)),
+                      ),
+                      child: Row(
+                        children: [
+                          JerseyNumber(
+                            number: i + 1,
+                            size: 40,
+                            fontSize: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              name,
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          if (current > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: GimmyTokens.brand.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                '×$current',
+                                style: GoogleFonts.bebasNeue(
+                                  fontSize: 16,
+                                  color: GimmyTokens.brand,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                    title: Text(att.soprannome ?? att.nomeGiocatore,
-                      style: const TextStyle(fontWeight: FontWeight.w500)),
-                    trailing: current > 0
-                        ? Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: _actionColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text('$current', style: TextStyle(
-                              fontWeight: FontWeight.bold, color: _actionColor)),
-                          )
-                        : null,
                   );
                 },
               ),

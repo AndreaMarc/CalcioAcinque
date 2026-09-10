@@ -1,3 +1,5 @@
+import 'team_format.dart';
+
 class DashboardModel {
   final MatchSummary? prossimaPartita;
   final bool useGettoni;
@@ -7,15 +9,33 @@ class DashboardModel {
   final int partiteGiocate;
   final int partiteTotali;
   final List<PlayerTokenSummary> classificaGettoni;
+  final String teamNome;
+  final TeamFormat formato;
+  final String formatoLabel;
+  final String formatoShortLabel;
+  final int giocatoriInCampo;
+  final int? maxConvocati;
+  final int? clubId;
+  final String? clubNome;
 
   DashboardModel({
     this.prossimaPartita, this.useGettoni = true,
     required this.gettoniRimanenti, required this.gettoniTotali,
     required this.convocazioniInAttesa, required this.partiteGiocate,
     required this.partiteTotali, required this.classificaGettoni,
+    this.teamNome = '',
+    this.formato = TeamFormat.calcioA5,
+    this.formatoLabel = 'Calcio a 5',
+    this.formatoShortLabel = 'A5',
+    this.giocatoriInCampo = 5,
+    this.maxConvocati,
+    this.clubId,
+    this.clubNome,
   });
 
-  factory DashboardModel.fromJson(Map<String, dynamic> json) => DashboardModel(
+  factory DashboardModel.fromJson(Map<String, dynamic> json) {
+    final formato = TeamFormatX.fromApi(json['formato'] as String?);
+    return DashboardModel(
     prossimaPartita: json['prossimaPartita'] != null
         ? MatchSummary.fromJson(json['prossimaPartita']) : null,
     useGettoni: json['useGettoni'] ?? true,
@@ -26,7 +46,16 @@ class DashboardModel {
     partiteTotali: json['partiteTotali'] ?? 0,
     classificaGettoni: (json['classificaGettoni'] as List? ?? [])
         .map((e) => PlayerTokenSummary.fromJson(e)).toList(),
+    teamNome: json['teamNome'] as String? ?? '',
+    formato: formato,
+    formatoLabel: json['formatoLabel'] as String? ?? formato.label,
+    formatoShortLabel: json['formatoShortLabel'] as String? ?? formato.shortLabel,
+    giocatoriInCampo: (json['giocatoriInCampo'] as num?)?.toInt() ?? formato.giocatoriInCampo,
+    maxConvocati: (json['maxConvocati'] as num?)?.toInt(),
+    clubId: json['clubId'] as int?,
+    clubNome: json['clubNome'] as String?,
   );
+  }
 }
 
 class MatchSummary {

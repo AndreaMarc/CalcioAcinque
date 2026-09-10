@@ -1,0 +1,15 @@
+# Build .NET
+Backend/bin/
+Backend/obj/
+Backend/publish-linux/
+
+# Build Flutter
+Frontend/build/
+Frontend/.dart_tool/
+
+# Archivi di deploy manuale
+*.zip
+*.tar.gz
+
+# Impostazioni locali Claude Code
+.claude/

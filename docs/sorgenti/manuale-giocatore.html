@@ -1,0 +1,641 @@
+<title>CalcioAcinque per i giocatori</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@500&display=swap">
+
+<style>
+  :root {
+    --paper: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #0A0E0F;
+    --text: #0A0E0F;
+    --mute: #6B6A63;
+    --faint: #9E9C91;
+    --line: #E8E6DF;
+    --line-2: #D8D5CC;
+    --brand: #00D27F;
+    --brand-deep: #00A863;
+    --brand-ink: #003D24;
+    --brand-soft: #E4FBEE;
+    --warn: #E89A2B;
+    --warn-soft: #FCEDD2;
+    --warn-ink: #8A5510;
+    --bad: #E84A4A;
+    --info: #3B7CF2;
+    --chip-bg: #F1EFE8;
+    --chip-line: #DEDBD1;
+
+    --display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+    --body: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0A0E0F;
+      --card: #151A1C;
+      --ink: #F5F5F2;
+      --text: #F5F5F2;
+      --mute: #8A908E;
+      --faint: #6E7573;
+      --line: #242A2C;
+      --line-2: #333A3C;
+      --brand: #00E88C;
+      --brand-deep: #00E88C;
+      --brand-ink: #04120B;
+      --brand-soft: #10241A;
+      --warn: #F0AC4C;
+      --warn-soft: #2C2213;
+      --warn-ink: #F0AC4C;
+      --bad: #F26A6A;
+      --info: #6A9CF7;
+      --chip-bg: #1D2325;
+      --chip-line: #2E3537;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #0A0E0F;
+    --card: #151A1C;
+    --ink: #F5F5F2;
+    --text: #F5F5F2;
+    --mute: #8A908E;
+    --faint: #6E7573;
+    --line: #242A2C;
+    --line-2: #333A3C;
+    --brand: #00E88C;
+    --brand-deep: #00E88C;
+    --brand-ink: #04120B;
+    --brand-soft: #10241A;
+    --warn: #F0AC4C;
+    --warn-soft: #2C2213;
+    --warn-ink: #F0AC4C;
+    --bad: #F26A6A;
+    --info: #6A9CF7;
+    --chip-bg: #1D2325;
+    --chip-line: #2E3537;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.62;
+    overflow-wrap: break-word;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* La pagina vive dentro un riquadro che spesso non e' largo come una finestra
+     intera: la colonna singola centrata deve reggere da sola a qualsiasi
+     larghezza, e la barra laterale si aggiunge solo quando c'e' davvero spazio. */
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 0 22px 96px;
+  }
+  @media (min-width: 1000px) { .wrap { max-width: 1084px; } }
+
+  /* ---------- testata ---------- */
+  .masthead {
+    padding: 40px 0 28px;
+    border-bottom: 2px solid var(--ink);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .kicker {
+    font-family: var(--display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--brand-deep);
+  }
+  h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(34px, 6.4vw, 56px);
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .standfirst {
+    font-size: 19px;
+    color: var(--mute);
+    max-width: 60ch;
+    margin: 0;
+  }
+  .addressbar {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    align-self: flex-start;
+    font-family: var(--mono);
+    font-size: 13px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 9px 14px;
+    border-radius: 999px;
+  }
+  .addressbar .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--brand);
+    flex: none;
+  }
+
+  /* ---------- impaginato ---------- */
+  /* minmax(0, ...) e non 1fr: con 1fr il minimo della colonna e' il contenuto
+     piu' largo che contiene, e la striscia dell'indice (pastiglie nowrap)
+     stirava tutto il documento oltre il bordo del riquadro. */
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
+
+  /* Un solo indice per due forme: pastiglie in fila quando la colonna e' una,
+     colonna fissa appiccicata in alto quando la pagina si allarga. */
+  .index { padding: 26px 0 2px; min-width: 0; }
+  .index ol {
+    list-style: none; margin: 0; padding: 0 0 6px;
+    display: flex; flex-direction: row; gap: 8px;
+    overflow-x: auto; counter-reset: idx; min-width: 0;
+    scrollbar-width: thin;
+  }
+  .index li { counter-increment: idx; flex: none; }
+  .index a {
+    display: flex; gap: 7px; align-items: baseline;
+    font-family: var(--display);
+    font-size: 12.5px;
+    line-height: 1.3;
+    color: var(--mute);
+    text-decoration: none;
+    white-space: nowrap;
+    padding: 7px 13px;
+    background: var(--card);
+    border: 1px solid var(--chip-line);
+    border-radius: 999px;
+  }
+  .index a::before {
+    content: counter(idx, decimal-leading-zero);
+    font-variant-numeric: tabular-nums;
+    color: var(--faint);
+    flex: none;
+  }
+  .index a:hover { color: var(--text); border-color: var(--mute); }
+  .index a:focus-visible { outline: 2px solid var(--brand-deep); outline-offset: 2px; }
+
+  @media (min-width: 1000px) {
+    .layout { grid-template-columns: 186px minmax(0, 1fr); gap: 48px; align-items: start; }
+    .index { position: sticky; top: 26px; padding: 50px 0 0; }
+    .index ol { flex-direction: column; gap: 2px; overflow: visible; padding-bottom: 0; }
+    .index li { flex: 0 1 auto; }
+    .index a {
+      white-space: normal;
+      background: none;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 8px;
+      font-size: 13px;
+    }
+    .index a:hover { background: var(--chip-bg); }
+  }
+
+  /* I binari Android/iPhone si affiancano in base alla colonna, non alla finestra */
+  main { padding-top: 8px; min-width: 0; container-type: inline-size; }
+
+  section { padding: 40px 0 8px; border-top: 1px solid var(--line); }
+  section:first-of-type { border-top: none; }
+  h2 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(23px, 3.4vw, 30px);
+    letter-spacing: -0.02em;
+    line-height: 1.14;
+    margin: 0 0 6px;
+    text-wrap: balance;
+    scroll-margin-top: 20px;
+  }
+  h2 .num {
+    font-size: 13px;
+    color: var(--brand-deep);
+    letter-spacing: 0.1em;
+    display: block;
+    margin-bottom: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  h3 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.005em;
+    margin: 26px 0 6px;
+  }
+  p { margin: 0 0 14px; max-width: 64ch; }
+  .lede { color: var(--mute); max-width: 64ch; margin-bottom: 20px; }
+  strong { font-weight: 600; }
+  a { color: var(--brand-deep); }
+
+  /* etichette letterali dell'app */
+  /* Niente nowrap: una pastiglia lunga come l'indirizzo del sito allargherebbe
+     la pagina invece di andare a capo. */
+  .tap {
+    font-family: var(--mono);
+    font-size: 0.84em;
+    background: var(--chip-bg);
+    border: 1px solid var(--chip-line);
+    border-radius: 6px;
+    padding: 1px 6px;
+    overflow-wrap: anywhere;
+  }
+
+  /* ---------- passi numerati ---------- */
+  ol.steps { list-style: none; margin: 0 0 18px; padding: 0; counter-reset: step; display: flex; flex-direction: column; gap: 12px; max-width: 64ch; }
+  /* Il numero e' posizionato in assoluto e non come cella di un grid: dentro un
+     grid ogni figlio inline (strong, span) diventerebbe un item per conto suo
+     e il passo si spezzerebbe in pezzi sovrapposti. */
+  ol.steps > li { counter-increment: step; position: relative; padding-left: 38px; min-height: 24px; }
+  ol.steps > li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 2px;
+    width: 24px;
+    height: 24px;
+    font-family: var(--display);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 24px;
+    text-align: center;
+    border-radius: 7px;
+    background: var(--ink);
+    color: var(--paper);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- binari Android / iPhone ---------- */
+  .tracks { display: grid; grid-template-columns: 1fr; gap: 16px; margin: 22px 0 8px; }
+  @container (min-width: 620px) { .tracks { grid-template-columns: 1fr 1fr; } }
+  @supports not (container-type: inline-size) {
+    @media (min-width: 780px) { .tracks { grid-template-columns: 1fr 1fr; } }
+  }
+  .track {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px 20px 22px;
+    display: flex;
+    flex-direction: column;
+  }
+  .track-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+  .track-head h3 { margin: 0; font-size: 19px; }
+  .track-head .os {
+    font-family: var(--display);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .track .req { font-size: 14px; color: var(--mute); margin: 0 0 16px; }
+  .track ol.steps { margin-bottom: 0; }
+  .track ol.steps > li::before { background: var(--brand); color: var(--brand-ink); }
+  .track--ios ol.steps > li::before { background: var(--ink); color: var(--paper); }
+  .step-flag {
+    display: inline-block;
+    font-family: var(--display);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--warn-ink);
+    background: var(--warn-soft);
+    border-radius: 5px;
+    padding: 2px 7px;
+    margin-left: 6px;
+    vertical-align: 2px;
+  }
+
+  /* ---------- riquadri ---------- */
+  .note {
+    border-left: 3px solid var(--brand);
+    background: var(--brand-soft);
+    border-radius: 0 12px 12px 0;
+    padding: 16px 18px;
+    margin: 22px 0;
+    max-width: 64ch;
+  }
+  .note.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  .note h3 { margin: 0 0 6px; font-size: 15px; }
+  .note p:last-child { margin-bottom: 0; }
+  .note p { font-size: 15.5px; }
+
+  /* ---------- legenda schede ---------- */
+  .legend { display: flex; flex-direction: column; gap: 0; margin: 18px 0 8px; border-top: 1px solid var(--line); max-width: 64ch; }
+  .legend > div {
+    display: grid;
+    grid-template-columns: 108px minmax(0, 1fr);
+    gap: 16px;
+    padding: 13px 2px;
+    border-bottom: 1px solid var(--line);
+    align-items: baseline;
+  }
+  @container (max-width: 440px) {
+    .legend > div { grid-template-columns: 1fr; gap: 3px; }
+  }
+  .legend dt, .legend .name {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .legend .desc { font-size: 15.5px; color: var(--mute); }
+  .legend .desc em { font-style: normal; color: var(--text); }
+
+  /* ---------- domande ---------- */
+  .faq { display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--line); max-width: 64ch; }
+  .faq > div { padding: 18px 0; border-bottom: 1px solid var(--line); }
+  .faq .q { font-family: var(--display); font-weight: 700; font-size: 16px; margin: 0 0 6px; }
+  .faq p { font-size: 16px; margin: 0; color: var(--mute); }
+  .faq p .tap { color: var(--text); }
+
+  .footer {
+    margin-top: 48px;
+    padding-top: 22px;
+    border-top: 2px solid var(--ink);
+    font-size: 14px;
+    color: var(--mute);
+    max-width: 64ch;
+  }
+
+  ul.plain { margin: 0 0 16px; padding-left: 20px; max-width: 64ch; }
+  ul.plain li { margin-bottom: 7px; }
+
+
+  /* ---------- carta ----------
+     Su stampa si forza la tavolozza chiara: il tema scuro dell'artifact su
+     carta sarebbe illeggibile e sprecherebbe toner. */
+  @media print {
+    /* I tre selettori insieme, non solo :root: il blocco del tema scuro usa
+       :root:not([data-theme="light"]), che ha specificita' piu' alta e senza
+       questo vincerebbe anche in stampa, mandando in stampa il fondo nero. */
+    :root,
+    :root:not([data-theme="light"]),
+    :root[data-theme="dark"] {
+      color-scheme: light;
+      --paper: #FFFFFF;
+      --card: #FFFFFF;
+      --ink: #0A0E0F;
+      --text: #14181A;
+      --mute: #4C4B45;
+      --faint: #77756C;
+      --line: #CFCCC3;
+      --line-2: #CFCCC3;
+      --grid-line: #D8D5CC;
+      --brand: #00A15F;
+      --brand-deep: #006B45;
+      --brand-ink: #00291A;
+      --brand-soft: #EAF9F1;
+      --brand-on-soft: #00563A;
+      --warn: #B87614;
+      --warn-soft: #FBF1DE;
+      --warn-ink: #6B4209;
+      --bad: #C23333;
+      --bad-soft: #FBE7E7;
+      --bad-ink: #8A1F1F;
+      --info: #2B5FBF;
+      --info-soft: #EAF0FC;
+      --info-ink: #17408F;
+      --chip-bg: #F2F1EC;
+      --chip-line: #D6D3CA;
+    }
+
+    @page { margin: 16mm 14mm 18mm; }
+
+    body { background: #FFFFFF; font-size: 10.5pt; line-height: 1.5; }
+    .wrap { max-width: none; margin: 0; padding: 0; }
+    .layout { display: block; }
+    .index { display: none; }
+    main { padding-top: 0; container-type: normal; }
+
+    .masthead { padding: 0 0 16px; break-after: avoid; }
+    h1 { font-size: 26pt; }
+    .standfirst { font-size: 12pt; }
+    section { padding: 16px 0 4px; }
+    h2 { font-size: 15pt; break-after: avoid; }
+    h3 { font-size: 11.5pt; break-after: avoid; }
+    p { orphans: 2; widows: 2; }
+
+    /* Un passo, una scheda o un riquadro spezzati a meta' pagina si leggono male */
+    ol.steps > li, .legend > div, .note, .track, .faq > div, .gotchas > div,
+    table.matrix tr { break-inside: avoid; }
+
+    .tracks { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .matrix-scroll { overflow: visible; }
+    table.matrix { min-width: 0; font-size: 9.5pt; }
+    table.matrix th, table.matrix td { padding: 7px 8px; }
+
+    a { color: inherit; text-decoration: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <span class="kicker">Manuale — giocatori</span>
+    <h1>CalcioAcinque per i giocatori</h1>
+    <p class="standfirst">Tutto quello che serve sapere per rispondere alle convocazioni, ricevere le notifiche e tenere in ordine i pagamenti. Dall'installazione sul telefono in poi.</p>
+    <span class="addressbar"><span class="dot"></span>calcioacinque.studiorocket.it</span>
+  </header>
+
+  <div class="layout">
+    <nav class="index" aria-label="Indice">
+      <ol>
+        <li><a href="#installa">Installa sul telefono</a></li>
+        <li><a href="#entra">Entra la prima volta</a></li>
+        <li><a href="#notifiche">Accendi le notifiche</a></li>
+        <li><a href="#giro">Dove si trova cosa</a></li>
+        <li><a href="#settimana">La settimana tipo</a></li>
+        <li><a href="#pagamenti">Pagamenti</a></li>
+        <li><a href="#gettoni">Gettoni</a></li>
+        <li><a href="#problemi">Se qualcosa non va</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="installa">
+        <h2><span class="num">PASSO 01</span>Installa l'app sul telefono</h2>
+        <p class="lede">CalcioAcinque non sta su Play Store né su App Store: è un sito che si installa da solo, dal browser. Ci vuole un minuto e va fatto una volta sola. <strong>Serve anche per ricevere le notifiche</strong>, quindi non saltarlo.</p>
+
+        <div class="tracks">
+          <div class="track track--android">
+            <div class="track-head">
+              <h3>Android</h3>
+              <span class="os">Chrome</span>
+            </div>
+            <p class="req">Qualsiasi telefono recente. Va bene anche Edge o Samsung Internet.</p>
+            <ol class="steps">
+              <li>Apri <strong>Chrome</strong> e vai su <span class="tap">calcioacinque.studiorocket.it</span></li>
+              <li>Tocca il menu <span class="tap">⋮</span> in alto a destra</li>
+              <li>Scegli <span class="tap">Installa app</span>, oppure <span class="tap">Aggiungi a schermata Home</span> se non trovi la prima</li>
+              <li>Conferma. Trovi l'icona insieme alle altre app</li>
+              <li>D'ora in poi apri sempre <strong>da quell'icona</strong></li>
+            </ol>
+          </div>
+
+          <div class="track track--ios">
+            <div class="track-head">
+              <h3>iPhone</h3>
+              <span class="os">Safari</span>
+            </div>
+            <p class="req">Serve <strong>iOS 16.4 o più recente</strong>. Controlla in Impostazioni → Generali → Info.</p>
+            <ol class="steps">
+              <li>Apri <strong>Safari</strong> — non Chrome, su iPhone da Chrome non funziona — e vai su <span class="tap">calcioacinque.studiorocket.it</span></li>
+              <li>Tocca il tasto <strong>Condividi</strong>: il quadrato con la freccia verso l'alto, in fondo allo schermo</li>
+              <li>Scorri l'elenco e scegli <span class="tap">Aggiungi a schermata Home</span></li>
+              <li>Apri l'app <strong>dalla nuova icona</strong> in Home <span class="step-flag">obbligatorio</span></li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="note warn">
+          <h3>iPhone: senza l'icona in Home le notifiche non arrivano</h3>
+          <p>Se apri il sito da Safari come una pagina qualsiasi, l'interruttore delle notifiche non compare proprio. Non è un difetto dell'app: Apple permette le notifiche web solo alle pagine aggiunte alla schermata Home. Su Android questo vincolo non c'è, ma installare conviene lo stesso.</p>
+        </div>
+      </section>
+
+      <section id="entra">
+        <h2><span class="num">PASSO 02</span>Entra la prima volta</h2>
+        <p class="lede">Ti serve il <strong>codice invito</strong> della squadra: chiedilo a chi la gestisce. È una stringa breve che vale per tutti.</p>
+        <ol class="steps">
+          <li>Nella schermata di accesso tocca <span class="tap">Registrati</span> e crea l'account con la tua email e una password di almeno 6 caratteri</li>
+          <li>Scegli <span class="tap">Unisciti con codice</span></li>
+          <li>Incolla il codice invito e tocca <span class="tap">Verifica</span>: compare il nome della squadra, così sei sicuro di non aver sbagliato</li>
+          <li>Se chi gestisce la rosa ti aveva già inserito, il tuo nome appare sotto <span class="tap">Sei uno di questi?</span> — toccalo, così riprendi la tua scheda invece di crearne una nuova</li>
+          <li>Altrimenti scrivi nome, soprannome e telefono, e conferma</li>
+        </ol>
+        <p>Se giochi in due squadre della stessa società, l'account resta uno solo. Passi dall'una all'altra da <span class="tap">Impostazioni</span> → <span class="tap">I MIEI TEAM</span>, toccando la squadra che ti interessa.</p>
+      </section>
+
+      <section id="notifiche">
+        <h2><span class="num">PASSO 03</span>Accendi le notifiche</h2>
+        <p class="lede">Sono il motivo per cui l'app esiste: se le tieni spente devi ricordarti di aprirla, e prima o poi ti perdi una convocazione.</p>
+        <ol class="steps">
+          <li>Dalla <strong>Home</strong>, tocca l'ingranaggio in alto a destra per aprire <span class="tap">Impostazioni</span></li>
+          <li>Scendi fino alla sezione <span class="tap">NOTIFICHE</span> e accendi <span class="tap">Notifiche su questo dispositivo</span></li>
+          <li>Il telefono chiede il permesso: tocca <strong>Consenti</strong>. È l'unica occasione in cui te lo chiede</li>
+          <li>Tocca <span class="tap">Invia notifica di prova</span>: se arriva, hai finito</li>
+        </ol>
+
+        <h3>Cosa ti arriva</h3>
+        <p>Ognuna si può spegnere separatamente, dalla stessa schermata.</p>
+        <div class="legend">
+          <div><span class="name">Convocazioni</span><span class="desc">Quando vieni convocato per una partita</span></div>
+          <div><span class="name">Promemoria partita</span><span class="desc">Poco prima del fischio d'inizio. Chi non ha ancora risposto riceve un sollecito, chi ha confermato un promemoria</span></div>
+          <div><span class="name">Partite modificate</span><span class="desc">Quando cambia data, ora o campo di una partita per cui sei convocato</span></div>
+          <div><span class="name">Avvisi in bacheca</span><span class="desc">Quando viene pubblicata una comunicazione</span></div>
+          <div><span class="name">Pagamenti da saldare</span><span class="desc">Quando ti viene addebitata una quota o una partita</span></div>
+        </div>
+        <p>Toccando la notifica l'app si apre già sulla schermata giusta: la partita, la bacheca o i pagamenti.</p>
+      </section>
+
+      <section id="giro">
+        <h2><span class="num">PASSO 04</span>Dove si trova cosa</h2>
+        <p class="lede">In fondo allo schermo ci sono le schede principali. La scheda <em>Gettoni</em> compare solo se la tua squadra usa quel sistema.</p>
+        <div class="legend">
+          <div><span class="name">Home</span><span class="desc">La prossima partita con i tasti per rispondere, chi c'è stasera, i tuoi gettoni, l'ultimo avviso</span></div>
+          <div><span class="name">Partite</span><span class="desc">Calendario del mese, prossime e passate. Tocca una partita per aprirla</span></div>
+          <div><span class="name">Rosa</span><span class="desc">Tutti i compagni con numero di maglia e ruolo</span></div>
+          <div><span class="name">Gettoni</span><span class="desc">Quanti te ne restano e la classifica della squadra</span></div>
+          <div><span class="name">Stats</span><span class="desc">Statistiche della stagione e capocannonieri</span></div>
+          <div><span class="name">Bacheca</span><span class="desc">Le comunicazioni. Il pallino rosso conta quelle che non hai ancora letto</span></div>
+        </div>
+        <p>In alto sulla Home, oltre all'ingranaggio, trovi la campanella (che porta in bacheca) e il <strong>portafoglio</strong>, che apre i tuoi pagamenti.</p>
+      </section>
+
+      <section id="settimana">
+        <h2><span class="num">PASSO 05</span>La settimana tipo</h2>
+        <p class="lede">Dall'annuncio della partita all'eventuale addebito, nell'ordine in cui le cose ti succedono.</p>
+        <ol class="steps">
+          <li><strong>Dai la disponibilità.</strong> Appena la partita è in calendario, sulla Home compaiono <span class="tap">Ci sono</span> e <span class="tap">Non ci sono</span>. Servono al mister <em>prima</em> di scegliere la formazione: rispondi presto, anche se poi cambia qualcosa.</li>
+          <li><strong>Arriva la convocazione.</strong> Se il mister ti chiama, ricevi una notifica. Aprila e conferma con <span class="tap">Ci sono</span> o rifiuta con <span class="tap">Non ci sono</span>. Questa è la risposta che conta per la distinta.</li>
+          <li><strong>Il promemoria.</strong> Qualche ora prima della partita arriva un avviso con orario e campo. Se non avevi risposto, te lo ricorda.</li>
+          <li><strong>Dopo la partita.</strong> Il mister segna chi c'era davvero. Da lì si scala il gettone e, se paghi a partita, può arrivarti l'addebito.</li>
+        </ol>
+
+        <div class="note">
+          <h3>Disponibilità e convocazione non sono la stessa cosa</h3>
+          <p>La <strong>disponibilità</strong> la dai tu, quando vuoi, per far sapere se in linea di massima ci sei. La <strong>convocazione</strong> te la manda il mister a un gruppo ristretto, e la sua risposta è quella definitiva. Può capitare di essere disponibili e non convocati: è normale, soprattutto quando i convocati per partita hanno un tetto massimo.</p>
+        </div>
+      </section>
+
+      <section id="pagamenti">
+        <h2><span class="num">PASSO 06</span>Pagamenti</h2>
+        <p class="lede">Apri il portafoglio in alto sulla Home, oppure <span class="tap">Impostazioni</span> → <span class="tap">I miei pagamenti</span>. Vedi solo le tue voci: quelle degli altri non sono affari tuoi e l'app non te le mostra.</p>
+
+        <h3>Cosa può comparire</h3>
+        <ul class="plain">
+          <li><strong>Quota iscrizione</strong> e <strong>quota tesseramento</strong>: le quote fisse di inizio stagione</li>
+          <li><strong>Partita</strong>: l'addebito della singola partita, se paghi a consumo invece che con la quota stagionale</li>
+        </ul>
+        <p>I filtri in alto separano <span class="tap">Da pagare</span>, <span class="tap">In verifica</span>, <span class="tap">Pagati</span> e <span class="tap">Tutti</span>.</p>
+
+        <h3>Come si paga</h3>
+        <ol class="steps">
+          <li>Se c'è qualcosa da saldare, in cima trovi il riquadro <span class="tap">Come pagare</span> con i dati della squadra</li>
+          <li>Tocca <span class="tap">PayPal</span> per aprire il link già pronto, oppure <span class="tap">Copia IBAN</span> e incollalo nell'app della banca</li>
+          <li>Fatto il versamento, torna nell'app e tocca <span class="tap">Ho pagato</span> sulla voce</li>
+          <li>La voce passa <strong>in verifica</strong>. Quando chi tiene la cassa controlla l'accredito, diventa <strong>pagata</strong></li>
+        </ol>
+
+        <div class="note">
+          <h3>Non sei tu a segnare "pagato"</h3>
+          <p><span class="tap">Ho pagato</span> è una dichiarazione, non una conferma: serve a far sapere che il bonifico è partito. La spunta definitiva la mette chi tiene la cassa dopo aver visto i soldi. È giusto così — evita malintesi a fine stagione.</p>
+        </div>
+      </section>
+
+      <section id="gettoni">
+        <h2><span class="num">PASSO 07</span>Gettoni</h2>
+        <p class="lede">Solo se la tua squadra li usa: se non vedi la scheda <em>Gettoni</em>, salta questa parte.</p>
+        <p>Il gettone è un credito di presenza. A inizio stagione ne ricevi un tot; <strong>ogni volta che il mister ti segna presente a una partita ne viene scalato uno</strong>, in automatico. Sulla Home vedi quanti te ne restano, nella scheda Gettoni la classifica di tutta la squadra.</p>
+        <p>Se il mister corregge una presenza sbagliata, il gettone ti torna indietro. Se finisci i gettoni puoi comunque giocare: la presenza viene registrata lo stesso e chi gestisce la squadra vede che sei a zero.</p>
+      </section>
+
+      <section id="problemi">
+        <h2><span class="num">PASSO 08</span>Se qualcosa non va</h2>
+        <div class="faq">
+          <div>
+            <p class="q">Su iPhone non vedo l'interruttore delle notifiche</p>
+            <p>Stai aprendo l'app da Safari e non dall'icona in schermata Home. Torna al passo 01, aggiungi l'icona e riapri da lì. Se hai iOS più vecchio di 16.4, devi aggiornare il telefono.</p>
+          </div>
+          <div>
+            <p class="q">Le notifiche risultano "bloccate dal browser"</p>
+            <p>Hai negato il permesso la prima volta. Va riattivato dalle impostazioni del browser o del telefono, alla voce del sito: dall'app non è più possibile richiederlo.</p>
+          </div>
+          <div>
+            <p class="q">Non arriva niente anche se sono attive</p>
+            <p>Apri <span class="tap">Impostazioni</span> → <span class="tap">NOTIFICHE</span> e prova <span class="tap">Invia notifica di prova</span>. Se non arriva, spegni e riaccendi l'interruttore: il collegamento con il telefono si rigenera. Succede dopo aver reinstallato l'app o cambiato telefono.</p>
+          </div>
+          <div>
+            <p class="q">Non vedo la scheda Gettoni</p>
+            <p>La tua squadra non usa il sistema gettoni. Non manca nulla.</p>
+          </div>
+          <div>
+            <p class="q">Vedo la squadra sbagliata</p>
+            <p><span class="tap">Impostazioni</span> → <span class="tap">I MIEI TEAM</span> e tocca quella giusta. Tutta l'app cambia insieme: partite, rosa, pagamenti.</p>
+          </div>
+          <div>
+            <p class="q">Ho sbagliato a rispondere a una convocazione</p>
+            <p>Apri la partita e rispondi di nuovo: vale l'ultima risposta. Se ormai è passata, avvisa il mister a voce.</p>
+          </div>
+          <div>
+            <p class="q">Un pagamento è sbagliato</p>
+            <p>Le voci le crea e le corregge chi tiene la cassa. Segnalaglielo: tu puoi solo dichiarare di aver pagato.</p>
+          </div>
+        </div>
+      </section>
+
+      <p class="footer">Manuale per i giocatori di CalcioAcinque. Per chi convoca, incassa o amministra c'è un manuale a parte.</p>
+    </main>
+  </div>
+</div>

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using CalcioAcinque.Backend.DTOs.Players;
 using CalcioAcinque.Backend.Models;
 using CalcioAcinque.Backend.Services;
+using CalcioAcinque.Backend.Models.Enums;
 
 namespace CalcioAcinque.Backend.Controllers;
 
@@ -41,7 +42,7 @@ public class PlayersController : ControllerBase
         return Ok(new ApiResponse<PlayerDetailDto> { Success = true, Data = result });
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Ruoli.Squadra)]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<PlayerDto>>> Create(int teamId, [FromBody] CreatePlayerDto dto)
     {
@@ -49,7 +50,7 @@ public class PlayersController : ControllerBase
         return Ok(new ApiResponse<PlayerDto> { Success = true, Data = result, Message = "Giocatore aggiunto" });
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Ruoli.Squadra)]
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<PlayerDto>>> Update(int teamId, int id, [FromBody] UpdatePlayerDto dto)
     {
@@ -57,7 +58,7 @@ public class PlayersController : ControllerBase
         return Ok(new ApiResponse<PlayerDto> { Success = true, Data = result, Message = "Giocatore aggiornato" });
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Ruoli.Squadra)]
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> Delete(int teamId, int id)
     {
@@ -65,7 +66,7 @@ public class PlayersController : ControllerBase
         return Ok(new ApiResponse<object> { Success = true, Message = "Giocatore eliminato" });
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Ruoli.Squadra)]
     [HttpPut("{id}/reset-password")]
     public async Task<ActionResult<ApiResponse<object>>> ResetPassword(int teamId, int id, [FromBody] ResetPasswordDto dto)
     {

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using CalcioAcinque.Backend.DTOs.Teams;
 using CalcioAcinque.Backend.Models;
 using CalcioAcinque.Backend.Services;
+using CalcioAcinque.Backend.Models.Enums;
 
 namespace CalcioAcinque.Backend.Controllers;
 
@@ -25,7 +26,7 @@ public class TeamsController : ControllerBase
         return Ok(new ApiResponse<TeamDto> { Success = true, Data = result });
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Ruoli.Squadra)]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<TeamDto>>> Create([FromBody] CreateTeamDto dto)
     {
@@ -33,7 +34,7 @@ public class TeamsController : ControllerBase
         return Ok(new ApiResponse<TeamDto> { Success = true, Data = result, Message = "Team creato" });
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Ruoli.Squadra)]
     [HttpPut("{teamId}")]
     public async Task<ActionResult<ApiResponse<TeamDto>>> Update(int teamId, [FromBody] UpdateTeamDto dto)
     {

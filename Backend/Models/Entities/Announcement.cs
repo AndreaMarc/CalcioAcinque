@@ -11,7 +11,18 @@ public class Announcement
     public int Id { get; set; }
 
     public int TeamId { get; set; }
-    public int AuthorId { get; set; }
+
+    /// <summary>
+    /// Nullable per lo stesso motivo di TokenTransaction.AdminId: chi ha scritto
+    /// puo' uscire dalla rosa, la comunicazione resta con il nome congelato.
+    /// </summary>
+    public int? AuthorId { get; set; }
+
+    [Required, MaxLength(100)]
+    public string AutoreNome { get; set; } = string.Empty;
+
+    [MaxLength(100)]
+    public string? AutoreSoprannome { get; set; }
 
     [Required, MaxLength(200)]
     public string Titolo { get; set; } = string.Empty;
@@ -27,7 +38,7 @@ public class Announcement
     public virtual Team Team { get; set; } = null!;
 
     [ForeignKey("AuthorId")]
-    public virtual Player Author { get; set; } = null!;
+    public virtual Player? Author { get; set; }
 
     public virtual ICollection<AnnouncementRead> Reads { get; set; } = new List<AnnouncementRead>();
 }

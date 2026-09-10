@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 
@@ -11,7 +12,8 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController(text: '');
   final _passwordController = TextEditingController(text: '');
@@ -24,9 +26,31 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   void initState() {
     super.initState();
     _animCtrl = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 800));
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
     _fadeIn = CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut);
     _tryAutoLogin();
+  }
+
+  String? get _nextParam {
+    final uri = GoRouterState.of(context).uri;
+    return uri.queryParameters['next'];
+  }
+
+  void _navigateAfterAuth(AuthProvider auth) {
+    final next = _nextParam;
+    // Solo path interni: deve iniziare con '/' e non con '//' (no redirect esterni)
+    if (next != null && next.startsWith('/') && !next.startsWith('//')) {
+      context.go(next);
+      return;
+    }
+    if (auth.needsTeamSelection) {
+      context.go('/select-team');
+    } else {
+      context.read<ThemeProvider>().setCurrentTeamId(auth.teamId);
+      context.go('/dashboard');
+    }
   }
 
   Future<void> _tryAutoLogin() async {
@@ -35,12 +59,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     if (mounted) {
       setState(() => _tryingAutoLogin = false);
       if (success) {
-        if (auth.needsTeamSelection) {
-          context.go('/select-team');
-        } else {
-          context.read<ThemeProvider>().setCurrentTeamId(auth.teamId);
-          context.go('/dashboard');
-        }
+        _navigateAfterAuth(auth);
       } else {
         _animCtrl.forward();
       }
@@ -55,12 +74,130 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       _passwordController.text,
     );
     if (success && mounted) {
-      if (auth.needsTeamSelection) {
-        context.go('/select-team');
-      } else {
-        context.read<ThemeProvider>().setCurrentTeamId(auth.teamId);
-        context.go('/dashboard');
-      }
+      _navigateAfterAuth(auth);
+    }
+  }
+
+  Future<void> _showSignupDialog() async {
+    final emailCtrl = TextEditingController(text: _emailController.text.trim());
+    final passCtrl = TextEditingController();
+    final pass2Ctrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    var obscure = true;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) {
+          final auth = context.watch<AuthProvider>();
+          return AlertDialog(
+            backgroundColor: GimmyTokens.ink2,
+            title: Text(
+              'Crea account',
+              style: GoogleFonts.bebasNeue(fontSize: 26, color: Colors.white),
+            ),
+            content: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: emailCtrl,
+                      style: const TextStyle(color: Colors.white),
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        labelStyle: TextStyle(color: Colors.white70),
+                      ),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Obbligatorio';
+                        if (!v.contains('@')) return 'Email non valida';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: passCtrl,
+                      obscureText: obscure,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        labelText: 'Password (min 6)',
+                        labelStyle: const TextStyle(color: Colors.white70),
+                        suffixIcon: IconButton(
+                          onPressed: () => setLocal(() => obscure = !obscure),
+                          icon: Icon(
+                            obscure ? Icons.visibility_off : Icons.visibility,
+                            color: Colors.white54,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                      validator: (v) =>
+                          v == null || v.length < 6 ? 'Almeno 6 caratteri' : null,
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: pass2Ctrl,
+                      obscureText: obscure,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: 'Conferma password',
+                        labelStyle: TextStyle(color: Colors.white70),
+                      ),
+                      validator: (v) =>
+                          v != passCtrl.text ? 'Le password non coincidono' : null,
+                    ),
+                    if (auth.error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        auth.error!,
+                        style: const TextStyle(color: GimmyTokens.bad, fontSize: 12),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: auth.isLoading ? null : () => Navigator.pop(ctx, false),
+                child: const Text('Annulla', style: TextStyle(color: Colors.white)),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: GimmyTokens.brand,
+                  foregroundColor: GimmyTokens.brandInk,
+                ),
+                onPressed: auth.isLoading
+                    ? null
+                    : () async {
+                        if (!formKey.currentState!.validate()) return;
+                        final success = await context.read<AuthProvider>().signup(
+                              emailCtrl.text.trim(),
+                              passCtrl.text,
+                            );
+                        if (success && ctx.mounted) Navigator.pop(ctx, true);
+                      },
+                child: auth.isLoading
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: GimmyTokens.brandInk,
+                        ),
+                      )
+                    : const Text('Crea'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (ok == true && mounted) {
+      _navigateAfterAuth(context.read<AuthProvider>());
     }
   }
 
@@ -76,186 +213,400 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   Widget build(BuildContext context) {
     if (_tryingAutoLogin) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        backgroundColor: GimmyTokens.ink,
+        body: Center(
+          child: CircularProgressIndicator(color: GimmyTokens.brand),
+        ),
       );
     }
 
-    final cs = Theme.of(context).colorScheme;
-    final theme = context.watch<ThemeProvider>();
-
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              cs.primary.withOpacity(0.08),
-              cs.surface,
-              cs.surface,
-            ],
+      backgroundColor: GimmyTokens.ink,
+      body: Stack(
+        children: [
+          // Pitch glow top-left
+          Positioned(
+            top: -180,
+            left: -140,
+            child: Container(
+              width: 480,
+              height: 480,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    GimmyTokens.brand.withOpacity(0.28),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(28),
-              child: FadeTransition(
-                opacity: _fadeIn,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Logo / icona
-                        if (theme.hasLogo && theme.logoBytes != null)
-                          Container(
-                            width: 90,
-                            height: 90,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: cs.primary.withOpacity(0.2),
-                                  blurRadius: 20,
-                                  spreadRadius: 2,
+          // Pitch glow bottom-right
+          Positioned(
+            bottom: -120,
+            right: -100,
+            child: Container(
+              width: 380,
+              height: 380,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    GimmyTokens.brand.withOpacity(0.14),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: FadeTransition(
+              opacity: _fadeIn,
+              child: Form(
+                key: _formKey,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(28, 40, 28, 28),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 420),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Wordmark
+                            Row(
+                              children: [
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: GimmyTokens.brand,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Consumer<ThemeProvider>(
+                                    builder: (context, theme, _) {
+                                      final initial = theme.teamName.isNotEmpty
+                                          ? theme.teamName[0].toUpperCase()
+                                          : 'G';
+                                      return Text(
+                                        initial,
+                                        style: GoogleFonts.bebasNeue(
+                                          fontSize: 20,
+                                          color: GimmyTokens.brandInk,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'GIMMY',
+                                  style: GoogleFonts.bebasNeue(
+                                    fontSize: 22,
+                                    color: Colors.white,
+                                    letterSpacing: 0.04 * 22,
+                                  ),
                                 ),
                               ],
                             ),
-                            child: ClipOval(
-                              child: Image.memory(
-                                theme.logoBytes!,
-                                width: 90, height: 90,
-                                fit: BoxFit.cover,
+                            const SizedBox(height: 60),
+                            // Hero copy
+                            Text(
+                              'CALCIO A 5 · SEASON 25/26',
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 1.54,
+                                color: GimmyTokens.brand,
                               ),
                             ),
-                          )
-                        else
-                          Container(
-                            width: 90,
-                            height: 90,
-                            decoration: BoxDecoration(
-                              color: cs.primaryContainer,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: cs.primary.withOpacity(0.2),
-                                  blurRadius: 20,
-                                  spreadRadius: 2,
+                            const SizedBox(height: 12),
+                            RichText(
+                              text: TextSpan(
+                                style: GoogleFonts.bebasNeue(
+                                  fontSize: 52,
+                                  height: 0.95,
+                                  color: Colors.white,
+                                  letterSpacing: 0.01 * 52,
                                 ),
-                              ],
-                            ),
-                            child: Icon(
-                              Icons.sports_soccer,
-                              size: 44,
-                              color: cs.primary,
-                            ),
-                          ),
-                        const SizedBox(height: 20),
-                        Text(
-                          theme.teamName,
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: cs.primary,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Gestione Presenze e Gettoni',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: cs.onSurfaceVariant,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                        const SizedBox(height: 44),
-
-                        // Errore
-                        Consumer<AuthProvider>(
-                          builder: (context, auth, _) {
-                            if (auth.error != null) {
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 20),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                  decoration: BoxDecoration(
-                                    color: cs.errorContainer,
-                                    borderRadius: BorderRadius.circular(14),
+                                children: const [
+                                  TextSpan(text: "CHI C'È\nSTASERA\n"),
+                                  TextSpan(
+                                    text: 'IN CAMPO?',
+                                    style: TextStyle(color: GimmyTokens.brand),
                                   ),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.error_outline, color: cs.error, size: 20),
-                                      const SizedBox(width: 10),
-                                      Expanded(child: Text(auth.error!,
-                                        style: TextStyle(color: cs.error, fontSize: 13))),
-                                    ],
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              'Gestisci convocazioni, gettoni e presenze della tua squadra. Senza gruppi WhatsApp impazziti.',
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 14,
+                                height: 1.5,
+                                color: GimmyTokens.textOnInkMute,
+                              ),
+                            ),
+                            const SizedBox(height: 40),
+                            // Error
+                            Consumer<AuthProvider>(
+                              builder: (context, auth, _) {
+                                if (auth.error == null) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 14),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: GimmyTokens.bad.withOpacity(0.12),
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: GimmyTokens.bad.withOpacity(0.3),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.error_outline,
+                                          color: GimmyTokens.bad,
+                                          size: 18,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            auth.error!,
+                                            style: GoogleFonts.spaceGrotesk(
+                                              color: GimmyTokens.bad,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            _DarkInput(
+                              controller: _emailController,
+                              hint: 'Email',
+                              icon: Icons.mail_outlined,
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) {
+                                  return 'Inserisci email';
+                                }
+                                if (!v.contains('@')) return 'Email non valida';
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            _DarkInput(
+                              controller: _passwordController,
+                              hint: 'Password',
+                              icon: Icons.lock_outline,
+                              obscure: _obscurePassword,
+                              suffix: IconButton(
+                                onPressed: () => setState(
+                                  () => _obscurePassword = !_obscurePassword,
+                                ),
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  color: Colors.white.withOpacity(0.5),
+                                  size: 18,
+                                ),
+                              ),
+                              onSubmit: (_) => _login(),
+                              validator: (v) =>
+                                  v == null || v.isEmpty ? 'Inserisci password' : null,
+                            ),
+                            const SizedBox(height: 20),
+                            Consumer<AuthProvider>(
+                              builder: (context, auth, _) {
+                                return _BrandBtn(
+                                  label: 'Entra in campo',
+                                  loading: auth.isLoading,
+                                  onTap: auth.isLoading ? null : _login,
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            Center(
+                              child: InkWell(
+                                onTap: _showSignupDialog,
+                                borderRadius: BorderRadius.circular(8),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 6,
+                                  ),
+                                  child: RichText(
+                                    text: TextSpan(
+                                      style: GoogleFonts.spaceGrotesk(
+                                        fontSize: 13,
+                                        color: GimmyTokens.textOnInkMute,
+                                      ),
+                                      children: const [
+                                        TextSpan(text: 'Non hai un account? '),
+                                        TextSpan(
+                                          text: 'Registrati',
+                                          style: TextStyle(
+                                            color: GimmyTokens.brand,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              );
-                            }
-                            return const SizedBox.shrink();
-                          },
-                        ),
-
-                        // Campi
-                        TextFormField(
-                          controller: _emailController,
-                          decoration: const InputDecoration(
-                            labelText: 'Email',
-                            prefixIcon: Icon(Icons.email_outlined),
-                          ),
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                          validator: (val) {
-                            if (val == null || val.trim().isEmpty) return 'Inserisci l\'email';
-                            if (!val.contains('@')) return 'Email non valida';
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _passwordController,
-                          decoration: InputDecoration(
-                            labelText: 'Password',
-                            prefixIcon: const Icon(Icons.lock_outlined),
-                            suffixIcon: IconButton(
-                              icon: Icon(_obscurePassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined),
-                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                              ),
                             ),
-                          ),
-                          obscureText: _obscurePassword,
-                          textInputAction: TextInputAction.done,
-                          onFieldSubmitted: (_) => _login(),
-                          validator: (val) {
-                            if (val == null || val.isEmpty) return 'Inserisci la password';
-                            return null;
-                          },
+                          ],
                         ),
-                        const SizedBox(height: 28),
-                        Consumer<AuthProvider>(
-                          builder: (context, auth, _) {
-                            return ElevatedButton(
-                              onPressed: auth.isLoading ? null : _login,
-                              child: auth.isLoading
-                                  ? const SizedBox(
-                                      height: 22, width: 22,
-                                      child: CircularProgressIndicator(strokeWidth: 2.5))
-                                  : const Text('Accedi'),
-                            );
-                          },
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DarkInput extends StatelessWidget {
+  final TextEditingController controller;
+  final String hint;
+  final IconData icon;
+  final bool obscure;
+  final Widget? suffix;
+  final TextInputType? keyboardType;
+  final ValueChanged<String>? onSubmit;
+  final String? Function(String?)? validator;
+
+  const _DarkInput({
+    required this.controller,
+    required this.hint,
+    required this.icon,
+    this.obscure = false,
+    this.suffix,
+    this.keyboardType,
+    this.onSubmit,
+    this.validator,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withOpacity(0.10)),
+      ),
+      child: TextFormField(
+        controller: controller,
+        obscureText: obscure,
+        keyboardType: keyboardType,
+        onFieldSubmitted: onSubmit,
+        validator: validator,
+        style: GoogleFonts.spaceGrotesk(
+          color: Colors.white,
+          fontSize: 15,
+          letterSpacing: obscure ? 0.1 : 0,
         ),
+        cursorColor: GimmyTokens.brand,
+        decoration: InputDecoration(
+          filled: false,
+          isDense: false,
+          hintText: hint,
+          hintStyle: GoogleFonts.spaceGrotesk(
+            color: Colors.white.withOpacity(0.35),
+            fontSize: 15,
+          ),
+          prefixIcon: Icon(icon, size: 18, color: Colors.white.withOpacity(0.5)),
+          suffixIcon: suffix,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 14,
+          ),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          errorBorder: InputBorder.none,
+          focusedErrorBorder: InputBorder.none,
+          errorStyle: GoogleFonts.spaceGrotesk(
+            color: GimmyTokens.bad,
+            fontSize: 12,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BrandBtn extends StatelessWidget {
+  final String label;
+  final bool loading;
+  final VoidCallback? onTap;
+  const _BrandBtn({
+    required this.label,
+    this.loading = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        height: 54,
+        decoration: BoxDecoration(
+          color: onTap == null
+              ? GimmyTokens.brand.withOpacity(0.4)
+              : GimmyTokens.brand,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        alignment: Alignment.center,
+        child: loading
+            ? const SizedBox(
+                height: 22,
+                width: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: GimmyTokens.brandInk,
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: GimmyTokens.brandInk,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.arrow_forward,
+                    color: GimmyTokens.brandInk,
+                    size: 18,
+                  ),
+                ],
+              ),
       ),
     );
   }

@@ -19,3 +19,9 @@ public class PlayerInfo
     public string? Soprannome { get; set; }
     public string Ruolo { get; set; } = string.Empty;
 }
+
+public class MeResponse
+{
+    public PlayerInfo? Player { get; set; }
+    public List<TeamMembershipInfo> Teams { get; set; } = new();
+}

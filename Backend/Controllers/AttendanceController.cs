@@ -4,6 +4,7 @@ using System.Security.Claims;
 using CalcioAcinque.Backend.DTOs.Attendance;
 using CalcioAcinque.Backend.Models;
 using CalcioAcinque.Backend.Services;
+using CalcioAcinque.Backend.Models.Enums;
 
 namespace CalcioAcinque.Backend.Controllers;
 
@@ -27,7 +28,7 @@ public class AttendanceController : ControllerBase
         return Ok(new ApiResponse<List<MatchAttendanceDto>> { Success = true, Data = result });
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Ruoli.Campo)]
     [HttpPut("{playerId}")]
     public async Task<ActionResult<ApiResponse<MatchAttendanceDto>>> UpdateAttendance(
         int matchId, int playerId, [FromBody] UpdateAttendanceDto dto)

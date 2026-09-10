@@ -1,0 +1,15 @@
+# Il Dockerfile fa `dotnet restore` e poi `COPY . .`: senza queste esclusioni
+# l'obj/ della macchina di sviluppo sovrascrive il restore fatto nel container
+# (project.assets.json contiene path assoluti locali) e il publish diventa fragile.
+bin/
+obj/
+publish/
+publish-linux/
+
+# Artefatti e roba che non serve alla build
+*.user
+*.suo
+.vs/
+.vscode/
+*.tar.gz
+*.zip

@@ -9,23 +9,39 @@ class MatchesProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool _hasLoaded = false;
 
+  /// Stagione visualizzata. null = quella aperta, la scelta la fa il server.
+  /// Resta appiccicata: si sfoglia un archivio senza che aprire il dettaglio
+  /// di una partita riporti al presente.
+  int? _seasonId;
+
   List<MatchModel> get matches => _matches;
   bool get isLoading => _isLoading;
   bool get hasLoaded => _hasLoaded;
+  int? get seasonId => _seasonId;
 
   MatchesProvider({required this.apiClient});
 
   void reset() {
     _matches = [];
     _hasLoaded = false;
+    _seasonId = null;
     notifyListeners();
+  }
+
+  /// Cambia stagione e ricarica. null torna a quella in corso.
+  Future<void> selectSeason(int teamId, int? seasonId) async {
+    _seasonId = seasonId;
+    await loadMatches(teamId);
   }
 
   Future<void> loadMatches(int teamId) async {
     _isLoading = true;
     notifyListeners();
     try {
-      final response = await apiClient.dio.get(ApiConstants.matches(teamId));
+      final response = await apiClient.dio.get(
+        ApiConstants.matches(teamId),
+        queryParameters: {if (_seasonId != null) 'seasonId': _seasonId},
+      );
       if (response.data['success'] == true) {
         _matches = (response.data['data'] as List)
             .map((e) => MatchModel.fromJson(e)).toList();

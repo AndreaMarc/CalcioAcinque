@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
 import '../providers/matches_provider.dart';
 import '../providers/convocations_provider.dart';
+import '../providers/theme_provider.dart';
 import '../models/match_model.dart';
 import '../core/constants/api_constants.dart';
+import '../widgets/gimmy_widgets.dart';
+import '../widgets/match_incasso_sheet.dart';
 
 class MatchDetailScreen extends StatefulWidget {
   final int matchId;
@@ -30,7 +34,6 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     final auth = context.read<AuthProvider>();
     await context.read<MatchesProvider>().loadMatches(auth.teamId);
     await context.read<ConvocationsProvider>().loadByMatch(widget.matchId);
-    // Carica disponibilita
     try {
       final response = await auth.apiClient.dio.get(
         ApiConstants.matchAvailability(widget.matchId),
@@ -39,7 +42,6 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
         setState(() => _availabilityData = response.data['data']);
       }
     } catch (_) {}
-
     if (mounted) {
       final matches = context.read<MatchesProvider>().matches;
       setState(() {
@@ -50,335 +52,244 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final paper = isDark ? GimmyTokens.darkPaper : GimmyTokens.paper;
 
     if (_match == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        backgroundColor: paper,
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     final match = _match!;
+    final auth = context.watch<AuthProvider>();
+    final theme = context.watch<ThemeProvider>();
+    final initials = teamInitials(theme.teamName, fallback: 'CA');
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(match.displayTitle),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/calendar'),
-        ),
-        actions: [
-          if (auth.isAdmin) ...[
-            IconButton(
-              icon: const Icon(Icons.edit),
-              tooltip: 'Modifica',
-              onPressed: () => _showEditDialog(context, match),
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete),
-              tooltip: 'Elimina',
-              onPressed: () => _confirmDelete(context, match),
-            ),
-          ],
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _loadData,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _buildInfoCard(context, match),
-            const SizedBox(height: 16),
-            if (_availabilityData != null) ...[
-              _buildAvailabilitySection(context),
-              const SizedBox(height: 16),
-            ],
-            _buildConvocationsSummary(context, match),
-            const SizedBox(height: 16),
-            if (auth.isAdmin) ...[
-              _buildAdminActions(context, match),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoCard(BuildContext context, MatchModel match) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+      backgroundColor: paper,
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(Icons.sports_soccer,
-                  color: Theme.of(context).colorScheme.primary, size: 32),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(match.displayTitle,
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold)),
-                      Text(_statusLabel(match.stato),
-                        style: TextStyle(color: _statusColor(context, match.stato))),
-                    ],
+            GimmyTopBar(
+              teamInitials: initials,
+              title: 'Giornata ${match.numeroGiornata}',
+              subtitle: '${DateFormat('EEE d MMM', 'it_IT').format(match.data)} · ${match.ora}',
+              onBack: () => context.go('/calendar'),
+              actions: [
+                // Anche il cassiere: dentro il menu c'e' l'incasso, che e' suo
+                if (auth.puoGestireCampo || auth.puoGestireSoldi)
+                  GimmyTopBar.iconAction(
+                    context,
+                    Icons.more_vert,
+                    () => _showAdminMenu(context, match),
                   ),
-                ),
               ],
             ),
-            const Divider(height: 24),
-            _infoRow(Icons.calendar_today,
-              DateFormat('EEEE dd MMMM yyyy', 'it_IT').format(match.data)),
-            const SizedBox(height: 8),
-            _infoRow(Icons.access_time, match.ora),
-            if (match.luogo != null) ...[
-              const SizedBox(height: 8),
-              _infoRow(Icons.location_on, match.luogo!),
-            ],
-            if (match.note != null) ...[
-              const SizedBox(height: 8),
-              _infoRow(Icons.notes, match.note!),
-            ],
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _loadData,
+                child: ListView(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                      child: _TicketCard(
+                        match: match,
+                        teamInitials: initials,
+                        bgColor: paper,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: _AvailabilitySummary(
+                        availability: _availabilityData,
+                        match: match,
+                      ),
+                    ),
+                    if (_availabilityData != null) _buildDettaglio(_availabilityData!),
+                    if (context.watch<ConvocationsProvider>().convocations.isNotEmpty)
+                      _buildConvocations(context),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                      child: _ActionButtons(
+                        match: match,
+                        isAdmin: auth.puoGestireCampo,
+                        onMatchDay: () => context.push('/match/${match.id}/day'),
+                        onLive: () => context.push('/match/${match.id}/live'),
+                        onConvocations: () =>
+                            context.push('/match/${match.id}/convocations'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _infoRow(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: Colors.grey),
-        const SizedBox(width: 8),
-        Expanded(child: Text(text)),
-      ],
-    );
-  }
-
-  Widget _buildAvailabilitySection(BuildContext context) {
-    final data = _availabilityData!;
-    final disponibili = data['disponibili'] as int? ?? 0;
-    final nonDisponibili = data['nonDisponibili'] as int? ?? 0;
+  Widget _buildDettaglio(Map<String, dynamic> data) {
     final dettaglio = data['dettaglio'] as List? ?? [];
-
-    final listDisponibili = dettaglio.where((d) => d['disponibile'] == true).toList();
-    final listNonDisponibili = dettaglio.where((d) => d['disponibile'] != true).toList();
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.how_to_reg, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 8),
-                Text('Disponibilita\'', style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold)),
-                const Spacer(),
-                Chip(
-                  label: Text('$disponibili si / $nonDisponibili no'),
-                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                ),
-              ],
-            ),
-            if (listDisponibili.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text('Disponibili', style: TextStyle(
-                fontWeight: FontWeight.w600, color: Colors.green.shade700, fontSize: 13)),
-              const SizedBox(height: 4),
-              ...listDisponibili.map((d) => _buildAvailabilityTile(d, true)),
-            ],
-            if (listNonDisponibili.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text('Non disponibili', style: TextStyle(
-                fontWeight: FontWeight.w600, color: Colors.red.shade700, fontSize: 13)),
-              const SizedBox(height: 4),
-              ...listNonDisponibili.map((d) => _buildAvailabilityTile(d, false)),
-            ],
-            if (dettaglio.isEmpty) ...[
-              const SizedBox(height: 12),
-              const Text('Nessuno ha ancora dichiarato la propria disponibilita\'.',
-                style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey)),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAvailabilityTile(dynamic d, bool disponibile) {
-    final nome = d['soprannome'] ?? d['nomeGiocatore'] ?? '';
-    final note = d['note'] as String?;
-    return ListTile(
-      dense: true,
-      contentPadding: EdgeInsets.zero,
-      leading: CircleAvatar(
-        radius: 16,
-        backgroundColor: disponibile ? Colors.green.withOpacity(0.15) : Colors.red.withOpacity(0.15),
-        child: Icon(
-          disponibile ? Icons.check : Icons.close,
-          size: 18,
-          color: disponibile ? Colors.green : Colors.red,
-        ),
-      ),
-      title: Text(nome, style: const TextStyle(fontSize: 14)),
-      subtitle: note != null && note.isNotEmpty
-        ? Text(note, style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic))
-        : null,
-    );
-  }
-
-  Widget _buildConvocationsSummary(BuildContext context, MatchModel match) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Riepilogo', style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _statCol('Convocati', '${match.totaleConvocati}', Colors.blue),
-                _statCol('Confermati', '${match.totaleConfermati}', Colors.green),
-                _statCol('Presenti', '${match.totalePresenti}', Colors.teal),
-                _statCol('Giocato', '${match.totaleHannoGiocato}', Colors.purple),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.push('/match/${match.id}/convocations'),
-                    icon: const Icon(Icons.list),
-                    label: const Text('Convocazioni'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () => context.push('/match/${match.id}/day'),
-                    icon: const Icon(Icons.sports),
-                    label: const Text('Match Day'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _statCol(String label, String value, Color color) {
+    if (dettaglio.isEmpty) return const SizedBox.shrink();
     return Column(
       children: [
-        Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-        Text(label, style: const TextStyle(fontSize: 11)),
+        const SectionHead(title: 'DISPONIBILITÀ'),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+          child: Column(
+            children: dettaglio.map((d) {
+              final nome = d['soprannome'] ?? d['nomeGiocatore'] ?? '';
+              final disponibile = d['disponibile'] == true;
+              final note = d['note'] as String?;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _AvailabilityRow(
+                  nome: nome,
+                  disponibile: disponibile,
+                  note: note,
+                ),
+              );
+            }).toList(),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildAdminActions(BuildContext context, MatchModel match) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+  Widget _buildConvocations(BuildContext context) {
+    final convs = context.watch<ConvocationsProvider>().convocations;
+    return Column(
+      children: [
+        SectionHead(title: 'CONVOCATI', more: '${convs.length} giocatori'),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Column(
+            children: convs.map((c) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _ConvocationRow(conv: c),
+                )).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showAdminMenu(BuildContext context, MatchModel match) {
+    // Le voci di campo al mister, l'incasso al cassiere: l'API applica gli
+    // stessi limiti, mostrarle a chi non puo' usarle produce solo un 403
+    final auth = context.read<AuthProvider>();
+    final campo = auth.puoGestireCampo;
+    final soldi = auth.puoGestireSoldi;
+
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Azioni Admin', style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            if (match.isProgrammata)
-              FilledButton.icon(
-                onPressed: () => _updateStato(context, match, 'ConvocazioniInviate'),
-                icon: const Icon(Icons.send),
-                label: const Text('Invia Convocazioni'),
+            if (campo)
+              ListTile(
+                leading: const Icon(Icons.edit),
+                title: const Text('Modifica'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showEditDialog(context, match);
+                },
               ),
-            if (match.stato == 'ConvocazioniInviate') ...[
-              FilledButton.icon(
-                onPressed: () => _startMatch(context, match),
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Inizia Partita'),
+            if (campo && match.isProgrammata)
+              ListTile(
+                leading: const Icon(Icons.send),
+                title: const Text('Invia Convocazioni'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _updateStato(context, match, 'ConvocazioniInviate');
+                },
               ),
-            ],
-            if (match.stato == 'InCorso') ...[
-              FilledButton.icon(
-                onPressed: () => context.push('/match/${match.id}/live'),
-                icon: const Icon(Icons.timer),
-                label: const Text('Vai alla Partita Live'),
-                style: FilledButton.styleFrom(backgroundColor: Colors.green),
+            if (campo && match.stato == 'ConvocazioniInviate')
+              ListTile(
+                leading: const Icon(Icons.play_arrow),
+                title: const Text('Inizia Partita'),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final auth = context.read<AuthProvider>();
+                  final success = await context
+                      .read<MatchesProvider>()
+                      .updateStato(auth.teamId, match.id, 'InCorso');
+                  if (success && mounted) context.push('/match/${match.id}/live');
+                },
               ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: () => _updateStato(context, match, 'Conclusa'),
-                icon: const Icon(Icons.stop),
-                label: const Text('Concludi Partita'),
-                style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+            if (campo && match.stato == 'InCorso')
+              ListTile(
+                leading: const Icon(Icons.stop, color: GimmyTokens.bad),
+                title: const Text('Concludi Partita'),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await _updateStato(context, match, 'Conclusa');
+                  if (mounted) _proponiIncasso(match.id);
+                },
               ),
-            ],
-            if (match.isConclusa) ...[
-              FilledButton.icon(
-                onPressed: () => context.push('/match/${match.id}/live'),
-                icon: const Icon(Icons.edit),
-                label: const Text('Modifica Statistiche'),
+            // Riapribile in qualsiasi momento: l incasso spesso si registra
+            // dopo, quando le presenze sono state sistemate
+            if (soldi && match.stato == 'Conclusa')
+              ListTile(
+                leading: const Icon(Icons.euro, color: GimmyTokens.brand),
+                title: const Text('Incasso partita'),
+                subtitle: const Text('Chi deve pagare questa partita'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  MatchIncassoSheet.show(context, match.id);
+                },
               ),
-            ],
+            if (campo)
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: GimmyTokens.bad),
+                title: const Text('Elimina',
+                    style: TextStyle(color: GimmyTokens.bad)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _confirmDelete(context, match);
+                },
+              ),
           ],
         ),
       ),
     );
   }
 
-  Future<void> _startMatch(BuildContext context, MatchModel match) async {
-    final auth = context.read<AuthProvider>();
-    final success = await context.read<MatchesProvider>().updateStato(
-      auth.teamId, match.id, 'InCorso');
-    if (success && mounted) {
-      context.push('/match/${match.id}/live');
-    }
+  /// Invito non bloccante: le presenze si bloccano alla conclusione e possono
+  /// essere incomplete, quindi non si apre nulla d autorita.
+  void _proponiIncasso(int matchId) {
+    if (!context.read<AuthProvider>().puoGestireSoldi) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: const Text('Partita conclusa. Vuoi registrare l incasso?'),
+      duration: const Duration(seconds: 8),
+      action: SnackBarAction(
+        label: 'Gestisci',
+        onPressed: () => MatchIncassoSheet.show(context, matchId),
+      ),
+    ));
   }
 
-  Future<void> _updateStato(BuildContext context, MatchModel match, String stato) async {
+  Future<void> _updateStato(
+      BuildContext context, MatchModel match, String stato) async {
     final auth = context.read<AuthProvider>();
-    final success = await context.read<MatchesProvider>().updateStato(
-      auth.teamId, match.id, stato);
+    final success = await context
+        .read<MatchesProvider>()
+        .updateStato(auth.teamId, match.id, stato);
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Stato aggiornato a $stato')));
+          SnackBar(content: Text('Stato aggiornato a $stato')));
       _loadData();
-    }
-  }
-
-  Color _statusColor(BuildContext context, String stato) {
-    switch (stato) {
-      case 'Conclusa': return Colors.grey;
-      case 'InCorso': return Colors.green;
-      case 'ConvocazioniInviate': return Colors.orange;
-      default: return Theme.of(context).colorScheme.primary;
-    }
-  }
-
-  String _statusLabel(String stato) {
-    switch (stato) {
-      case 'Conclusa': return 'Conclusa';
-      case 'InCorso': return 'In Corso';
-      case 'ConvocazioniInviate': return 'Convocazioni Inviate';
-      default: return 'Programmata';
     }
   }
 
   void _showEditDialog(BuildContext context, MatchModel match) {
     final dataCtrl = TextEditingController(
-      text: DateFormat('dd/MM/yyyy').format(match.data));
+        text: DateFormat('dd/MM/yyyy').format(match.data));
     final oraCtrl = TextEditingController(text: match.ora);
     final luogoCtrl = TextEditingController(text: match.luogo ?? '');
     final titoloCtrl = TextEditingController(text: match.titolo ?? '');
@@ -402,17 +313,14 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
               const SizedBox(height: 12),
               TextField(
                 controller: titoloCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Avversario (opzionale)',
-                  hintText: 'es. Real Madrid',
-                  prefixIcon: Icon(Icons.shield_outlined),
-                ),
+                decoration: const InputDecoration(labelText: 'Avversario'),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: dataCtrl,
                 decoration: const InputDecoration(
-                  labelText: 'Data', suffixIcon: Icon(Icons.calendar_today)),
+                    labelText: 'Data',
+                    suffixIcon: Icon(Icons.calendar_today)),
                 readOnly: true,
                 onTap: () async {
                   final date = await showDatePicker(
@@ -440,7 +348,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
               const SizedBox(height: 12),
               TextField(
                 controller: noteCtrl,
-                decoration: const InputDecoration(labelText: 'Note (opzionale)'),
+                decoration: const InputDecoration(labelText: 'Note'),
                 maxLines: 2,
               ),
             ],
@@ -448,29 +356,24 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annulla'),
-          ),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Annulla')),
           FilledButton(
             onPressed: () async {
               if (selectedDate == null || giornatCtrl.text.isEmpty) return;
               final auth = context.read<AuthProvider>();
-              final success = await context.read<MatchesProvider>().updateMatch(
-                auth.teamId, match.id, {
-                  'data': selectedDate!.toIso8601String(),
-                  'ora': oraCtrl.text,
-                  'luogo': luogoCtrl.text.isEmpty ? null : luogoCtrl.text,
-                  'titolo': titoloCtrl.text.isEmpty ? null : titoloCtrl.text,
-                  'numeroGiornata': int.tryParse(giornatCtrl.text) ?? 1,
-                  'note': noteCtrl.text.isEmpty ? null : noteCtrl.text,
-                },
-              );
+              final success = await context
+                  .read<MatchesProvider>()
+                  .updateMatch(auth.teamId, match.id, {
+                'data': selectedDate!.toIso8601String(),
+                'ora': oraCtrl.text,
+                'luogo': luogoCtrl.text.isEmpty ? null : luogoCtrl.text,
+                'titolo': titoloCtrl.text.isEmpty ? null : titoloCtrl.text,
+                'numeroGiornata': int.tryParse(giornatCtrl.text) ?? 1,
+                'note': noteCtrl.text.isEmpty ? null : noteCtrl.text,
+              });
               if (ctx.mounted) Navigator.pop(ctx);
-              if (success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Partita aggiornata!')));
-                _loadData();
-              }
+              if (success && mounted) _loadData();
             },
             child: const Text('Salva'),
           ),
@@ -484,60 +387,650 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Elimina Partita'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Vuoi eliminare "${match.displayTitle}"?'),
-            if (!match.isProgrammata) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.warning_amber, color: Colors.orange, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Partita in stato "${match.stato}". '
-                        'Convocazioni, presenze e statistiche verranno eliminati. '
-                        'I gettoni consumati verranno restituiti.',
-                        style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
+        content: Text('Vuoi eliminare "${match.displayTitle}"?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annulla'),
-          ),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Annulla')),
           FilledButton(
             onPressed: () async {
               final auth = context.read<AuthProvider>();
-              final success = await context.read<MatchesProvider>().deleteMatch(
-                auth.teamId, match.id);
+              final success = await context
+                  .read<MatchesProvider>()
+                  .deleteMatch(auth.teamId, match.id);
               if (ctx.mounted) Navigator.pop(ctx);
-              if (success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Partita eliminata')));
-                context.go('/calendar');
-              }
+              if (success && mounted) context.go('/calendar');
             },
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: GimmyTokens.bad),
             child: const Text('Elimina'),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _TicketCard extends StatelessWidget {
+  final MatchModel match;
+  final String teamInitials;
+  final Color bgColor;
+  const _TicketCard({
+    required this.match,
+    required this.teamInitials,
+    required this.bgColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final opponent = (match.titolo ?? '').isNotEmpty
+        ? match.titolo!.toUpperCase()
+        : 'AVVERSARIO';
+    final awayInitials = opponent.length >= 2
+        ? opponent.substring(0, 2).toUpperCase()
+        : opponent.toUpperCase();
+    final dayName =
+        DateFormat('EEEE', 'it_IT').format(match.data).toUpperCase();
+    final day = DateFormat('d').format(match.data);
+    final month =
+        DateFormat('MMM y', 'it_IT').format(match.data).toUpperCase();
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Dark top
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: Container(
+              color: GimmyTokens.ink,
+              padding: const EdgeInsets.all(20),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: RadialGradient(
+                            center: Alignment.bottomCenter,
+                            radius: 1.2,
+                            colors: [
+                              GimmyTokens.brand.withOpacity(0.18),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Column(
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'MATCH TICKET · #${match.numeroGiornata}',
+                                  style: GoogleFonts.spaceGrotesk(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 1.54,
+                                    color: GimmyTokens.brand,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  dayName,
+                                  style: GoogleFonts.bebasNeue(
+                                    fontSize: 30,
+                                    height: 1,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                day,
+                                style: GoogleFonts.bebasNeue(
+                                  fontSize: 38,
+                                  height: 0.9,
+                                  color: GimmyTokens.brand,
+                                ),
+                              ),
+                              Text(
+                                month,
+                                style: GoogleFonts.spaceGrotesk(
+                                  fontSize: 10,
+                                  letterSpacing: 1.2,
+                                  color: GimmyTokens.textOnInkMute,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      VsLayout(
+                        homeCrest:
+                            CrestBox(initials: teamInitials, size: 48, fontSize: 20),
+                        homeName: 'Casa',
+                        awayCrest: CrestBox(
+                          initials: awayInitials,
+                          filled: false,
+                          size: 48,
+                          fontSize: 18,
+                        ),
+                        awayName: opponent,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Perforation
+          _Perforation(bgColor: bgColor, topColor: GimmyTokens.ink),
+          // White bottom
+          ClipRRect(
+            borderRadius:
+                const BorderRadius.vertical(bottom: Radius.circular(20)),
+            child: Container(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? GimmyTokens.darkCard
+                  : Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                          child: _ticketStat(context, 'ORA', match.ora)),
+                      Expanded(
+                          child: _ticketStat(
+                              context, 'CAMPO', match.luogo ?? '—',
+                              small: (match.luogo?.length ?? 0) > 4)),
+                      Expanded(
+                          child: _ticketStat(context, 'FORMATO', '5V5')),
+                    ],
+                  ),
+                  if (match.luogo != null || match.note != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.only(top: 12),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          top: BorderSide(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? GimmyTokens.darkLine
+                                : GimmyTokens.line2,
+                            style: BorderStyle.solid,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.place_outlined,
+                            size: 14,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? GimmyTokens.darkTextMute
+                                : GimmyTokens.textMute,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              match.luogo?.isNotEmpty == true
+                                  ? match.luogo!
+                                  : (match.note ?? ''),
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 12,
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? GimmyTokens.darkTextMute
+                                    : GimmyTokens.textMute,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _ticketStat(BuildContext context, String label, String value,
+      {bool small = false}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
+    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 9,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.3,
+            color: muteColor,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: GoogleFonts.bebasNeue(
+            fontSize: small ? 16 : 22,
+            color: textColor,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+}
+
+class _Perforation extends StatelessWidget {
+  final Color bgColor;
+  final Color topColor;
+  const _Perforation({required this.bgColor, required this.topColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 22,
+      child: Stack(
+        children: [
+          // half circle cutouts on sides (match bg)
+          Positioned(
+            left: -11,
+            top: 0,
+            child: Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: bgColor,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            right: -11,
+            top: 0,
+            child: Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: bgColor,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          // dashed divider line between two colors
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 11,
+              color: topColor,
+            ),
+          ),
+          Positioned(
+            top: 11,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 11,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? GimmyTokens.darkCard
+                  : Colors.white,
+            ),
+          ),
+          Positioned(
+            top: 10,
+            left: 20,
+            right: 20,
+            child: _DashedLine(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white.withOpacity(0.2)
+                  : GimmyTokens.line2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashedLine extends StatelessWidget {
+  final Color color;
+  const _DashedLine({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, c) {
+        final dashWidth = 4.0;
+        final dashGap = 4.0;
+        final count = (c.maxWidth / (dashWidth + dashGap)).floor();
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(count, (_) {
+            return SizedBox(
+              width: dashWidth,
+              height: 1,
+              child: DecoratedBox(decoration: BoxDecoration(color: color)),
+            );
+          }),
+        );
+      },
+    );
+  }
+}
+
+class _AvailabilitySummary extends StatelessWidget {
+  final Map<String, dynamic>? availability;
+  final MatchModel match;
+  const _AvailabilitySummary({required this.availability, required this.match});
+
+  @override
+  Widget build(BuildContext context) {
+    int disp = availability?['disponibili'] as int? ?? match.totaleConfermati;
+    int nonDisp = availability?['nonDisponibili'] as int? ?? 0;
+    int inAttesa = match.totaleConvocati - match.totaleConfermati;
+    if (inAttesa < 0) inAttesa = 0;
+
+    return Row(
+      children: [
+        Expanded(
+          child: _statCard(
+            context,
+            '$disp',
+            'CONFERMATI',
+            GimmyTokens.ok,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _statCard(
+            context,
+            '$inAttesa',
+            'IN ATTESA',
+            GimmyTokens.warn,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _statCard(
+            context,
+            '$nonDisp',
+            'NON DISP.',
+            GimmyTokens.bad,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _statCard(BuildContext context, String value, String label, Color color) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
+    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: lineColor),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: GoogleFonts.bebasNeue(fontSize: 32, color: color, height: 1),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: GoogleFonts.spaceGrotesk(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: muteColor,
+              letterSpacing: 0.9,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AvailabilityRow extends StatelessWidget {
+  final String nome;
+  final bool disponibile;
+  final String? note;
+  const _AvailabilityRow({
+    required this.nome,
+    required this.disponibile,
+    this.note,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
+    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
+    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: lineColor),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: disponibile
+                  ? (isDark ? GimmyTokens.ok.withOpacity(0.15) : const Color(0xFFDCF6E8))
+                  : (isDark ? GimmyTokens.bad.withOpacity(0.15) : const Color(0xFFFCE0E0)),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              disponibile ? Icons.check : Icons.close,
+              size: 18,
+              color: disponibile ? GimmyTokens.ok : GimmyTokens.bad,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  nome,
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
+                ),
+                if (note != null && note!.isNotEmpty)
+                  Text(
+                    note!,
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                      color: muteColor,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ConvocationRow extends StatelessWidget {
+  final dynamic conv;
+  const _ConvocationRow({required this.conv});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
+    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
+    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+
+    final name = conv.soprannome ?? conv.nomeGiocatore;
+    final fullName = conv.nomeGiocatore;
+    final stato = conv.statoRisposta as String;
+
+    Color bg;
+    Color fg;
+    IconData icon;
+    switch (stato) {
+      case 'Confermato':
+        bg = isDark ? GimmyTokens.ok.withOpacity(0.15) : const Color(0xFFDCF6E8);
+        fg = GimmyTokens.ok;
+        icon = Icons.check;
+        break;
+      case 'NonDisponibile':
+        bg = isDark ? GimmyTokens.bad.withOpacity(0.15) : const Color(0xFFFCE0E0);
+        fg = GimmyTokens.bad;
+        icon = Icons.close;
+        break;
+      default:
+        bg = isDark ? GimmyTokens.warn.withOpacity(0.15) : const Color(0xFFFCEDD2);
+        fg = GimmyTokens.warn;
+        icon = Icons.access_time;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: lineColor),
+      ),
+      child: Row(
+        children: [
+          const JerseyNumber(number: null, bg: GimmyTokens.ink),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  name,
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
+                ),
+                Text(
+                  fullName,
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 11,
+                    color: muteColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: Icon(icon, size: 16, color: fg),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionButtons extends StatelessWidget {
+  final MatchModel match;
+  final bool isAdmin;
+  final VoidCallback onMatchDay;
+  final VoidCallback onLive;
+  final VoidCallback onConvocations;
+  const _ActionButtons({
+    required this.match,
+    required this.isAdmin,
+    required this.onMatchDay,
+    required this.onLive,
+    required this.onConvocations,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: onConvocations,
+            icon: const Icon(Icons.list, size: 18),
+            label: const Text('Convocazioni'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 50),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: match.stato == 'InCorso' ? onLive : onMatchDay,
+            icon: Icon(
+              match.stato == 'InCorso' ? Icons.live_tv : Icons.sports,
+              size: 18,
+            ),
+            label: Text(match.stato == 'InCorso' ? 'Live' : 'Match Day'),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(0, 50),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

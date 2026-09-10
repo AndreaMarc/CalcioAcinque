@@ -17,7 +17,7 @@ public class DashboardService : IDashboardService
 
     public async Task<DashboardDto> GetDashboardAsync(int teamId, int playerId)
     {
-        var team = await _context.Teams.FindAsync(teamId);
+        var team = await _context.Teams.Include(t => t.Club).FirstOrDefaultAsync(t => t.Id == teamId);
         var useGettoni = team?.UseGettoni ?? true;
         var player = await _context.Players.FindAsync(playerId);
 
@@ -52,10 +52,20 @@ public class DashboardService : IDashboardService
                 GettoniRimanenti = p.GettoniTotali - p.GettoniConsumati, GettoniTotali = p.GettoniTotali
             }).ToListAsync();
 
+        var preset = TeamFormats.Preset(team?.Formato ?? TeamFormat.CalcioA5);
+
         return new DashboardDto
         {
             ProssimaPartita = matchSummary,
             UseGettoni = useGettoni,
+            TeamNome = team?.Nome ?? string.Empty,
+            Formato = (team?.Formato ?? TeamFormat.CalcioA5).ToString(),
+            FormatoLabel = preset.Label,
+            FormatoShortLabel = preset.ShortLabel,
+            GiocatoriInCampo = team?.GiocatoriInCampo ?? preset.GiocatoriInCampo,
+            MaxConvocati = team?.MaxConvocati,
+            ClubId = team?.ClubId,
+            ClubNome = team?.Club?.Nome,
             GettoniRimanenti = useGettoni ? (player?.GettoniRimanenti ?? 0) : 0,
             GettoniTotali = useGettoni ? (player?.GettoniTotali ?? 0) : 0,
             ConvocazioniInAttesa = pendingConvocations,

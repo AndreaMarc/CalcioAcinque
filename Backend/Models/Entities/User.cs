@@ -22,5 +22,7 @@ public class User
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public virtual ICollection<Player> Players { get; set; } = new List<Player>();
+    public virtual ICollection<ClubMember> ClubMemberships { get; set; } = new List<ClubMember>();
     public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+    public virtual ICollection<TeamDraft> TeamDrafts { get; set; } = new List<TeamDraft>();
 }

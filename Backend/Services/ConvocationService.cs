@@ -18,7 +18,13 @@ public interface IConvocationService
 public class ConvocationService : IConvocationService
 {
     private readonly ApplicationDbContext _context;
-    public ConvocationService(ApplicationDbContext context) { _context = context; }
+    private readonly INotificationService _notifications;
+
+    public ConvocationService(ApplicationDbContext context, INotificationService notifications)
+    {
+        _context = context;
+        _notifications = notifications;
+    }
 
     public async Task<List<ConvocationDto>> GetByMatchAsync(int matchId, int teamId)
     {
@@ -37,19 +43,44 @@ public class ConvocationService : IConvocationService
         if (match == null) throw new NotFoundException("Partita", matchId);
         if (match.TeamId != teamId) throw new UnauthorizedException("Non sei autorizzato ad accedere a questa risorsa");
 
-        foreach (var playerId in dto.PlayerIds)
+        var team = await _context.Teams.FindAsync(teamId);
+        if (team?.MaxConvocati is int max)
         {
-            var existing = await _context.Convocations.FirstOrDefaultAsync(c => c.MatchId == matchId && c.PlayerId == playerId);
-            if (existing != null) continue;
-            var player = await _context.Players.FindAsync(playerId);
-            if (player == null) continue;
+            var giaConvocati = await _context.Convocations
+                .Where(c => c.MatchId == matchId)
+                .Select(c => c.PlayerId)
+                .ToListAsync();
+            var daAggiungere = dto.PlayerIds.Distinct().Count(id => !giaConvocati.Contains(id));
 
-            _context.Convocations.Add(new Convocation { MatchId = matchId, PlayerId = playerId, StatoRisposta = StatoRisposta.InAttesa, DataConvocazione = DateTime.UtcNow, NotificaInviata = true });
-            _context.MatchAttendances.Add(new MatchAttendance { MatchId = matchId, PlayerId = playerId, Convocato = true });
+            if (giaConvocati.Count + daAggiungere > max)
+                throw new BusinessException(
+                    $"{team.Nome} ammette al massimo {max} convocati per partita " +
+                    $"({giaConvocati.Count} gia' convocati, ne stai aggiungendo {daAggiungere})");
+        }
+
+        // Una sola query invece di due per giocatore (la lista e' piccola ma il ciclo era N+1)
+        var richiesti = dto.PlayerIds.Distinct().ToList();
+        var giaConvocatiIds = await _context.Convocations
+            .Where(c => c.MatchId == matchId && richiesti.Contains(c.PlayerId))
+            .Select(c => c.PlayerId)
+            .ToListAsync();
+        var players = await _context.Players
+            .Where(p => richiesti.Contains(p.Id) && p.TeamId == teamId)
+            .ToListAsync();
+
+        var nuovi = players.Where(p => !giaConvocatiIds.Contains(p.Id)).ToList();
+
+        foreach (var player in nuovi)
+        {
+            _context.Convocations.Add(new Convocation { MatchId = matchId, PlayerId = player.Id, StatoRisposta = StatoRisposta.InAttesa, DataConvocazione = DateTime.UtcNow, NotificaInviata = true });
+            _context.MatchAttendances.Add(new MatchAttendance { MatchId = matchId, PlayerId = player.Id, Convocato = true });
         }
 
         if (match.Stato == StatoPartita.Programmata) match.Stato = StatoPartita.ConvocazioniInviate;
         await _context.SaveChangesAsync();
+
+        await NotificaConvocatiAsync(match, team, nuovi);
+
         return await GetByMatchAsync(matchId, teamId);
     }
 
@@ -78,6 +109,30 @@ public class ConvocationService : IConvocationService
             .Where(c => c.PlayerId == playerId && c.StatoRisposta == StatoRisposta.InAttesa)
             .OrderBy(c => c.Match.Data).ToListAsync();
         return convocations.Select(MapToDto).ToList();
+    }
+
+    /// <summary>
+    /// Avvisa i nuovi convocati. Il titolo porta il nome della squadra perche' con
+    /// due squadre nella stessa societa' "Sei convocato" da solo e' ambiguo.
+    /// </summary>
+    private async Task NotificaConvocatiAsync(Match match, Team? team, List<Player> nuovi)
+    {
+        if (nuovi.Count == 0) return;
+
+        var quando = $"{match.Data:dd/MM}" + (match.Ora == default ? string.Empty : $" alle {match.Ora:hh\\:mm}");
+        var dove = string.IsNullOrWhiteSpace(match.Luogo) ? string.Empty : $" - {match.Luogo}";
+        var avversario = string.IsNullOrWhiteSpace(match.Titolo)
+            ? $"Giornata {match.NumeroGiornata}"
+            : $"vs {match.Titolo}";
+
+        await _notifications.QueueAsync(
+            NotificationKind.Convocazione,
+            nuovi.Select(p => p.UserId),
+            titolo: team != null ? $"{team.Nome}: sei convocato" : "Sei convocato",
+            corpo: $"{avversario} - {quando}{dove}. Conferma la tua presenza.",
+            url: $"/match/{match.Id}",
+            tag: $"convocazione-{match.Id}",
+            teamId: match.TeamId);
     }
 
     private static ConvocationDto MapToDto(Convocation c) => new()

@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
 import '../providers/dashboard_provider.dart';
 import '../providers/convocations_provider.dart';
 import '../providers/announcements_provider.dart';
+import '../providers/players_provider.dart';
+import '../providers/theme_provider.dart';
 import '../models/dashboard_model.dart';
+import '../models/player_model.dart';
 import '../core/constants/api_constants.dart';
+import '../widgets/gimmy_widgets.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -18,7 +23,6 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   Map<String, dynamic>? _availabilityData;
-  bool _availabilityLoading = false;
 
   @override
   void initState() {
@@ -32,26 +36,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
       context.read<DashboardProvider>().loadDashboard(auth.teamId);
       context.read<ConvocationsProvider>().loadPending(auth.playerId);
       context.read<AnnouncementsProvider>().loadAnnouncements(auth.teamId);
+      context.read<PlayersProvider>().loadPlayers(auth.teamId);
       _loadAvailability();
     }
   }
 
   Future<void> _loadAvailability() async {
-    setState(() => _availabilityLoading = true);
     try {
       final auth = context.read<AuthProvider>();
       final response = await auth.apiClient.dio.get(
         ApiConstants.nextAvailability(auth.teamId),
       );
       if (response.data['success'] == true && response.data['data'] != null) {
-        setState(() => _availabilityData = response.data['data']);
-      } else {
+        if (mounted) setState(() => _availabilityData = response.data['data']);
+      } else if (mounted) {
         setState(() => _availabilityData = null);
       }
     } catch (_) {
-      setState(() => _availabilityData = null);
+      if (mounted) setState(() => _availabilityData = null);
     }
-    setState(() => _availabilityLoading = false);
   }
 
   Future<void> _setAvailability(int matchId, bool disponibile) async {
@@ -63,16 +66,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
       if (mounted) {
         _loadAvailability();
+        _loadData();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(disponibile
-            ? 'Sei disponibile!'
-            : 'Non disponibile segnalato')),
+          SnackBar(
+            content: Text(disponibile ? 'Sei disponibile!' : 'Segnato come non disponibile'),
+          ),
         );
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Errore nel salvare la disponibilita\'')),
+          const SnackBar(content: Text('Errore nel salvare la disponibilita')),
         );
       }
     }
@@ -80,458 +84,1066 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: _loadData,
-      child: Consumer2<DashboardProvider, ConvocationsProvider>(
-        builder: (context, dash, conv, _) {
-          if (dash.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final d = dash.dashboard;
-          if (d == null) {
-            return const Center(child: Text('Caricamento...'));
-          }
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              if (conv.pending.isNotEmpty) ...[
-                _buildPendingConvocations(context, conv),
-                const SizedBox(height: 16),
-              ],
-              if (!_availabilityLoading && _availabilityData != null) ...[
-                _buildAvailabilityCard(context),
-                const SizedBox(height: 16),
-              ],
-              if (d.prossimaPartita != null) ...[
-                _buildNextMatch(context, d.prossimaPartita!),
-                const SizedBox(height: 16),
-              ],
-              if (d.useGettoni) ...[
-                _buildTokenCard(context, d),
-                const SizedBox(height: 16),
-              ],
-              _buildStatsCard(context, d),
-              if (d.useGettoni) ...[
-                const SizedBox(height: 16),
-                _buildTokenRanking(context, d),
-              ],
-            ],
-          );
-        },
-      ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final auth = context.watch<AuthProvider>();
+    final theme = context.watch<ThemeProvider>();
+
+    final player = auth.currentPlayer;
+    final greeting = player != null
+        ? 'Ciao, ${player.soprannome?.isNotEmpty == true ? player.soprannome : player.nome.split(' ').first}'
+        : 'Benvenuto';
+    final initials = teamInitials(theme.teamName, fallback: 'CA');
+
+    return Column(
+      children: [
+        GimmyTopBar(
+          teamInitials: initials,
+          title: theme.teamName,
+          subtitle: greeting,
+          actions: [
+            GimmyTopBar.iconAction(
+              context,
+              Icons.notifications_none,
+              () => context.go('/bacheca'),
+              badge: Consumer<AnnouncementsProvider>(
+                builder: (context, prov, _) {
+                  if (prov.unreadCount <= 0) return const SizedBox.shrink();
+                  return Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: GimmyTokens.bad,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isDark ? GimmyTokens.darkPaper : Colors.white,
+                        width: 2,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            // I pagamenti non hanno una scheda in fondo: senza questa icona
+            // ci si arriva solo dalla notifica push
+            GimmyTopBar.iconAction(
+              context,
+              Icons.account_balance_wallet_outlined,
+              () => context.go('/payments'),
+            ),
+            GimmyTopBar.iconAction(
+              context,
+              Icons.settings_outlined,
+              () => context.push('/settings'),
+            ),
+          ],
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _loadData,
+            child: Consumer2<DashboardProvider, ConvocationsProvider>(
+              builder: (context, dash, conv, _) {
+                if (dash.isLoading && dash.dashboard == null) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final d = dash.dashboard;
+                if (d == null) {
+                  return ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      const SizedBox(height: 160),
+                      Center(
+                        child: Column(
+                          children: [
+                            Icon(
+                              dash.hasError
+                                  ? Icons.cloud_off
+                                  : Icons.hourglass_empty,
+                              size: 40,
+                              color: GimmyTokens.textMute,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(dash.hasError
+                                ? 'Impossibile caricare la dashboard'
+                                : 'Caricamento...'),
+                            if (dash.hasError) ...[
+                              const SizedBox(height: 12),
+                              FilledButton.icon(
+                                onPressed: _loadData,
+                                icon: const Icon(Icons.refresh, size: 18),
+                                label: const Text('Riprova'),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                }
+
+                return ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.only(top: 4, bottom: 100),
+                  children: [
+                    if (d.prossimaPartita != null)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        child: _HeroMatchCard(
+                          match: d.prossimaPartita!,
+                          teamInitials: initials,
+                          myStatus: d.prossimaPartita!.miaConvocazione,
+                          onYes: () => _setAvailability(d.prossimaPartita!.id, true),
+                          onNo: () => _setAvailability(d.prossimaPartita!.id, false),
+                          onTap: () => context.push('/match/${d.prossimaPartita!.id}'),
+                        ),
+                      ),
+                    if (conv.pending.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        child: _PendingConvocationsCard(provider: conv, onDone: _loadData),
+                      ),
+                    if (_availabilityData != null && d.prossimaPartita == null)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        child: _AvailabilityCompactCard(
+                          data: _availabilityData!,
+                          onYes: (id) => _setAvailability(id, true),
+                          onNo: (id) => _setAvailability(id, false),
+                        ),
+                      ),
+                    Consumer<PlayersProvider>(
+                      builder: (context, players, _) {
+                        if (players.players.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
+                        final present = (_availabilityData?['dettaglio']
+                                as List?)
+                            ?.where((d) => d['disponibile'] == true)
+                            .length ?? 0;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SectionHead(
+                              title: 'CHI C\'È STASERA',
+                              more: '$present su ${players.players.length} →',
+                            ),
+                            _StoriesRow(
+                              players: players.players,
+                              availabilityDetails:
+                                  _availabilityData?['dettaglio'] as List?,
+                              currentPlayerId:
+                                  context.read<AuthProvider>().playerId,
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        );
+                      },
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _StatsTokensRow(
+                        partiteGiocate: d.partiteGiocate,
+                        partiteTotali: d.partiteTotali,
+                        useGettoni: d.useGettoni,
+                        gettoniRimanenti: d.gettoniRimanenti,
+                        gettoniTotali: d.gettoniTotali,
+                      ),
+                    ),
+                    Consumer<AnnouncementsProvider>(
+                      builder: (context, ann, _) {
+                        final items = ann.announcements.take(1).toList();
+                        if (items.isEmpty) return const SizedBox.shrink();
+                        final a = items.first;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SectionHead(
+                              title: 'BACHECA',
+                              more: 'Vedi tutto →',
+                              onMore: () => context.go('/bacheca'),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                              child: _BachecaPreview(title: a.titolo, body: a.contenuto),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    if (d.useGettoni && d.classificaGettoni.isNotEmpty) ...[
+                      SectionHead(
+                        title: 'CLASSIFICA GETTONI',
+                        more: 'Vedi →',
+                        onMore: () => context.go('/tokens'),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: _RankingMini(list: d.classificaGettoni),
+                      ),
+                    ],
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
+}
 
-  Widget _buildAvailabilityCard(BuildContext context) {
-    final data = _availabilityData!;
-    final matchId = data['matchId'] as int;
-    final giornata = data['numeroGiornata'] as int? ?? 0;
-    final dataPartita = data['dataPartita'] != null
-        ? DateTime.tryParse(data['dataPartita'])
-        : null;
-    final oraPartita = data['oraPartita'] ?? '';
-    final mia = data['miaDisponibilita']; // "disponibile", "nonDisponibile", null
-    final disponibili = data['disponibili'] as int? ?? 0;
-    final nonDisponibili = data['nonDisponibili'] as int? ?? 0;
-    final totale = data['totale'] as int? ?? 0;
+class _HeroMatchCard extends StatelessWidget {
+  final MatchSummary match;
+  final String teamInitials;
+  final String? myStatus;
+  final VoidCallback onYes;
+  final VoidCallback onNo;
+  final VoidCallback onTap;
 
-    Color cardColor;
-    IconData cardIcon;
-    String cardLabel;
+  const _HeroMatchCard({
+    required this.match,
+    required this.teamInitials,
+    required this.myStatus,
+    required this.onYes,
+    required this.onNo,
+    required this.onTap,
+  });
 
-    if (mia == 'disponibile') {
-      cardColor = Colors.green;
-      cardIcon = Icons.check_circle;
-      cardLabel = 'Sei DISPONIBILE';
-    } else if (mia == 'nonDisponibile') {
-      cardColor = Colors.red;
-      cardIcon = Icons.cancel;
-      cardLabel = 'NON disponibile';
-    } else {
-      cardColor = Colors.orange;
-      cardIcon = Icons.help_outline;
-      cardLabel = 'Non hai ancora risposto';
+  @override
+  Widget build(BuildContext context) {
+    final dateFmt = DateFormat('EEE d MMM', 'it_IT');
+    final dateLabel = dateFmt.format(match.data).toUpperCase();
+    final oraLabel = match.ora.isNotEmpty ? match.ora : '--:--';
+    final fieldLabel = (match.luogo ?? '').isNotEmpty ? match.luogo! : '—';
+    final opponent = (match.titolo ?? '').isNotEmpty ? match.titolo! : 'Avversario';
+    final awayInitials = opponent.length >= 2
+        ? opponent.substring(0, 2).toUpperCase()
+        : opponent.toUpperCase();
+
+    Widget statusChip;
+    switch (myStatus) {
+      case 'Confermato':
+        statusChip = GimmyChip(
+          text: 'Convocato',
+          variant: GimmyChipVariant.brand,
+          leading: _dot(GimmyTokens.brand),
+        );
+        break;
+      case 'NonDisponibile':
+        statusChip = const GimmyChip(
+          text: 'Non disponibile',
+          variant: GimmyChipVariant.bad,
+        );
+        break;
+      case 'InAttesa':
+        statusChip = const GimmyChip(
+          text: 'In attesa',
+          variant: GimmyChipVariant.warn,
+        );
+        break;
+      default:
+        statusChip = const GimmyChip(
+          text: 'Da decidere',
+          variant: GimmyChipVariant.neutral,
+        );
     }
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          // Header colorato
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: cardColor.withOpacity(0.15),
-            child: Row(
+    return GestureDetector(
+      onTap: onTap,
+      child: CardInk(
+        padding: const EdgeInsets.all(22),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.how_to_reg, color: cardColor),
-                const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Disponibilita\' - Giornata $giornata',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold),
-                      ),
-                      if (dataPartita != null)
-                        Text(
-                          '${DateFormat('EEEE dd MMMM', 'it_IT').format(dataPartita)} - $oraPartita',
-                          style: Theme.of(context).textTheme.bodySmall,
+                        'PROSSIMA PARTITA',
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.54,
+                          color: GimmyTokens.brand,
                         ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'GIORNATA ${match.numeroGiornata}',
+                        style: GoogleFonts.bebasNeue(
+                          fontSize: 36,
+                          height: 1,
+                          letterSpacing: 0.02 * 36,
+                          color: Colors.white,
+                        ),
+                      ),
                     ],
                   ),
                 ),
+                statusChip,
               ],
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                // Stato attuale
-                Row(
-                  children: [
-                    Icon(cardIcon, color: cardColor, size: 28),
-                    const SizedBox(width: 8),
-                    Text(cardLabel,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: cardColor,
-                      )),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // Contatori
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _availStat(context, '$disponibili', 'Disponibili', Colors.green),
-                    _availStat(context, '$nonDisponibili', 'Non disp.', Colors.red),
-                    _availStat(context, '$totale', 'Risposte', Theme.of(context).colorScheme.primary),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                // Bottoni azione
-                Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: mia == 'disponibile'
-                            ? null
-                            : () => _setAvailability(matchId, true),
-                        icon: const Icon(Icons.thumb_up),
-                        label: const Text('Ci sono!'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          disabledBackgroundColor: Colors.green.withOpacity(0.3),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: mia == 'nonDisponibile'
-                            ? null
-                            : () => _setAvailability(matchId, false),
-                        icon: const Icon(Icons.thumb_down),
-                        label: const Text('Non ci sono'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+            const SizedBox(height: 20),
+            VsLayout(
+              homeCrest: CrestBox(initials: teamInitials, filled: true),
+              homeName: 'Squadra',
+              awayCrest: CrestBox(initials: awayInitials, filled: false),
+              awayName: opponent,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _availStat(BuildContext context, String value, String label, Color color) {
-    return Column(
-      children: [
-        Text(value, style: TextStyle(
-          fontSize: 22, fontWeight: FontWeight.bold, color: color)),
-        Text(label, style: const TextStyle(fontSize: 11)),
-      ],
-    );
-  }
-
-  Widget _buildPendingConvocations(BuildContext context, ConvocationsProvider conv) {
-    return Card(
-      color: Theme.of(context).colorScheme.tertiaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.notifications_active,
-                  color: Theme.of(context).colorScheme.tertiary),
-                const SizedBox(width: 8),
-                Text('Convocazioni in attesa',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ...conv.pending.map((c) => ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text('Giornata ${c.numeroGiornata ?? '-'}'),
-              subtitle: Text(c.dataPartita != null
-                  ? '${DateFormat('dd/MM/yyyy').format(c.dataPartita!)} - ${c.oraPartita ?? ''}'
-                  : 'Data da definire'),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
+            const SizedBox(height: 20),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withOpacity(0.08)),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+              child: Row(
                 children: [
-                  FilledButton.tonal(
-                    onPressed: () async {
-                      await conv.respond(c.id, 'Confermato');
-                      if (context.mounted) _loadData();
-                    },
-                    child: const Text('Confermo'),
+                  Expanded(child: _heroStat('DATA', dateLabel)),
+                  Container(
+                    width: 1,
+                    height: 32,
+                    color: Colors.white.withOpacity(0.08),
                   ),
-                  const SizedBox(width: 8),
-                  OutlinedButton(
-                    onPressed: () async {
-                      await conv.respond(c.id, 'NonDisponibile');
-                      if (context.mounted) _loadData();
-                    },
-                    child: const Text('No'),
+                  Expanded(child: _heroStat('ORA', oraLabel)),
+                  Container(
+                    width: 1,
+                    height: 32,
+                    color: Colors.white.withOpacity(0.08),
                   ),
+                  Expanded(child: _heroStat('CAMPO', fieldLabel)),
                 ],
               ),
-            )),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNextMatch(BuildContext context, MatchSummary match) {
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => context.push('/match/${match.id}'),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.sports_soccer,
-                    color: Theme.of(context).colorScheme.primary),
-                  const SizedBox(width: 8),
-                  Text('Prossima Partita',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold)),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(match.displayTitle,
-                style: Theme.of(context).textTheme.headlineSmall),
-              const SizedBox(height: 6),
-              _buildConvocazioneChip(match.miaConvocazione),
-              const SizedBox(height: 4),
-              Text(
-                '${DateFormat('EEEE dd MMMM', 'it_IT').format(match.data)} - ${match.ora}',
-                style: Theme.of(context).textTheme.bodyLarge),
-              if (match.luogo != null) ...[
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.location_on, size: 16),
-                    const SizedBox(width: 4),
-                    Text(match.luogo!),
-                  ],
-                ),
-              ],
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _miniStat('Confermati', '${match.confermati}', Colors.green),
-                  _miniStat('In attesa', '${match.inAttesa}', Colors.orange),
-                  _miniStat('Non disp.', '${match.nonDisponibili}', Colors.red),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildConvocazioneChip(String? stato) {
-    final IconData icon;
-    final String label;
-    final Color bg;
-    final Color fg;
-    switch (stato) {
-      case 'Confermato':
-        icon = Icons.check_circle;
-        label = 'Convocato - Confermato';
-        bg = Colors.green.shade50;
-        fg = Colors.green.shade700;
-        break;
-      case 'InAttesa':
-        icon = Icons.hourglass_top;
-        label = 'In attesa di risposta';
-        bg = Colors.orange.shade50;
-        fg = Colors.orange.shade700;
-        break;
-      case 'NonDisponibile':
-        icon = Icons.cancel;
-        label = 'Non disponibile';
-        bg = Colors.red.shade50;
-        fg = Colors.red.shade700;
-        break;
-      default:
-        icon = Icons.person_off;
-        label = 'Non convocato';
-        bg = Colors.grey.shade100;
-        fg = Colors.grey.shade600;
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: fg),
-          const SizedBox(width: 6),
-          Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: fg)),
-        ],
-      ),
-    );
-  }
-
-  Widget _miniStat(String label, String value, Color color) {
-    return Column(
-      children: [
-        Text(value, style: TextStyle(
-          fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-        Text(label, style: const TextStyle(fontSize: 12)),
-      ],
-    );
-  }
-
-  Widget _buildTokenCard(BuildContext context, DashboardModel d) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.toll, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 8),
-                Text('I tuoi Gettoni',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold)),
-              ],
             ),
             const SizedBox(height: 16),
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  '${d.gettoniRimanenti}',
-                  style: TextStyle(
-                    fontSize: 48,
-                    fontWeight: FontWeight.bold,
-                    color: d.gettoniRimanenti > 0
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.error,
+                Expanded(
+                  child: _actionBtn(
+                    label: 'Ci sono',
+                    icon: Icons.check,
+                    fill: GimmyTokens.brand,
+                    fg: GimmyTokens.brandInk,
+                    onTap: onYes,
+                    active: myStatus == 'Confermato',
                   ),
                 ),
-                Text(
-                  ' / ${d.gettoniTotali}',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _actionBtn(
+                    label: 'Salto',
+                    icon: Icons.close,
+                    fill: Colors.white.withOpacity(0.08),
+                    fg: Colors.white,
+                    border: Colors.white.withOpacity(0.12),
+                    onTap: onNo,
+                    active: myStatus == 'NonDisponibile',
+                  ),
                 ),
               ],
             ),
-            if (d.gettoniTotali > 0)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: LinearProgressIndicator(
-                  value: d.gettoniRimanenti / d.gettoniTotali,
-                  minHeight: 8,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatsCard(BuildContext context, DashboardModel d) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _statColumn(context, '${d.partiteGiocate}', 'Giocate'),
-            _statColumn(context, '${d.partiteTotali}', 'Totali'),
-            _statColumn(context, '${d.convocazioniInAttesa}', 'In attesa'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _statColumn(BuildContext context, String value, String label) {
+  Widget _heroStat(String label, String value) {
     return Column(
       children: [
-        Text(value, style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-          fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 10,
+            color: const Color(0xFF9FA7A9),
+            letterSpacing: 0.8,
+          ),
+        ),
         const SizedBox(height: 4),
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
+        Text(
+          value,
+          style: GoogleFonts.bebasNeue(
+            fontSize: value.length > 6 ? 18 : 22,
+            color: Colors.white,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ],
     );
   }
 
-  Widget _buildTokenRanking(BuildContext context, DashboardModel d) {
-    if (d.classificaGettoni.isEmpty) return const SizedBox.shrink();
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _actionBtn({
+    required String label,
+    required IconData icon,
+    required Color fill,
+    required Color fg,
+    Color? border,
+    required VoidCallback onTap,
+    bool active = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        height: 48,
+        decoration: BoxDecoration(
+          color: fill,
+          borderRadius: BorderRadius.circular(14),
+          border: border != null ? Border.all(color: border) : null,
+        ),
+        alignment: Alignment.center,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Classifica Gettoni',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            ...d.classificaGettoni.map((p) => ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: CircleAvatar(
-                backgroundColor: p.gettoniRimanenti > 0
-                    ? Theme.of(context).colorScheme.primaryContainer
-                    : Theme.of(context).colorScheme.errorContainer,
-                child: Text('${p.gettoniRimanenti}'),
+            Icon(icon, size: 18, color: fg),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: fg,
               ),
-              title: Text(p.soprannome ?? p.nome),
-              subtitle: Text('${p.gettoniRimanenti} / ${p.gettoniTotali} gettoni'),
-            )),
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _dot(Color c) => Container(
+        width: 6,
+        height: 6,
+        decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+      );
+}
+
+class _StoriesRow extends StatelessWidget {
+  final List<PlayerModel> players;
+  final List? availabilityDetails;
+  final int currentPlayerId;
+
+  const _StoriesRow({
+    required this.players,
+    required this.availabilityDetails,
+    required this.currentPlayerId,
+  });
+
+  String _statusFor(int playerId) {
+    if (playerId == currentPlayerId) return 'me';
+    if (availabilityDetails == null) return 'pending';
+    final entry = availabilityDetails!
+        .cast<dynamic>()
+        .firstWhere((e) => e['playerId'] == playerId, orElse: () => null);
+    if (entry == null) return 'pending';
+    if (entry['disponibile'] == true) return 'ok';
+    if (entry['disponibile'] == false) return 'no';
+    return 'pending';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 96,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: players.length,
+        itemBuilder: (context, i) {
+          final p = players[i];
+          final myStatus = _statusFor(p.id);
+          // Map 'pending' → 'warn' for visual consistency with mockup
+          final status = myStatus == 'pending' ? 'warn' : myStatus;
+          return Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: StoryAvatar(
+              name: p.soprannome?.isNotEmpty == true ? p.soprannome! : p.nome.split(' ').first,
+              number: i + 1,
+              status: status,
+              size: 60,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _StatsTokensRow extends StatelessWidget {
+  final int partiteGiocate;
+  final int partiteTotali;
+  final bool useGettoni;
+  final int gettoniRimanenti;
+  final int gettoniTotali;
+
+  const _StatsTokensRow({
+    required this.partiteGiocate,
+    required this.partiteTotali,
+    required this.useGettoni,
+    required this.gettoniRimanenti,
+    required this.gettoniTotali,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
+    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
+    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+
+    final ratio = partiteTotali > 0 ? partiteGiocate / partiteTotali : 0.0;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          flex: 13,
+          child: Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: lineColor),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Eyebrow('Le tue presenze', color: muteColor),
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '$partiteGiocate',
+                      style: GoogleFonts.bebasNeue(
+                        fontSize: 44,
+                        color: textColor,
+                        height: 0.9,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Text(
+                        '/ $partiteTotali',
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: 14,
+                          color: muteColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                GimmyBar(
+                  value: ratio,
+                  fillColor: isDark ? Colors.white : GimmyTokens.ink,
+                  height: 6,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (useGettoni) ...[
+          const SizedBox(width: 10),
+          Expanded(
+            flex: 10,
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: isDark ? GimmyTokens.darkBrand : GimmyTokens.brand,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    right: -20,
+                    top: -20,
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: GimmyTokens.brandInk.withOpacity(0.2),
+                          width: 2,
+                          style: BorderStyle.solid,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'GETTONI',
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.54,
+                          color: GimmyTokens.brandInk.withOpacity(0.7),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            '$gettoniRimanenti',
+                            style: GoogleFonts.bebasNeue(
+                              fontSize: 56,
+                              color: GimmyTokens.brandInk,
+                              height: 0.85,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              '/ $gettoniTotali',
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 14,
+                                color: GimmyTokens.brandInk.withOpacity(0.7),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _BachecaPreview extends StatelessWidget {
+  final String title;
+  final String body;
+  const _BachecaPreview({required this.title, required this.body});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
+    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
+    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: lineColor),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? GimmyTokens.brand.withOpacity(0.15)
+                  : GimmyTokens.brandSoft,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              Icons.push_pin_outlined,
+              size: 18,
+              color: isDark ? GimmyTokens.darkBrand : GimmyTokens.brandInk,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const GimmyChip(
+                      text: 'BACHECA',
+                      variant: GimmyChipVariant.brand,
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      fontSize: 10,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  title,
+                  style: GoogleFonts.spaceGrotesk(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: textColor,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  body,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 13,
+                    color: muteColor,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RankingMini extends StatelessWidget {
+  final List<PlayerTokenSummary> list;
+  const _RankingMini({required this.list});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
+    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
+    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: lineColor),
+      ),
+      child: Column(
+        children: list.take(5).toList().asMap().entries.map((e) {
+          final i = e.key;
+          final p = e.value;
+          final ratio = p.gettoniTotali > 0
+              ? p.gettoniRimanenti / p.gettoniTotali
+              : 0.0;
+          final low = p.gettoniRimanenti <= 1;
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              border: i < list.take(5).length - 1
+                  ? Border(bottom: BorderSide(color: lineColor))
+                  : null,
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 22,
+                  child: Text(
+                    '${i + 1}',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: muteColor,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        p.soprannome?.isNotEmpty == true ? p.soprannome! : p.nome,
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: textColor,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      GimmyBar(
+                        value: ratio,
+                        height: 4,
+                        fillColor: low
+                            ? GimmyTokens.bad
+                            : (isDark ? Colors.white : GimmyTokens.ink),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  '${p.gettoniRimanenti}',
+                  style: GoogleFonts.bebasNeue(
+                    fontSize: 22,
+                    color: low ? GimmyTokens.bad : textColor,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Text(
+                  '/${p.gettoniTotali}',
+                  style: GoogleFonts.spaceGrotesk(fontSize: 11, color: muteColor),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _PendingConvocationsCard extends StatelessWidget {
+  final ConvocationsProvider provider;
+  final VoidCallback onDone;
+  const _PendingConvocationsCard({required this.provider, required this.onDone});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
+    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
+    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: GimmyTokens.warn, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.notifications_active, size: 18, color: GimmyTokens.warn),
+              const SizedBox(width: 8),
+              Text(
+                'CONVOCAZIONI IN ATTESA',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.54,
+                  color: GimmyTokens.warn,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...provider.pending.map((c) {
+            final dateStr = c.dataPartita != null
+                ? DateFormat('d MMM', 'it_IT').format(c.dataPartita!)
+                : '—';
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Giornata ${c.numeroGiornata ?? '—'}',
+                          style: GoogleFonts.spaceGrotesk(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: textColor,
+                          ),
+                        ),
+                        Text(
+                          '$dateStr · ${c.oraPartita ?? ''}',
+                          style: GoogleFonts.spaceGrotesk(
+                            fontSize: 12,
+                            color: muteColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () async {
+                      await provider.respond(c.id, 'Confermato');
+                      onDone();
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDark ? GimmyTokens.darkBrand : GimmyTokens.brand,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.check, size: 14, color: GimmyTokens.brandInk),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Ci sono',
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: GimmyTokens.brandInk,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  InkWell(
+                    onTap: () async {
+                      await provider.respond(c.id, 'NonDisponibile');
+                      onDone();
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: lineColor),
+                      ),
+                      child: Text(
+                        'No',
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: textColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+class _AvailabilityCompactCard extends StatelessWidget {
+  final Map<String, dynamic> data;
+  final void Function(int) onYes;
+  final void Function(int) onNo;
+  const _AvailabilityCompactCard({
+    required this.data,
+    required this.onYes,
+    required this.onNo,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final matchId = data['matchId'] as int;
+    final giornata = data['numeroGiornata'] as int? ?? 0;
+    final dataPartita = data['dataPartita'] != null
+        ? DateTime.tryParse(data['dataPartita'])
+        : null;
+    final ora = data['oraPartita'] ?? '';
+    final disponibili = data['disponibili'] as int? ?? 0;
+    final nonDisp = data['nonDisponibili'] as int? ?? 0;
+    final totale = data['totale'] as int? ?? 0;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
+    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
+    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: lineColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'GIORNATA $giornata',
+            style: GoogleFonts.bebasNeue(
+              fontSize: 24,
+              color: textColor,
+              letterSpacing: 0.02 * 24,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            dataPartita != null
+                ? '${DateFormat('EEEE d MMMM', 'it_IT').format(dataPartita)} · $ora'
+                : ora,
+            style: GoogleFonts.spaceGrotesk(fontSize: 12, color: muteColor),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _statMini('$disponibili', 'OK', GimmyTokens.ok),
+              const SizedBox(width: 16),
+              _statMini('$nonDisp', 'NO', GimmyTokens.bad),
+              const SizedBox(width: 16),
+              _statMini('$totale', 'TOT', textColor),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () => onYes(matchId),
+                  icon: const Icon(Icons.thumb_up_outlined, size: 16),
+                  label: const Text('Ci sono'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => onNo(matchId),
+                  icon: const Icon(Icons.thumb_down_outlined, size: 16),
+                  label: const Text('Non ci sono'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statMini(String value, String label, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          value,
+          style: GoogleFonts.bebasNeue(fontSize: 26, color: color),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            color: color.withOpacity(0.9),
+            letterSpacing: 0.8,
+          ),
+        ),
+      ],
     );
   }
 }

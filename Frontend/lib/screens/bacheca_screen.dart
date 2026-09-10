@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
 import '../providers/announcements_provider.dart';
+import '../providers/theme_provider.dart';
 import '../models/announcement_model.dart';
+import '../widgets/gimmy_widgets.dart';
 
 class BachecaScreen extends StatefulWidget {
   const BachecaScreen({super.key});
@@ -30,57 +32,59 @@ class _BachecaScreenState extends State<BachecaScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final cs = Theme.of(context).colorScheme;
+    final theme = context.watch<ThemeProvider>();
+    final initials = teamInitials(theme.teamName, fallback: 'CA');
 
-    return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: _loadData,
-        child: Consumer<AnnouncementsProvider>(
-          builder: (context, prov, _) {
-            if (!prov.hasLoaded) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (prov.announcements.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.campaign_outlined, size: 64,
-                      color: cs.onSurfaceVariant.withOpacity(0.4)),
-                    const SizedBox(height: 16),
-                    Text('Nessuna comunicazione',
-                      style: TextStyle(color: cs.onSurfaceVariant)),
-                    const SizedBox(height: 8),
-                    Text('La bacheca e\' vuota',
-                      style: TextStyle(color: cs.onSurfaceVariant.withOpacity(0.6),
-                        fontSize: 13)),
-                  ],
-                ),
-              );
-            }
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: prov.announcements.length,
-              itemBuilder: (context, index) {
-                final ann = prov.announcements[index];
-                return _AnnouncementCard(
-                  announcement: ann,
-                  isAdmin: auth.isAdmin,
-                  onAcknowledge: () => _acknowledge(ann),
-                  onDelete: () => _confirmDelete(ann),
-                  onTap: () => _showDetail(ann),
-                );
-              },
-            );
-          },
-        ),
-      ),
-      floatingActionButton: auth.isAdmin
-          ? FloatingActionButton(
-              onPressed: () => _showCreateDialog(context),
-              child: const Icon(Icons.add),
-            )
-          : null,
+    return Consumer<AnnouncementsProvider>(
+      builder: (context, prov, _) {
+        return Column(
+          children: [
+            GimmyTopBar(
+              teamInitials: initials,
+              title: 'Bacheca',
+              subtitle: '${prov.announcements.length} aggiornamenti',
+              actions: [
+                if (auth.puoGestireCampo)
+                  GimmyTopBar.iconAction(
+                    context,
+                    Icons.add,
+                    () => _showCreateDialog(context),
+                  ),
+              ],
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _loadData,
+                child: !prov.hasLoaded
+                    ? const Center(child: CircularProgressIndicator())
+                    : prov.announcements.isEmpty
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: const [
+                              SizedBox(height: 200),
+                              Center(child: Text('Bacheca vuota')),
+                            ],
+                          )
+                        : ListView(
+                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+                            children: prov.announcements
+                                .map((a) => Padding(
+                                      padding: const EdgeInsets.only(bottom: 10),
+                                      child: _BoardCard(
+                                        ann: a,
+                                        isAdmin: auth.puoGestireCampo,
+                                        onAcknowledge: () => _acknowledge(a),
+                                        onDelete: () => _confirmDelete(a),
+                                        onTap: () => _showDetail(a),
+                                      ),
+                                    ))
+                                .toList(),
+                          ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -103,12 +107,11 @@ class _BachecaScreenState extends State<BachecaScreen> {
         content: Text('Eliminare "${ann.titolo}"?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Annulla'),
-          ),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Annulla')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: GimmyTokens.bad),
             child: const Text('Elimina'),
           ),
         ],
@@ -116,13 +119,7 @@ class _BachecaScreenState extends State<BachecaScreen> {
     );
     if (confirmed == true && mounted) {
       final auth = context.read<AuthProvider>();
-      final success = await context.read<AnnouncementsProvider>()
-          .delete(auth.teamId, ann.id);
-      if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Comunicazione eliminata')),
-        );
-      }
+      await context.read<AnnouncementsProvider>().delete(auth.teamId, ann.id);
     }
   }
 
@@ -135,144 +132,81 @@ class _BachecaScreenState extends State<BachecaScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (ctx) => DraggableScrollableSheet(
         initialChildSize: 0.7,
         maxChildSize: 0.9,
         minChildSize: 0.4,
         expand: false,
         builder: (ctx, scrollController) {
-          final cs = Theme.of(ctx).colorScheme;
-          return Container(
-            decoration: BoxDecoration(
-              color: cs.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: ListView(
-              controller: scrollController,
-              padding: const EdgeInsets.all(20),
-              children: [
-                Center(
-                  child: Container(
-                    width: 40, height: 4,
-                    decoration: BoxDecoration(
-                      color: cs.outlineVariant,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (detail.importante)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    margin: const EdgeInsets.only(bottom: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.priority_high, size: 16, color: Colors.red.shade700),
-                        const SizedBox(width: 4),
-                        Text('IMPORTANTE', style: TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.bold,
-                          color: Colors.red.shade700)),
-                      ],
-                    ),
-                  ),
-                Text(detail.titolo,
-                  style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(Icons.person_outline, size: 16, color: cs.onSurfaceVariant),
-                    const SizedBox(width: 4),
-                    Text(detail.autoreDisplay,
-                      style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
-                    const SizedBox(width: 12),
-                    Icon(Icons.access_time, size: 16, color: cs.onSurfaceVariant),
-                    const SizedBox(width: 4),
-                    Text(DateFormat('dd/MM/yyyy HH:mm').format(detail.createdAt),
-                      style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
-                  ],
-                ),
-                const Divider(height: 24),
-                Text(detail.contenuto,
-                  style: Theme.of(ctx).textTheme.bodyLarge),
-                const SizedBox(height: 24),
-                // Presa visione section
-                Container(
-                  padding: const EdgeInsets.all(16),
+          final isDark = Theme.of(ctx).brightness == Brightness.dark;
+          final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
+          final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+
+          return ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.all(20),
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
                   decoration: BoxDecoration(
-                    color: cs.primaryContainer.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.visibility, size: 20, color: cs.primary),
-                          const SizedBox(width: 8),
-                          Text('Presa visione',
-                            style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold)),
-                          const Spacer(),
-                          Chip(
-                            label: Text(
-                              '${detail.totalePresaVisione} / ${detail.totaleGiocatori}',
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                            backgroundColor: cs.primaryContainer,
-                          ),
-                        ],
-                      ),
-                      if (detail.presaVisione.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        ...detail.presaVisione.map((r) => Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Row(
-                            children: [
-                              Icon(Icons.check_circle, size: 18,
-                                color: Colors.green.shade600),
-                              const SizedBox(width: 8),
-                              Expanded(child: Text(r.displayName,
-                                style: const TextStyle(fontSize: 14))),
-                              Text(
-                                DateFormat('dd/MM HH:mm').format(r.readAt),
-                                style: TextStyle(fontSize: 12,
-                                  color: cs.onSurfaceVariant),
-                              ),
-                            ],
-                          ),
-                        )),
-                      ],
-                      if (detail.presaVisione.isEmpty) ...[
-                        const SizedBox(height: 8),
-                        Text('Nessuno ha ancora preso visione',
-                          style: TextStyle(fontStyle: FontStyle.italic,
-                            color: cs.onSurfaceVariant, fontSize: 13)),
-                      ],
-                    ],
+                    color: muteColor.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                if (!detail.hoPresaVisione) ...[
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        _acknowledge(ann);
-                      },
-                      icon: const Icon(Icons.check),
-                      label: const Text('Presa Visione'),
-                    ),
+              ),
+              const SizedBox(height: 16),
+              if (detail.importante)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 8),
+                  child: GimmyChip(
+                    text: 'IMPORTANTE',
+                    variant: GimmyChipVariant.brand,
                   ),
-                ],
-              ],
-            ),
+                ),
+              Text(
+                detail.titolo.toUpperCase(),
+                style: GoogleFonts.bebasNeue(
+                  fontSize: 28,
+                  height: 1.1,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${detail.autoreDisplay} · ${DateFormat('d MMM y HH:mm', 'it_IT').format(detail.createdAt)}',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 12,
+                  color: muteColor,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                detail.contenuto,
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 15,
+                  color: textColor,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              if (!detail.hoPresaVisione)
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _acknowledge(ann);
+                    },
+                    icon: const Icon(Icons.check),
+                    label: const Text('Presa Visione'),
+                  ),
+                ),
+            ],
           );
         },
       ),
@@ -296,27 +230,18 @@ class _BachecaScreenState extends State<BachecaScreen> {
               children: [
                 TextField(
                   controller: titoloCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Titolo',
-                    border: OutlineInputBorder(),
-                  ),
+                  decoration: const InputDecoration(labelText: 'Titolo'),
                   maxLength: 200,
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: contenutoCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Contenuto',
-                    border: OutlineInputBorder(),
-                    alignLabelWithHint: true,
-                  ),
+                  decoration: const InputDecoration(labelText: 'Contenuto'),
                   maxLines: 5,
                   maxLength: 2000,
                 ),
-                const SizedBox(height: 8),
                 SwitchListTile(
                   title: const Text('Importante'),
-                  subtitle: const Text('Evidenzia la comunicazione'),
                   value: importante,
                   onChanged: (v) => setDialogState(() => importante = v),
                   contentPadding: EdgeInsets.zero,
@@ -326,26 +251,20 @@ class _BachecaScreenState extends State<BachecaScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Annulla'),
-            ),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Annulla')),
             FilledButton(
               onPressed: () async {
                 if (titoloCtrl.text.trim().isEmpty ||
                     contenutoCtrl.text.trim().isEmpty) return;
                 Navigator.pop(ctx);
                 final auth = context.read<AuthProvider>();
-                final success = await context.read<AnnouncementsProvider>().create(
-                  auth.teamId,
-                  titolo: titoloCtrl.text.trim(),
-                  contenuto: contenutoCtrl.text.trim(),
-                  importante: importante,
-                );
-                if (success && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Comunicazione pubblicata')),
-                  );
-                }
+                await context.read<AnnouncementsProvider>().create(
+                      auth.teamId,
+                      titolo: titoloCtrl.text.trim(),
+                      contenuto: contenutoCtrl.text.trim(),
+                      importante: importante,
+                    );
               },
               child: const Text('Pubblica'),
             ),
@@ -356,15 +275,15 @@ class _BachecaScreenState extends State<BachecaScreen> {
   }
 }
 
-class _AnnouncementCard extends StatelessWidget {
-  final AnnouncementModel announcement;
+class _BoardCard extends StatelessWidget {
+  final AnnouncementModel ann;
   final bool isAdmin;
   final VoidCallback onAcknowledge;
   final VoidCallback onDelete;
   final VoidCallback onTap;
 
-  const _AnnouncementCard({
-    required this.announcement,
+  const _BoardCard({
+    required this.ann,
     required this.isAdmin,
     required this.onAcknowledge,
     required this.onDelete,
@@ -373,131 +292,191 @@ class _AnnouncementCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final ann = announcement;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
+    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final line2Color = isDark ? GimmyTokens.darkLine : GimmyTokens.line2;
+    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
+    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final faintColor = isDark
+        ? GimmyTokens.darkTextMute.withOpacity(0.5)
+        : GimmyTokens.textFaint;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: ann.importante ? GimmyTokens.brand : lineColor,
+            width: ann.importante ? 1.5 : 1,
+          ),
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
           children: [
             if (ann.importante)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                color: Colors.red.withOpacity(0.1),
-                child: Row(
-                  children: [
-                    Icon(Icons.priority_high, size: 16, color: Colors.red.shade700),
-                    const SizedBox(width: 4),
-                    Text('IMPORTANTE', style: TextStyle(
-                      fontSize: 11, fontWeight: FontWeight.bold,
-                      color: Colors.red.shade700, letterSpacing: 0.5)),
-                  ],
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(ann.titolo,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold)),
-                      ),
-                      if (!ann.hoPresaVisione)
-                        Container(
-                          width: 10, height: 10,
-                          decoration: BoxDecoration(
-                            color: cs.primary,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    ann.contenuto.length > 120
-                        ? '${ann.contenuto.substring(0, 120)}...'
-                        : ann.contenuto,
-                    style: TextStyle(
-                      color: cs.onSurfaceVariant,
-                      fontSize: 14,
+              Positioned(
+                top: -1,
+                right: 14,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: const BoxDecoration(
+                    color: GimmyTokens.brand,
+                    borderRadius: BorderRadius.vertical(
+                      bottom: Radius.circular(8),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Row(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.person_outline, size: 14,
-                        color: cs.onSurfaceVariant.withOpacity(0.6)),
+                      const Icon(Icons.push_pin, size: 10, color: GimmyTokens.brandInk),
                       const SizedBox(width: 4),
-                      Text(ann.autoreDisplay,
-                        style: TextStyle(fontSize: 12,
-                          color: cs.onSurfaceVariant.withOpacity(0.6))),
-                      const SizedBox(width: 12),
-                      Icon(Icons.access_time, size: 14,
-                        color: cs.onSurfaceVariant.withOpacity(0.6)),
-                      const SizedBox(width: 4),
-                      Text(_timeAgo(ann.createdAt),
-                        style: TextStyle(fontSize: 12,
-                          color: cs.onSurfaceVariant.withOpacity(0.6))),
-                      const Spacer(),
-                      Icon(Icons.visibility, size: 14,
-                        color: cs.onSurfaceVariant.withOpacity(0.6)),
-                      const SizedBox(width: 4),
-                      Text('${ann.totalePresaVisione}/${ann.totaleGiocatori}',
-                        style: TextStyle(fontSize: 12,
-                          color: cs.onSurfaceVariant.withOpacity(0.6))),
+                      Text(
+                        'FISSATO',
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: GimmyTokens.brandInk,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      if (!ann.hoPresaVisione)
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: onAcknowledge,
-                            icon: const Icon(Icons.check, size: 18),
-                            label: const Text('Presa Visione'),
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                            ),
-                          ),
-                        )
-                      else
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: null,
-                            icon: Icon(Icons.check_circle,
-                              size: 18, color: Colors.green.shade600),
-                            label: Text('Visualizzato',
-                              style: TextStyle(color: Colors.green.shade600)),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              side: BorderSide(color: Colors.green.shade300),
-                            ),
-                          ),
-                        ),
-                      if (isAdmin) ...[
-                        const SizedBox(width: 8),
-                        IconButton(
-                          onPressed: onDelete,
-                          icon: Icon(Icons.delete_outline,
-                            color: Colors.red.shade400, size: 22),
-                          tooltip: 'Elimina',
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
+                ),
               ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (ann.importante) const SizedBox(height: 10),
+                Row(
+                  children: [
+                    GimmyChip(
+                      text: ann.importante ? 'IMPORTANTE' : 'AVVISO',
+                      variant: ann.importante
+                          ? GimmyChipVariant.brand
+                          : GimmyChipVariant.dark,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      fontSize: 9,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${ann.autoreDisplay} · ${_timeAgo(ann.createdAt)}',
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 11,
+                        color: faintColor,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (!ann.hoPresaVisione)
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: GimmyTokens.brand,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  ann.titolo.toUpperCase(),
+                  style: GoogleFonts.bebasNeue(
+                    fontSize: 22,
+                    height: 1.1,
+                    letterSpacing: 0.01 * 22,
+                    color: textColor,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  ann.contenuto,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 13,
+                    color: muteColor,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.only(top: 10),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: line2Color, style: BorderStyle.solid),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      GimmyChip(
+                        text:
+                            '${ann.totalePresaVisione}/${ann.totaleGiocatori} letti',
+                        variant: GimmyChipVariant.neutral,
+                        leadingIcon: Icons.visibility_outlined,
+                        fontSize: 11,
+                      ),
+                      const SizedBox(width: 8),
+                      if (!ann.hoPresaVisione)
+                        InkWell(
+                          onTap: onAcknowledge,
+                          borderRadius: BorderRadius.circular(999),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? GimmyTokens.brand.withOpacity(0.15)
+                                  : GimmyTokens.brandSoft,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.check,
+                                    size: 13,
+                                    color: isDark
+                                        ? GimmyTokens.darkBrand
+                                        : GimmyTokens.brandInk),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Letto',
+                                  style: GoogleFonts.spaceGrotesk(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? GimmyTokens.darkBrand
+                                        : GimmyTokens.brandInk,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      const Spacer(),
+                      if (isAdmin)
+                        InkWell(
+                          onTap: onDelete,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.all(4),
+                            child: Icon(
+                              Icons.delete_outline,
+                              size: 16,
+                              color: GimmyTokens.bad.withOpacity(0.8),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -508,8 +487,8 @@ class _AnnouncementCard extends StatelessWidget {
   String _timeAgo(DateTime dt) {
     final diff = DateTime.now().difference(dt);
     if (diff.inMinutes < 60) return '${diff.inMinutes} min fa';
-    if (diff.inHours < 24) return '${diff.inHours} ore fa';
-    if (diff.inDays < 7) return '${diff.inDays} giorni fa';
-    return DateFormat('dd/MM/yyyy').format(dt);
+    if (diff.inHours < 24) return '${diff.inHours}h fa';
+    if (diff.inDays < 7) return '${diff.inDays}g fa';
+    return DateFormat('dd/MM').format(dt);
   }
 }

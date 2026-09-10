@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using CalcioAcinque.Backend.DTOs.Announcements;
 using CalcioAcinque.Backend.Models;
 using CalcioAcinque.Backend.Services;
+using CalcioAcinque.Backend.Models.Enums;
 
 namespace CalcioAcinque.Backend.Controllers;
 
@@ -35,7 +36,7 @@ public class AnnouncementsController : ControllerBase
         return Ok(new ApiResponse<AnnouncementDetailDto> { Success = true, Data = result });
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Ruoli.Campo)]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<AnnouncementDto>>> Create(int teamId, [FromBody] CreateAnnouncementDto dto)
     {
@@ -44,7 +45,7 @@ public class AnnouncementsController : ControllerBase
         return Ok(new ApiResponse<AnnouncementDto> { Success = true, Data = result, Message = "Comunicazione pubblicata" });
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Ruoli.Campo)]
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> Delete(int teamId, int id)
     {
@@ -56,7 +57,7 @@ public class AnnouncementsController : ControllerBase
     public async Task<ActionResult<ApiResponse<object>>> Acknowledge(int teamId, int id)
     {
         var playerId = int.Parse(User.FindFirstValue("PlayerId")!);
-        await _announcementService.AcknowledgeAsync(id, playerId);
+        await _announcementService.AcknowledgeAsync(teamId, id, playerId);
         return Ok(new ApiResponse<object> { Success = true, Message = "Presa visione registrata" });
     }
 }

@@ -3,6 +3,7 @@ using CalcioAcinque.Backend.Configuration;
 using CalcioAcinque.Backend.DTOs.Announcements;
 using CalcioAcinque.Backend.Exceptions;
 using CalcioAcinque.Backend.Models.Entities;
+using CalcioAcinque.Backend.Models.Enums;
 
 namespace CalcioAcinque.Backend.Services;
 
@@ -12,16 +13,18 @@ public interface IAnnouncementService
     Task<AnnouncementDetailDto> GetByIdAsync(int teamId, int announcementId, int currentPlayerId);
     Task<AnnouncementDto> CreateAsync(int teamId, int authorId, CreateAnnouncementDto dto);
     Task DeleteAsync(int teamId, int announcementId);
-    Task<bool> AcknowledgeAsync(int announcementId, int playerId);
+    Task<bool> AcknowledgeAsync(int teamId, int announcementId, int playerId);
 }
 
 public class AnnouncementService : IAnnouncementService
 {
     private readonly ApplicationDbContext _context;
+    private readonly INotificationService _notifications;
 
-    public AnnouncementService(ApplicationDbContext context)
+    public AnnouncementService(ApplicationDbContext context, INotificationService notifications)
     {
         _context = context;
+        _notifications = notifications;
     }
 
     public async Task<List<AnnouncementDto>> GetAllByTeamAsync(int teamId, int currentPlayerId)
@@ -56,8 +59,8 @@ public class AnnouncementService : IAnnouncementService
             Id = announcement.Id,
             TeamId = announcement.TeamId,
             AuthorId = announcement.AuthorId,
-            AutoreNome = announcement.Author.Nome,
-            AutoreSoprannome = announcement.Author.Soprannome,
+            AutoreNome = announcement.AutoreNome,
+            AutoreSoprannome = announcement.AutoreSoprannome,
             Titolo = announcement.Titolo,
             Contenuto = announcement.Contenuto,
             Importante = announcement.Importante,
@@ -89,6 +92,8 @@ public class AnnouncementService : IAnnouncementService
         {
             TeamId = teamId,
             AuthorId = authorId,
+            AutoreNome = author.Nome,
+            AutoreSoprannome = author.Soprannome,
             Titolo = dto.Titolo,
             Contenuto = dto.Contenuto,
             Importante = dto.Importante,
@@ -102,6 +107,22 @@ public class AnnouncementService : IAnnouncementService
         await _context.Entry(announcement).Reference(a => a.Author).LoadAsync();
 
         var totalPlayers = await _context.Players.CountAsync(p => p.TeamId == teamId);
+
+        // Tutti tranne chi lo ha scritto
+        var destinatari = await _context.Players
+            .Where(p => p.TeamId == teamId && p.Id != authorId)
+            .Select(p => p.UserId)
+            .ToListAsync();
+
+        await _notifications.QueueAsync(
+            NotificationKind.Avviso,
+            destinatari,
+            titolo: dto.Importante ? $"{team.Nome}: avviso importante" : $"{team.Nome}: nuovo avviso",
+            corpo: $"{announcement.Titolo} - {announcement.Contenuto}",
+            url: "/bacheca",
+            tag: $"avviso-{announcement.Id}",
+            teamId: teamId);
+
         return MapToDto(announcement, authorId, totalPlayers);
     }
 
@@ -117,18 +138,20 @@ public class AnnouncementService : IAnnouncementService
         await _context.SaveChangesAsync();
     }
 
-    public async Task<bool> AcknowledgeAsync(int announcementId, int playerId)
+    public async Task<bool> AcknowledgeAsync(int teamId, int announcementId, int playerId)
     {
-        var exists = await _context.AnnouncementReads
-            .AnyAsync(r => r.AnnouncementId == announcementId && r.PlayerId == playerId);
-
-        if (exists) return true; // Already acknowledged
-
-        var announcement = await _context.Announcements.FindAsync(announcementId);
+        // La comunicazione deve appartenere al team del chiamante (no IDOR cross-team)
+        var announcement = await _context.Announcements
+            .FirstOrDefaultAsync(a => a.Id == announcementId && a.TeamId == teamId);
         if (announcement == null) throw new NotFoundException("Comunicazione", announcementId);
 
-        var player = await _context.Players.FindAsync(playerId);
+        var player = await _context.Players
+            .FirstOrDefaultAsync(p => p.Id == playerId && p.TeamId == teamId);
         if (player == null) throw new NotFoundException("Giocatore", playerId);
+
+        var exists = await _context.AnnouncementReads
+            .AnyAsync(r => r.AnnouncementId == announcementId && r.PlayerId == playerId);
+        if (exists) return true; // Already acknowledged
 
         var read = new AnnouncementRead
         {
@@ -147,8 +170,8 @@ public class AnnouncementService : IAnnouncementService
         Id = a.Id,
         TeamId = a.TeamId,
         AuthorId = a.AuthorId,
-        AutoreNome = a.Author?.Nome ?? "",
-        AutoreSoprannome = a.Author?.Soprannome,
+        AutoreNome = a.AutoreNome,
+        AutoreSoprannome = a.AutoreSoprannome,
         Titolo = a.Titolo,
         Contenuto = a.Contenuto,
         Importante = a.Importante,

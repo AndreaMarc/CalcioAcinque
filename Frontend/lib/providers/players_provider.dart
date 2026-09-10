@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import '../core/network/api_client.dart';
 import '../core/constants/api_constants.dart';
 import '../models/player_model.dart';
+import '../models/pending_player.dart';
 
 class PlayersProvider extends ChangeNotifier {
   final ApiClient apiClient;
   List<PlayerModel> _players = [];
+  List<PendingPlayer> _pending = [];
   bool _isLoading = false;
   bool _hasLoaded = false;
 
   List<PlayerModel> get players => _players;
+  List<PendingPlayer> get pending => _pending;
   bool get isLoading => _isLoading;
   bool get hasLoaded => _hasLoaded;
 
@@ -17,6 +20,7 @@ class PlayersProvider extends ChangeNotifier {
 
   void reset() {
     _players = [];
+    _pending = [];
     _hasLoaded = false;
     notifyListeners();
   }
@@ -31,9 +35,32 @@ class PlayersProvider extends ChangeNotifier {
             .map((e) => PlayerModel.fromJson(e)).toList();
       }
     } catch (_) {}
+    await _loadPending(teamId);
     _isLoading = false;
     _hasLoaded = true;
     notifyListeners();
+  }
+
+  Future<void> _loadPending(int teamId) async {
+    try {
+      final response = await apiClient.dio.get(ApiConstants.pendingPlayers(teamId));
+      if (response.data['success'] == true) {
+        _pending = ((response.data['data'] as List?) ?? [])
+            .map((e) => PendingPlayer.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (_) {}
+  }
+
+  Future<bool> deletePending(int teamId, int pendingId) async {
+    try {
+      final response = await apiClient.dio.delete(ApiConstants.pendingPlayer(teamId, pendingId));
+      if (response.data['success'] == true) {
+        await loadPlayers(teamId);
+        return true;
+      }
+    } catch (_) {}
+    return false;
   }
 
   Future<bool> createPlayer(int teamId, Map<String, dynamic> data) async {

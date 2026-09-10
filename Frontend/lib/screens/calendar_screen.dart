@@ -1,14 +1,17 @@
-import 'dart:js_interop';
 import 'package:web/web.dart' as web;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:table_calendar/table_calendar.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
 import '../providers/matches_provider.dart';
+import '../providers/theme_provider.dart';
 import '../models/match_model.dart';
 import '../core/constants/api_constants.dart';
+import '../widgets/gimmy_widgets.dart';
+import '../widgets/season_picker.dart';
+import '../providers/club_provider.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -18,9 +21,7 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalendarScreenState extends State<CalendarScreen> {
-  CalendarFormat _calendarFormat = CalendarFormat.month;
-  DateTime _focusedDay = DateTime.now();
-  DateTime? _selectedDay;
+  DateTime _focusedMonth = DateTime(DateTime.now().year, DateTime.now().month);
 
   @override
   void initState() {
@@ -32,137 +33,162 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final auth = context.read<AuthProvider>();
     if (auth.teamId > 0) {
       await context.read<MatchesProvider>().loadMatches(auth.teamId);
+      if (mounted) await context.read<ClubProvider>().loadSeasons(auth.teamId);
     }
   }
 
-  List<MatchModel> _getEventsForDay(DateTime day, List<MatchModel> matches) {
-    return matches.where((m) => isSameDay(m.data, day)).toList();
+  Future<void> _pickSeason() async {
+    final auth = context.read<AuthProvider>();
+    final matchProv = context.read<MatchesProvider>();
+    final scelta = await showSeasonPicker(
+      context,
+      teamId: auth.teamId,
+      selected: matchProv.seasonId,
+    );
+    if (scelta == null || !mounted) return;
+    await matchProv.selectSeason(auth.teamId, scelta.seasonId);
+    if (!mounted) return;
+
+    // Il calendario e' fermo sul mese di oggi: su una stagione archiviata
+    // mostrerebbe una griglia vuota, quindi si va sulla sua ultima partita.
+    final partite = matchProv.matches;
+    if (partite.isEmpty) return;
+    final ultima = partite
+        .map((m) => m.data)
+        .reduce((a, b) => a.isAfter(b) ? a : b);
+    final haPartiteNelMese = partite.any((m) =>
+        m.data.year == _focusedMonth.year && m.data.month == _focusedMonth.month);
+    if (!haPartiteNelMese) {
+      setState(() => _focusedMonth = DateTime(ultima.year, ultima.month));
+    }
+  }
+
+  void _shiftMonth(int delta) {
+    setState(() {
+      _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + delta);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.read<AuthProvider>();
+    final auth = context.watch<AuthProvider>();
+    final theme = context.watch<ThemeProvider>();
+    final initials = teamInitials(theme.teamName, fallback: 'CA');
+
     return Consumer<MatchesProvider>(
       builder: (context, matchProv, _) {
         if (!matchProv.hasLoaded) {
-          return const Center(child: CircularProgressIndicator());
+          return Column(
+            children: [
+              GimmyTopBar(
+                teamInitials: initials,
+                title: 'Partite',
+                subtitle: 'Caricamento',
+              ),
+              const Expanded(child: Center(child: CircularProgressIndicator())),
+            ],
+          );
         }
         final matches = matchProv.matches;
-
-        final selectedEvents = _selectedDay != null
-            ? _getEventsForDay(_selectedDay!, matches) : <MatchModel>[];
-
+        final seasons = context.watch<ClubProvider>().seasons;
+        // Stagione chiusa: si guarda e non si tocca
+        final archivio = matchProv.seasonId != null &&
+            seasons.any((s) => s.id == matchProv.seasonId && s.chiusa);
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day);
+
         final prossime = matches
             .where((m) => !m.isConclusa && !m.data.isBefore(today))
             .toList()
           ..sort((a, b) => a.data.compareTo(b.data));
+        final passate = matches
+            .where((m) => m.data.isBefore(today) || m.isConclusa)
+            .toList()
+          ..sort((a, b) => b.data.compareTo(a.data));
 
-        // Lista partite da mostrare sotto il calendario
-        final listaPartite = (_selectedDay != null && selectedEvents.isNotEmpty)
-            ? selectedEvents
-            : prossime;
-        final titoloLista = (_selectedDay != null && selectedEvents.isNotEmpty)
-            ? 'Partite del ${DateFormat('dd MMMM', 'it_IT').format(_selectedDay!)}'
-            : 'Prossime partite (${prossime.length})';
-
-        return ListView(
+        return Column(
           children: [
-            TableCalendar<MatchModel>(
-              firstDay: DateTime(2024),
-              lastDay: DateTime(2028),
-              focusedDay: _focusedDay,
-              calendarFormat: _calendarFormat,
-              locale: 'it_IT',
-              startingDayOfWeek: StartingDayOfWeek.monday,
-              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-              eventLoader: (day) => _getEventsForDay(day, matches),
-              onDaySelected: (selectedDay, focusedDay) {
-                setState(() {
-                  if (_selectedDay != null && isSameDay(_selectedDay!, selectedDay)) {
-                    _selectedDay = null;
-                  } else {
-                    _selectedDay = selectedDay;
-                  }
-                  _focusedDay = focusedDay;
-                });
-              },
-              onFormatChanged: (format) {
-                setState(() => _calendarFormat = format);
-              },
-              calendarStyle: CalendarStyle(
-                markerDecoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  shape: BoxShape.circle,
+            GimmyTopBar(
+              teamInitials: initials,
+              title: 'Partite',
+              subtitle: '${seasonLabel(seasons, matchProv.seasonId)} · ${matches.length}',
+              actions: [
+                if (auth.puoGestireCampo && !archivio)
+                  GimmyTopBar.iconAction(
+                    context,
+                    Icons.add,
+                    () => _showMatchDialog(context),
+                  ),
+                if (seasons.length > 1)
+                  GimmyTopBar.iconAction(context, Icons.event_repeat, _pickSeason),
+                GimmyTopBar.iconAction(
+                  context,
+                  Icons.download_outlined,
+                  () => _exportCalendar(context),
                 ),
-                todayDecoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  shape: BoxShape.circle,
-                ),
-                selectedDecoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  shape: BoxShape.circle,
-                ),
-              ),
+              ],
             ),
-            const Divider(height: 1),
-            if (listaPartite.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 40),
-                child: Column(
-                  children: [
-                    Icon(Icons.event_busy, size: 48, color: Colors.grey),
-                    SizedBox(height: 8),
-                    Text('Nessuna partita in programma'),
-                  ],
-                ),
-              )
-            else ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                child: Text(
-                  titoloLista,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold),
-                ),
+            if (archivio)
+              SeasonArchiveBanner(
+                label: seasonLabel(seasons, matchProv.seasonId),
+                onTorna: () => matchProv.selectSeason(auth.teamId, null),
               ),
-              ...listaPartite.map((m) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: _MatchCard(
-                  match: m,
-                  showDate: !(_selectedDay != null && selectedEvents.isNotEmpty),
-                  isAdmin: auth.isAdmin,
-                  onEdit: () => _showMatchDialog(context, matchToEdit: m),
-                  onDelete: () => _confirmDelete(context, m),
-                ),
-              )),
-            ],
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.only(bottom: 100),
                 children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _exportCalendar(context),
-                      icon: const Icon(Icons.calendar_month, size: 18),
-                      label: const Text('Esporta Calendario'),
+                  _MonthHeader(
+                    month: _focusedMonth,
+                    matchCount: matches.where((m) =>
+                            m.data.year == _focusedMonth.year &&
+                            m.data.month == _focusedMonth.month).length,
+                    onPrev: () => _shiftMonth(-1),
+                    onNext: () => _shiftMonth(1),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _MonthGrid(
+                      focusedMonth: _focusedMonth,
+                      matches: matches,
+                      today: today,
                     ),
                   ),
-                  if (auth.isAdmin) ...[
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: () => _showMatchDialog(context),
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Nuova Partita'),
-                      ),
-                    ),
+                  if (prossime.isNotEmpty) ...[
+                    SectionHead(title: 'PROSSIME', more: '${prossime.length} partite'),
+                    ...prossime.asMap().entries.map((e) {
+                      final idx = e.key;
+                      final m = e.value;
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                        child: _FixtureCard(
+                          match: m,
+                          isNext: idx == 0,
+                          isAdmin: auth.puoGestireCampo,
+                          onTap: () => context.push('/match/${m.id}'),
+                          onEdit: () => _showMatchDialog(context, matchToEdit: m),
+                          onDelete: () => _confirmDelete(context, m),
+                        ),
+                      );
+                    }),
                   ],
+                  if (passate.isNotEmpty) ...[
+                    const SectionHead(title: 'PASSATE'),
+                    ...passate.take(10).map((m) => Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                          child: _PastCard(
+                            match: m,
+                            onTap: () => context.push('/match/${m.id}'),
+                          ),
+                        )),
+                  ],
+                  if (prossime.isEmpty && passate.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40),
+                      child: Center(child: Text('Nessuna partita in programma')),
+                    ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
           ],
         );
       },
@@ -172,22 +198,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void _exportCalendar(BuildContext context) {
     final auth = context.read<AuthProvider>();
     final url = '${ApiConstants.baseUrl}${ApiConstants.calendarIcs(auth.teamId)}';
-
     final anchor = web.document.createElement('a') as web.HTMLAnchorElement;
     anchor.href = url;
     anchor.download = 'partite.ics';
     anchor.click();
-
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Calendario esportato! Importalo nella tua app calendario.'),
+        content: const Text('Calendario esportato!'),
         action: SnackBarAction(
           label: 'Copia URL',
           onPressed: () {
             web.window.navigator.clipboard.writeText(url);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('URL copiato! Usa per abbonarti al calendario.')),
-            );
           },
         ),
       ),
@@ -197,13 +218,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void _showMatchDialog(BuildContext context, {MatchModel? matchToEdit}) {
     final isEdit = matchToEdit != null;
     final dataCtrl = TextEditingController(
-      text: isEdit ? DateFormat('dd/MM/yyyy').format(matchToEdit.data) : '');
-    final oraCtrl = TextEditingController(
-      text: isEdit ? matchToEdit.ora : '21:00');
+        text: isEdit ? DateFormat('dd/MM/yyyy').format(matchToEdit.data) : '');
+    final oraCtrl = TextEditingController(text: isEdit ? matchToEdit.ora : '21:00');
     final luogoCtrl = TextEditingController(text: matchToEdit?.luogo ?? '');
     final titoloCtrl = TextEditingController(text: matchToEdit?.titolo ?? '');
     final giornatCtrl = TextEditingController(
-      text: isEdit ? matchToEdit.numeroGiornata.toString() : '');
+        text: isEdit ? matchToEdit.numeroGiornata.toString() : '');
     final noteCtrl = TextEditingController(text: matchToEdit?.note ?? '');
     DateTime? selectedDate = matchToEdit?.data;
 
@@ -225,7 +245,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 controller: titoloCtrl,
                 decoration: const InputDecoration(
                   labelText: 'Avversario (opzionale)',
-                  hintText: 'es. Real Madrid',
                   prefixIcon: Icon(Icons.shield_outlined),
                 ),
               ),
@@ -233,7 +252,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               TextField(
                 controller: dataCtrl,
                 decoration: const InputDecoration(
-                  labelText: 'Data', suffixIcon: Icon(Icons.calendar_today)),
+                    labelText: 'Data', suffixIcon: Icon(Icons.calendar_today)),
                 readOnly: true,
                 onTap: () async {
                   final date = await showDatePicker(
@@ -269,9 +288,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annulla'),
-          ),
+              onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
           FilledButton(
             onPressed: () async {
               if (selectedDate == null || giornatCtrl.text.isEmpty) return;
@@ -284,18 +301,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 'numeroGiornata': int.tryParse(giornatCtrl.text) ?? 1,
                 'note': noteCtrl.text.isEmpty ? null : noteCtrl.text,
               };
-              bool success;
-              if (isEdit) {
-                success = await context.read<MatchesProvider>().updateMatch(
-                  auth.teamId, matchToEdit.id, matchData);
-              } else {
-                success = await context.read<MatchesProvider>().createMatch(
-                  auth.teamId, matchData);
-              }
+              final success = isEdit
+                  ? await context.read<MatchesProvider>().updateMatch(
+                      auth.teamId, matchToEdit.id, matchData)
+                  : await context.read<MatchesProvider>().createMatch(
+                      auth.teamId, matchData);
               if (ctx.mounted) Navigator.pop(ctx);
               if (success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(isEdit ? 'Partita aggiornata!' : 'Partita creata!')));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(
+                        isEdit ? 'Partita aggiornata!' : 'Partita creata!')));
               }
             },
             child: Text(isEdit ? 'Salva' : 'Crea'),
@@ -310,55 +325,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Elimina Partita'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Vuoi eliminare "${match.displayTitle}"?'),
-            if (!match.isProgrammata) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.warning_amber, color: Colors.orange, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Partita in stato "${match.stato}". '
-                        'Convocazioni, presenze e statistiche verranno eliminati. '
-                        'I gettoni consumati verranno restituiti.',
-                        style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
+        content: Text('Vuoi eliminare "${match.displayTitle}"?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annulla'),
-          ),
+              onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
           FilledButton(
             onPressed: () async {
               final auth = context.read<AuthProvider>();
-              final success = await context.read<MatchesProvider>().deleteMatch(
-                auth.teamId, match.id);
+              final success = await context
+                  .read<MatchesProvider>()
+                  .deleteMatch(auth.teamId, match.id);
               if (ctx.mounted) Navigator.pop(ctx);
               if (success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Partita eliminata')));
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('Partita eliminata')));
               }
             },
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: GimmyTokens.bad),
             child: const Text('Elimina'),
           ),
         ],
@@ -367,80 +350,507 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 }
 
-class _MatchCard extends StatelessWidget {
-  final MatchModel match;
-  final bool showDate;
-  final bool isAdmin;
-  final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
-  const _MatchCard({
-    required this.match, this.showDate = false,
-    this.isAdmin = false, this.onEdit, this.onDelete,
+class _MonthHeader extends StatelessWidget {
+  final DateTime month;
+  final int matchCount;
+  final VoidCallback onPrev;
+  final VoidCallback onNext;
+
+  const _MonthHeader({
+    required this.month,
+    required this.matchCount,
+    required this.onPrev,
+    required this.onNext,
   });
-
-  Color _statusColor(BuildContext context) {
-    switch (match.stato) {
-      case 'Conclusa': return Colors.grey;
-      case 'InCorso': return Colors.green;
-      case 'ConvocazioniInviate': return Colors.orange;
-      default: return Theme.of(context).colorScheme.primary;
-    }
-  }
-
-  String _statusLabel() {
-    switch (match.stato) {
-      case 'Conclusa': return 'Conclusa';
-      case 'InCorso': return 'In Corso';
-      case 'ConvocazioniInviate': return 'Convocati';
-      default: return 'Programmata';
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        onTap: () => context.push('/match/${match.id}'),
-        onLongPress: isAdmin ? () => _showActions(context) : null,
-        leading: CircleAvatar(
-          backgroundColor: _statusColor(context),
-          foregroundColor: Colors.white,
-          child: Text('G${match.numeroGiornata}'),
-        ),
-        title: Text(match.displayTitle),
-        subtitle: Text(
-          showDate
-              ? '${DateFormat('EEE dd/MM', 'it_IT').format(match.data)} - ${match.ora}${match.luogo != null ? ' - ${match.luogo}' : ''}'
-              : '${match.ora}${match.luogo != null ? ' - ${match.luogo}' : ''}',
-        ),
-        trailing: Chip(
-          label: Text(_statusLabel(), style: const TextStyle(fontSize: 11)),
-          backgroundColor: _statusColor(context).withOpacity(0.15),
-          side: BorderSide.none,
-          padding: EdgeInsets.zero,
-        ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
+    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
+    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  DateFormat('MMMM', 'it_IT').format(month).toUpperCase(),
+                  style: GoogleFonts.bebasNeue(
+                    fontSize: 40,
+                    height: 1,
+                    color: textColor,
+                    letterSpacing: 0.02 * 40,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${month.year} · $matchCount partite',
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 12,
+                    color: muteColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Row(
+            children: [
+              _nav(Icons.chevron_left, onPrev, cardColor, lineColor, textColor),
+              const SizedBox(width: 6),
+              _nav(Icons.chevron_right, onNext, cardColor, lineColor, textColor),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  void _showActions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('Modifica'),
-              onTap: () { Navigator.pop(ctx); onEdit?.call(); },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text('Elimina', style: TextStyle(color: Colors.red)),
-              onTap: () { Navigator.pop(ctx); onDelete?.call(); },
-            ),
-          ],
+  Widget _nav(IconData i, VoidCallback tap, Color bg, Color border, Color fg) {
+    return InkWell(
+      onTap: tap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: bg,
+          border: Border.all(color: border),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(i, size: 18, color: fg),
+      ),
+    );
+  }
+}
+
+class _MonthGrid extends StatelessWidget {
+  final DateTime focusedMonth;
+  final List<MatchModel> matches;
+  final DateTime today;
+
+  const _MonthGrid({
+    required this.focusedMonth,
+    required this.matches,
+    required this.today,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
+    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
+    final faintColor = isDark
+        ? GimmyTokens.darkTextMute.withOpacity(0.5)
+        : GimmyTokens.textFaint;
+
+    final first = DateTime(focusedMonth.year, focusedMonth.month, 1);
+    // dayOfWeek: Mon=1..Sun=7 → we want Mon=0 offset
+    final offset = first.weekday - 1;
+    final daysInMonth =
+        DateTime(focusedMonth.year, focusedMonth.month + 1, 0).day;
+    final totalCells = 42;
+
+    // Group matches by day in this month
+    final byDay = <int, MatchModel>{};
+    for (final m in matches) {
+      if (m.data.year == focusedMonth.year &&
+          m.data.month == focusedMonth.month) {
+        byDay[m.data.day] = m;
+      }
+    }
+
+    final now = DateTime.now();
+    MatchModel? nextMatch;
+    for (final m in matches
+        .where((m) => !m.isConclusa && !m.data.isBefore(now))
+        .toList()
+      ..sort((a, b) => a.data.compareTo(b.data))) {
+      if (m.data.year == focusedMonth.year &&
+          m.data.month == focusedMonth.month) {
+        nextMatch = m;
+        break;
+      }
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: lineColor),
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        children: [
+          Row(
+            children: ['L', 'M', 'M', 'G', 'V', 'S', 'D']
+                .map((d) => Expanded(
+                      child: Center(
+                        child: Text(
+                          d,
+                          style: GoogleFonts.spaceGrotesk(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: faintColor,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ),
+                    ))
+                .toList(),
+          ),
+          const SizedBox(height: 6),
+          GridView.count(
+            crossAxisCount: 7,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 2,
+            crossAxisSpacing: 2,
+            children: List.generate(totalCells, (i) {
+              final d = i - offset + 1;
+              final inMonth = d >= 1 && d <= daysInMonth;
+              final dayMatch = inMonth ? byDay[d] : null;
+              final isToday = inMonth &&
+                  today.year == focusedMonth.year &&
+                  today.month == focusedMonth.month &&
+                  today.day == d;
+              final isNext = dayMatch != null &&
+                  nextMatch != null &&
+                  nextMatch.id == dayMatch.id;
+              final isPast = dayMatch != null &&
+                  (dayMatch.isConclusa ||
+                      DateTime(focusedMonth.year, focusedMonth.month, d)
+                          .isBefore(today));
+
+              Color bg;
+              Color fg;
+              if (isNext) {
+                bg = GimmyTokens.ink;
+                fg = Colors.white;
+              } else if (isToday) {
+                bg = isDark
+                    ? GimmyTokens.brand.withOpacity(0.2)
+                    : GimmyTokens.brandSoft;
+                fg = isDark ? GimmyTokens.darkBrand : GimmyTokens.brandInk;
+              } else {
+                bg = Colors.transparent;
+                fg = inMonth ? textColor : faintColor;
+              }
+
+              return AspectRatio(
+                aspectRatio: 1,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: bg,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  alignment: Alignment.center,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      if (inMonth)
+                        Text(
+                          '$d',
+                          style: GoogleFonts.spaceGrotesk(
+                            fontSize: 13,
+                            color: fg,
+                            fontWeight: isNext || isToday
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                          ),
+                        ),
+                      if (dayMatch != null && !isNext)
+                        Positioned(
+                          bottom: 4,
+                          child: Container(
+                            width: 5,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isPast
+                                  ? faintColor
+                                  : (isDark
+                                      ? GimmyTokens.darkBrand
+                                      : GimmyTokens.brand),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FixtureCard extends StatelessWidget {
+  final MatchModel match;
+  final bool isNext;
+  final bool isAdmin;
+  final VoidCallback onTap;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+
+  const _FixtureCard({
+    required this.match,
+    required this.isNext,
+    required this.isAdmin,
+    required this.onTap,
+    this.onEdit,
+    this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
+    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
+    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final stripBg = isNext
+        ? GimmyTokens.ink
+        : (isDark ? GimmyTokens.ink2 : GimmyTokens.paper);
+    final stripFg = isNext ? Colors.white : textColor;
+
+    final dayLabel =
+        DateFormat('EEE', 'it_IT').format(match.data).toUpperCase();
+    final dayNum = match.data.day;
+    final monthLabel =
+        DateFormat('MMM', 'it_IT').format(match.data).toUpperCase();
+
+    final opponent = (match.titolo ?? '').isNotEmpty
+        ? match.titolo!.toUpperCase()
+        : 'PARTITA';
+
+    return GestureDetector(
+      onTap: onTap,
+      onLongPress: isAdmin
+          ? () {
+              showModalBottomSheet(
+                context: context,
+                builder: (ctx) => SafeArea(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.edit),
+                        title: const Text('Modifica'),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          onEdit?.call();
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.delete, color: GimmyTokens.bad),
+                        title: const Text('Elimina',
+                            style: TextStyle(color: GimmyTokens.bad)),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          onDelete?.call();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+          : null,
+      child: Container(
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: lineColor),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: IntrinsicHeight(
+          child: Row(
+            children: [
+              Container(
+                width: 78,
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+                color: stripBg,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      dayLabel,
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: isNext ? GimmyTokens.brand : muteColor,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$dayNum',
+                      style: GoogleFonts.bebasNeue(
+                        fontSize: 34,
+                        height: 0.9,
+                        color: stripFg,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$monthLabel · ${match.ora}',
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 10,
+                        color: isNext ? GimmyTokens.textOnInkMute : muteColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'GIORNATA ${match.numeroGiornata}',
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: muteColor,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                          if (isNext) ...[
+                            const SizedBox(width: 6),
+                            const GimmyChip(
+                              text: 'NEXT',
+                              variant: GimmyChipVariant.brand,
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 7, vertical: 1),
+                              fontSize: 9,
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'VS $opponent',
+                        style: GoogleFonts.bebasNeue(
+                          fontSize: 22,
+                          letterSpacing: 0.02 * 22,
+                          height: 1.05,
+                          color: textColor,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(Icons.place_outlined,
+                              size: 12, color: muteColor),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              match.luogo?.isNotEmpty == true
+                                  ? match.luogo!
+                                  : 'Luogo da definire',
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 12,
+                                color: muteColor,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PastCard extends StatelessWidget {
+  final MatchModel match;
+  final VoidCallback onTap;
+  const _PastCard({required this.match, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
+    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
+    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    return Opacity(
+      opacity: 0.75,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: lineColor),
+          ),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 54,
+                child: Text(
+                  DateFormat('dd/MM').format(match.data),
+                  style: GoogleFonts.bebasNeue(fontSize: 22, color: muteColor),
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      match.displayTitle,
+                      style: GoogleFonts.spaceGrotesk(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${match.luogo?.isNotEmpty == true ? '${match.luogo} · ' : ''}${match.ora}',
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 11,
+                        color: muteColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (match.isConclusa)
+                const GimmyChip(
+                  text: 'Conclusa',
+                  variant: GimmyChipVariant.neutral,
+                  fontSize: 10,
+                ),
+            ],
+          ),
         ),
       ),
     );

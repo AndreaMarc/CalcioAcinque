@@ -59,13 +59,29 @@ public class TokenService : ITokenService
 
         var tipo = dto.Quantita > 0 ? TipoTransazione.AggiuntaManuale : TipoTransazione.RimozioneManuale;
 
-        if (dto.Quantita > 0) player.GettoniTotali += dto.Quantita;
-        else player.GettoniConsumati += Math.Abs(dto.Quantita);
+        if (dto.Quantita > 0)
+        {
+            player.GettoniTotali += dto.Quantita;
+        }
+        else
+        {
+            var daRimuovere = Math.Abs(dto.Quantita);
+            if (player.GettoniConsumati + daRimuovere > player.GettoniTotali)
+                throw new BusinessException(
+                    $"Non puoi rimuovere {daRimuovere} gettoni: ne restano solo {player.GettoniRimanenti}");
+            player.GettoniConsumati += daRimuovere;
+        }
+
+        var adminNome = await _context.Players
+            .Where(p => p.Id == adminPlayerId)
+            .Select(p => p.Nome)
+            .FirstOrDefaultAsync() ?? "";
 
         var transaction = new TokenTransaction
         {
             PlayerId = playerId, MatchId = dto.MatchId, Tipo = tipo, Motivazione = dto.Motivazione,
-            Quantita = dto.Quantita, AdminId = adminPlayerId, Timestamp = DateTime.UtcNow
+            Quantita = dto.Quantita, AdminId = adminPlayerId, AdminNome = adminNome,
+            Timestamp = DateTime.UtcNow
         };
         _context.TokenTransactions.Add(transaction);
         await _context.SaveChangesAsync();
@@ -81,6 +97,6 @@ public class TokenService : ITokenService
         Id = t.Id, PlayerId = t.PlayerId, NomeGiocatore = t.Player?.Nome ?? "",
         MatchId = t.MatchId, NumeroGiornata = t.Match?.NumeroGiornata,
         Tipo = t.Tipo.ToString(), Motivazione = t.Motivazione, Quantita = t.Quantita,
-        AdminNome = t.Admin?.Nome ?? "", Timestamp = t.Timestamp
+        AdminNome = t.AdminNome, Timestamp = t.Timestamp
     };
 }

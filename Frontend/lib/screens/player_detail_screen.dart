@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../core/constants/api_constants.dart';
 import '../providers/auth_provider.dart';
 import '../providers/players_provider.dart';
 import '../providers/tokens_provider.dart';
 import '../providers/dashboard_provider.dart';
+import '../providers/theme_provider.dart';
 import '../models/player_model.dart';
+import '../widgets/gimmy_widgets.dart';
 
 class PlayerDetailScreen extends StatefulWidget {
   final int playerId;
@@ -19,6 +23,10 @@ class PlayerDetailScreen extends StatefulWidget {
 class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
   PlayerModel? _player;
 
+  /// Altre squadre della societa in cui gioca la stessa persona,
+  /// dal dettaglio giocatore (`altreSquadre`).
+  List<Map<String, dynamic>> _altreSquadre = const [];
+
   @override
   void initState() {
     super.initState();
@@ -29,6 +37,7 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
     final auth = context.read<AuthProvider>();
     await context.read<PlayersProvider>().loadPlayers(auth.teamId);
     await context.read<TokensProvider>().loadPlayerTokens(widget.playerId);
+    await _loadDetail(auth);
     if (mounted) {
       final players = context.read<PlayersProvider>().players;
       setState(() {
@@ -37,173 +46,142 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
     }
   }
 
+  Future<void> _loadDetail(AuthProvider auth) async {
+    try {
+      final response = await auth.apiClient.dio.get(
+        ApiConstants.player(auth.teamId, widget.playerId),
+      );
+      if (response.data['success'] == true) {
+        _altreSquadre = ((response.data['data']['altreSquadre'] as List?) ?? const [])
+            .cast<Map<String, dynamic>>()
+            .toList();
+      }
+    } catch (_) {
+      // Il dettaglio e un extra: se non arriva la scheda resta comunque completa
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
-    final useGettoni = context.watch<DashboardProvider>().useGettoni;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final paper = isDark ? GimmyTokens.darkPaper : GimmyTokens.paper;
 
     if (_player == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        backgroundColor: paper,
+        body: const Center(child: CircularProgressIndicator()),
+      );
     }
     final player = _player!;
+    final auth = context.watch<AuthProvider>();
+    final useGettoni = context.watch<DashboardProvider>().useGettoni;
+    final theme = context.watch<ThemeProvider>();
+    final initials = teamInitials(theme.teamName, fallback: 'CA');
+    final playerIndex = context.read<PlayersProvider>().players.indexWhere((p) => p.id == player.id);
+    final jerseyNum = playerIndex >= 0 ? playerIndex + 1 : 1;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(player.displayName),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/players'),
-        ),
-      ),
-      body: RefreshIndicator(
-        onRefresh: _loadData,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _buildInfoCard(context, player),
-            if (useGettoni) ...[
-              const SizedBox(height: 16),
-              _buildTokenCard(context, player),
-              const SizedBox(height: 16),
-              if (auth.isAdmin) ...[
-                _buildAdminActions(context, player),
-                const SizedBox(height: 16),
-              ],
-              _buildTransactionsCard(context),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoCard(BuildContext context, PlayerModel player) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+      backgroundColor: paper,
+      body: SafeArea(
         child: Column(
           children: [
-            CircleAvatar(
-              radius: 36,
-              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-              child: Text(
-                player.displayName.substring(0, 1).toUpperCase(),
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(player.nome, style: Theme.of(context).textTheme.titleLarge),
-            if (player.soprannome != null)
-              Text('"${player.soprannome}"',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontStyle: FontStyle.italic)),
-            if (player.telefono != null) ...[
-              const SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.phone, size: 16),
-                  const SizedBox(width: 4),
-                  Text(player.telefono!),
-                ],
-              ),
-            ],
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (player.isAdmin)
-                  Chip(label: const Text('Admin'),
-                    avatar: const Icon(Icons.admin_panel_settings, size: 16),
-                    side: BorderSide.none),
-                if (player.iscrizionePagata)
-                  const Chip(label: Text('Iscrizione OK'), side: BorderSide.none,
-                    avatar: Icon(Icons.check_circle, size: 16, color: Colors.green)),
-                if (player.tesseramentoPagato)
-                  const Chip(label: Text('Tesseramento OK'), side: BorderSide.none,
-                    avatar: Icon(Icons.check_circle, size: 16, color: Colors.green)),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTokenCard(BuildContext context, PlayerModel player) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Gettoni', style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _tokenStat('Totali', '${player.gettoniTotali}',
-                  Theme.of(context).colorScheme.primary),
-                _tokenStat('Consumati', '${player.gettoniConsumati}', Colors.orange),
-                _tokenStat('Rimanenti', '${player.gettoniRimanenti}',
-                  player.gettoniEsauriti ? Colors.red : Colors.green),
-              ],
-            ),
-            if (player.gettoniTotali > 0)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: LinearProgressIndicator(
-                  value: player.gettoniRimanenti / player.gettoniTotali,
-                  minHeight: 8,
-                  borderRadius: BorderRadius.circular(4),
-                  color: player.gettoniEsauriti ? Colors.red : null,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _tokenStat(String label, String value, Color color) {
-    return Column(
-      children: [
-        Text(value, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: color)),
-        Text(label, style: const TextStyle(fontSize: 12)),
-      ],
-    );
-  }
-
-  Widget _buildAdminActions(BuildContext context, PlayerModel player) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Gestione Gettoni', style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () => _showTokenDialog(context, player, true),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Aggiungi'),
+            GimmyTopBar(
+              teamInitials: initials,
+              title: 'Giocatore',
+              subtitle: 'Scheda atleta',
+              onBack: () => context.go('/players'),
+              actions: [
+                if (auth.puoGestireSquadra)
+                  GimmyTopBar.iconAction(
+                    context,
+                    Icons.edit,
+                    () {},
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _showTokenDialog(context, player, false),
-                    icon: const Icon(Icons.remove),
-                    label: const Text('Rimuovi'),
-                  ),
-                ),
               ],
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _loadData,
+                child: ListView(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                      child: _PlayerHero(
+                        player: player,
+                        jerseyNum: jerseyNum,
+                      ),
+                    ),
+                    if (_altreSquadre.isNotEmpty) ...[
+                      const SectionHead(title: 'GIOCA ANCHE IN'),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _altreSquadre.map((t) {
+                            final ruolo = t['posizione'] as String?;
+                            return GimmyChip(
+                              text: [
+                                t['teamNome'] as String? ?? '',
+                                t['formatoShortLabel'] as String? ?? '',
+                                if (ruolo != null) ruolo,
+                              ].where((e) => e.isNotEmpty).join(' · '),
+                              variant: GimmyChipVariant.neutral,
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
+                    if (useGettoni) ...[
+                      const SectionHead(title: 'GETTONI'),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                        child: _TokenBreakdown(player: player),
+                      ),
+                    ],
+                    if (useGettoni && auth.puoGestireGettoni)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: FilledButton.icon(
+                                onPressed: () =>
+                                    _showTokenDialog(context, player, true),
+                                icon: const Icon(Icons.add, size: 18),
+                                label: const Text('Aggiungi'),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () =>
+                                    _showTokenDialog(context, player, false),
+                                icon: const Icon(Icons.remove, size: 18),
+                                label: const Text('Rimuovi'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (player.telefono != null || player.nome.isNotEmpty) ...[
+                      const SectionHead(title: 'CONTATTI'),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                        child: _ContactCard(player: player),
+                      ),
+                    ],
+                    if (useGettoni) ...[
+                      const SectionHead(title: 'STORICO GETTONI'),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: _Transactions(),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -224,19 +202,21 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
           children: [
             TextField(
               controller: quantitaCtrl,
-              decoration: const InputDecoration(labelText: 'Quantita\''),
+              decoration: const InputDecoration(labelText: 'Quantita'),
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 12),
             TextField(
               controller: motivazioneCtrl,
-              decoration: const InputDecoration(labelText: 'Motivazione (obbligatoria)'),
+              decoration: const InputDecoration(labelText: 'Motivazione'),
               maxLines: 2,
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Annulla')),
           FilledButton(
             onPressed: () async {
               final qty = int.tryParse(quantitaCtrl.text) ?? 0;
@@ -244,7 +224,7 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
               Navigator.pop(ctx);
               final finalQty = isAdd ? qty : -qty;
               await context.read<TokensProvider>().manualAdjust(
-                player.id, finalQty, motivazioneCtrl.text.trim());
+                  player.id, finalQty, motivazioneCtrl.text.trim());
               if (mounted) _loadData();
             },
             child: const Text('Conferma'),
@@ -253,49 +233,415 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
       ),
     );
   }
+}
 
-  Widget _buildTransactionsCard(BuildContext context) {
+class _PlayerHero extends StatelessWidget {
+  final PlayerModel player;
+  final int jerseyNum;
+  const _PlayerHero({required this.player, required this.jerseyNum});
+
+  @override
+  Widget build(BuildContext context) {
+    final parts = player.nome.split(RegExp(r'\s+'));
+    final firstName = parts.isNotEmpty ? parts.first : player.nome;
+    final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+
+    return CardInk(
+      padding: const EdgeInsets.all(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '#$jerseyNum${player.isAdmin ? " · CAPITANO" : ""}',
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.54,
+                        color: GimmyTokens.brand,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      firstName.toUpperCase(),
+                      style: GoogleFonts.bebasNeue(
+                        fontSize: 40,
+                        height: 0.95,
+                        color: Colors.white,
+                      ),
+                    ),
+                    if (lastName.isNotEmpty)
+                      Text(
+                        lastName.toUpperCase(),
+                        style: GoogleFonts.bebasNeue(
+                          fontSize: 40,
+                          height: 0.95,
+                          color: Colors.white,
+                        ),
+                      ),
+                    if ((player.soprannome ?? '').isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        '"${player.soprannome}"',
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: 13,
+                          color: GimmyTokens.textOnInkMute,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Text(
+                '$jerseyNum',
+                style: GoogleFonts.bebasNeue(
+                  fontSize: 120,
+                  height: 0.8,
+                  color: GimmyTokens.brand.withOpacity(0.9),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.only(top: 16),
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(color: Colors.white.withOpacity(0.08)),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _heroStat(
+                    label: 'GETTONI',
+                    value: '${player.gettoniRimanenti}/${player.gettoniTotali}',
+                  ),
+                ),
+                Expanded(
+                  child: _heroStat(
+                    label: 'CONSUMATI',
+                    value: '${player.gettoniConsumati}',
+                    brand: true,
+                  ),
+                ),
+                Expanded(
+                  child: _heroStat(
+                    label: 'RUOLO',
+                    value: player.isAdmin ? 'ADMIN' : 'PLAYER',
+                    small: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _heroStat({
+    required String label,
+    required String value,
+    bool brand = false,
+    bool small = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          value,
+          style: GoogleFonts.bebasNeue(
+            fontSize: small ? 18 : 26,
+            color: brand ? GimmyTokens.brand : Colors.white,
+          ),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: GimmyTokens.textOnInkMute,
+            letterSpacing: 0.8,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TokenBreakdown extends StatelessWidget {
+  final PlayerModel player;
+  const _TokenBreakdown({required this.player});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
+    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
+    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+
+    final pct = player.gettoniTotali > 0
+        ? player.gettoniRimanenti / player.gettoniTotali
+        : 0.0;
+    final warn = player.gettoniRimanenti <= 2;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: lineColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _stat(
+                  '${player.gettoniTotali}',
+                  'TOTALI',
+                  textColor,
+                  muteColor,
+                ),
+              ),
+              Expanded(
+                child: _stat(
+                  '${player.gettoniConsumati}',
+                  'CONSUMATI',
+                  GimmyTokens.warn,
+                  muteColor,
+                ),
+              ),
+              Expanded(
+                child: _stat(
+                  '${player.gettoniRimanenti}',
+                  'RIMANENTI',
+                  warn
+                      ? GimmyTokens.bad
+                      : (isDark ? GimmyTokens.darkBrand : GimmyTokens.brand),
+                  muteColor,
+                ),
+              ),
+            ],
+          ),
+          if (player.gettoniTotali > 0) ...[
+            const SizedBox(height: 14),
+            GimmyBar(
+              value: pct,
+              height: 6,
+              fillColor: warn
+                  ? GimmyTokens.bad
+                  : (isDark ? Colors.white : GimmyTokens.ink),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _stat(String value, String label, Color fg, Color muteColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(value, style: GoogleFonts.bebasNeue(fontSize: 28, color: fg)),
+        Text(
+          label,
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: muteColor,
+            letterSpacing: 0.8,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ContactCard extends StatelessWidget {
+  final PlayerModel player;
+  const _ContactCard({required this.player});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
+    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
+    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+
+    final rows = <_ContactRowData>[
+      _ContactRowData(Icons.person_outline, player.nome),
+      if (player.telefono?.isNotEmpty == true)
+        _ContactRowData(Icons.phone_outlined, player.telefono!),
+      _ContactRowData(
+        Icons.toll,
+        '${player.gettoniConsumati} gettoni consumati',
+      ),
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: lineColor),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: rows.asMap().entries.map((e) {
+          final i = e.key;
+          final r = e.value;
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              border: i < rows.length - 1
+                  ? Border(bottom: BorderSide(color: lineColor))
+                  : null,
+            ),
+            child: Row(
+              children: [
+                Icon(r.icon, size: 16, color: muteColor),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    r.label,
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 14,
+                      color: textColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _ContactRowData {
+  final IconData icon;
+  final String label;
+  _ContactRowData(this.icon, this.label);
+}
+
+class _Transactions extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
+    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
+    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+
     return Consumer<TokensProvider>(
-      builder: (context, tokensProv, _) {
-        final transactions = tokensProv.transactions;
-        if (transactions.isEmpty) {
-          return const Card(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('Nessuna transazione'),
+      builder: (context, prov, _) {
+        final txs = prov.transactions;
+        if (txs.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: lineColor),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              'Nessuna transazione',
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 13,
+                color: muteColor,
+              ),
             ),
           );
         }
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Storico Transazioni',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                ...transactions.take(20).map((t) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: CircleAvatar(
-                    radius: 16,
-                    backgroundColor: t.quantita > 0 ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
-                    child: Text(
-                      t.quantita > 0 ? '+${t.quantita}' : '${t.quantita}',
-                      style: TextStyle(
-                        fontSize: 11, fontWeight: FontWeight.bold,
-                        color: t.quantita > 0 ? Colors.green : Colors.red,
+        return Container(
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: lineColor),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: txs.take(15).toList().asMap().entries.map((e) {
+              final i = e.key;
+              final t = e.value;
+              final positive = t.quantita > 0;
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  border: i < txs.take(15).length - 1
+                      ? Border(bottom: BorderSide(color: lineColor))
+                      : null,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: positive
+                            ? (isDark
+                                ? GimmyTokens.ok.withOpacity(0.15)
+                                : const Color(0xFFDCF6E8))
+                            : (isDark
+                                ? GimmyTokens.bad.withOpacity(0.15)
+                                : const Color(0xFFFCE0E0)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        positive ? '+${t.quantita}' : '${t.quantita}',
+                        style: GoogleFonts.bebasNeue(
+                          fontSize: 16,
+                          color:
+                              positive ? GimmyTokens.ok : GimmyTokens.bad,
+                        ),
                       ),
                     ),
-                  ),
-                  title: Text(t.motivazione, style: const TextStyle(fontSize: 13)),
-                  subtitle: Text(
-                    '${DateFormat('dd/MM/yy HH:mm').format(t.timestamp)} - ${t.tipo}',
-                    style: const TextStyle(fontSize: 11)),
-                )),
-              ],
-            ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            t.motivazione,
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: textColor,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${DateFormat('dd/MM/yy HH:mm').format(t.timestamp)} · ${t.tipo}',
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 11,
+                              color: muteColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
           ),
         );
       },

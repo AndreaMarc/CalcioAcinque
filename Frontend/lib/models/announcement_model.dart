@@ -1,7 +1,7 @@
 class AnnouncementModel {
   final int id;
   final int teamId;
-  final int authorId;
+  final int? authorId;
   final String autoreNome;
   final String? autoreSoprannome;
   final String titolo;
@@ -16,7 +16,7 @@ class AnnouncementModel {
   AnnouncementModel({
     required this.id,
     required this.teamId,
-    required this.authorId,
+    this.authorId,
     required this.autoreNome,
     this.autoreSoprannome,
     required this.titolo,
@@ -35,7 +35,7 @@ class AnnouncementModel {
     return AnnouncementModel(
       id: json['id'] as int,
       teamId: json['teamId'] as int,
-      authorId: json['authorId'] as int,
+      authorId: json['authorId'] as int?,
       autoreNome: json['autoreNome'] as String? ?? '',
       autoreSoprannome: json['autoreSoprannome'] as String?,
       titolo: json['titolo'] as String? ?? '',

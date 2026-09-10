@@ -10,7 +10,10 @@ public class ApplicationDbContext : DbContext
     {
     }
 
+    public DbSet<Club> Clubs { get; set; } = null!;
+    public DbSet<ClubMember> ClubMembers { get; set; } = null!;
     public DbSet<Team> Teams { get; set; } = null!;
+    public DbSet<Season> Seasons { get; set; } = null!;
     public DbSet<User> Users { get; set; } = null!;
     public DbSet<Player> Players { get; set; } = null!;
     public DbSet<PlayerPayment> PlayerPayments { get; set; } = null!;
@@ -22,6 +25,13 @@ public class ApplicationDbContext : DbContext
     public DbSet<PlayerAvailability> PlayerAvailabilities { get; set; } = null!;
     public DbSet<Announcement> Announcements { get; set; } = null!;
     public DbSet<AnnouncementRead> AnnouncementReads { get; set; } = null!;
+    public DbSet<TeamDraft> TeamDrafts { get; set; } = null!;
+    public DbSet<DraftCandidate> DraftCandidates { get; set; } = null!;
+    public DbSet<DraftCollaborator> DraftCollaborators { get; set; } = null!;
+    public DbSet<PendingPlayer> PendingPlayers { get; set; } = null!;
+    public DbSet<PushDevice> PushDevices { get; set; } = null!;
+    public DbSet<NotificationPreference> NotificationPreferences { get; set; } = null!;
+    public DbSet<NotificationOutboxItem> NotificationOutbox { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -35,11 +45,64 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Email).HasMaxLength(255).IsRequired();
         });
 
+        // Configurazione Club
+        modelBuilder.Entity<Club>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.InviteCode).IsUnique();
+            entity.Property(e => e.Nome).HasMaxLength(100).IsRequired();
+        });
+
+        // Configurazione ClubMember
+        modelBuilder.Entity<ClubMember>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ClubId);
+            // MySQL ammette piu' NULL in un indice unique: le anagrafiche senza account non collidono
+            entity.HasIndex(e => new { e.ClubId, e.UserId }).IsUnique();
+            entity.Property(e => e.Nome).HasMaxLength(100).IsRequired();
+
+            entity.HasOne(e => e.Club)
+                .WithMany(c => c.Members)
+                .HasForeignKey(e => e.ClubId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.ClubMemberships)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         // Configurazione Team
         modelBuilder.Entity<Team>(entity =>
         {
             entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ClubId);
             entity.Property(e => e.Nome).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Formato).HasConversion<string>().HasMaxLength(20);
+            entity.Property(e => e.RegimePagamentoDefault).HasConversion<string>().HasMaxLength(20);
+            entity.Property(e => e.ApplicaIscrizioneA).HasConversion<string>().HasMaxLength(20);
+            entity.Property(e => e.ApplicaTesseramentoA).HasConversion<string>().HasMaxLength(20);
+
+            entity.HasOne(e => e.Club)
+                .WithMany(c => c.Teams)
+                .HasForeignKey(e => e.ClubId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configurazione Season
+        modelBuilder.Entity<Season>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            // Il vincolo "una sola aperta per squadra" e applicativo, non di schema:
+            // un indice filtrato non e portabile su MySQL
+            entity.HasIndex(e => new { e.TeamId, e.Chiusa });
+            entity.Property(e => e.Nome).HasMaxLength(50).IsRequired();
+
+            entity.HasOne(e => e.Team)
+                .WithMany(t => t.Seasons)
+                .HasForeignKey(e => e.TeamId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Configurazione Player
@@ -49,6 +112,13 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => new { e.TeamId, e.UserId }).IsUnique();
 
             entity.Property(e => e.Ruolo).HasConversion<string>();
+            entity.Property(e => e.Posizione).HasConversion<string>().HasMaxLength(30);
+            entity.Property(e => e.RegimePagamento).HasConversion<string>().HasMaxLength(20);
+
+            entity.HasOne(e => e.ClubMember)
+                .WithMany(m => m.Players)
+                .HasForeignKey(e => e.ClubMemberId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasOne(e => e.Team)
                 .WithMany(t => t.Players)
@@ -66,16 +136,46 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.PlayerId);
+            // Una partita non puo essere addebitata due volte alla stessa persona.
+            // MySQL ammette piu NULL in un indice unique, quindi le quote fisse
+            // (MatchId null) non si intralciano fra loro.
+            entity.HasIndex(e => new { e.PlayerId, e.MatchId }).IsUnique();
+
+            entity.Property(e => e.Tipo).HasConversion<string>().HasMaxLength(20);
+
+            entity.HasIndex(e => new { e.TeamId, e.Pagato });
+
+            // La voce appartiene alla squadra, non al giocatore: se il giocatore
+            // viene cancellato la traccia contabile deve restare (SetNull), col
+            // nome congelato nella riga. Solo la cancellazione della squadra
+            // porta via anche i suoi conti.
+            entity.HasOne(e => e.Team)
+                .WithMany()
+                .HasForeignKey(e => e.TeamId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(e => e.Player)
                 .WithMany(p => p.Payments)
                 .HasForeignKey(e => e.PlayerId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.SetNull);
 
+            // SetNull e non Cascade: cancellare una partita non deve far sparire i soldi
+            entity.HasOne(e => e.Match)
+                .WithMany()
+                .HasForeignKey(e => e.MatchId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.Season)
+                .WithMany()
+                .HasForeignKey(e => e.SeasonId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Era Restrict, e questo bloccava la cancellazione di un admin che
+            // aveva registrato pagamenti: la richiesta finiva in errore FK.
             entity.HasOne(e => e.Admin)
                 .WithMany()
                 .HasForeignKey(e => e.AdminId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Configurazione Match
@@ -87,10 +187,18 @@ public class ApplicationDbContext : DbContext
 
             entity.Property(e => e.Stato).HasConversion<string>();
 
+            entity.HasIndex(e => e.SeasonId);
+
             entity.HasOne(e => e.Team)
                 .WithMany(t => t.Matches)
                 .HasForeignKey(e => e.TeamId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // SetNull: archiviare non deve poter cancellare le partite
+            entity.HasOne(e => e.Season)
+                .WithMany(s => s.Matches)
+                .HasForeignKey(e => e.SeasonId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Configurazione Convocation
@@ -148,10 +256,12 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.MatchId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // SetNull e non Restrict: cancellare un admin che ha registrato
+            // movimenti non deve fallire, il nome resta in AdminNome
             entity.HasOne(e => e.Admin)
                 .WithMany()
                 .HasForeignKey(e => e.AdminId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Configurazione RefreshToken
@@ -198,7 +308,7 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(e => e.Author)
                 .WithMany()
                 .HasForeignKey(e => e.AuthorId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Configurazione AnnouncementRead
@@ -215,6 +325,111 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(e => e.Player)
                 .WithMany()
                 .HasForeignKey(e => e.PlayerId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configurazione TeamDraft
+        modelBuilder.Entity<TeamDraft>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.ShareCode).IsUnique();
+            entity.Property(e => e.NomeTeam).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Formato).HasConversion<string>().HasMaxLength(20);
+
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.TeamDrafts)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configurazione DraftCollaborator
+        modelBuilder.Entity<DraftCollaborator>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.TeamDraftId, e.UserId }).IsUnique();
+            entity.HasIndex(e => e.UserId);
+
+            entity.HasOne(e => e.TeamDraft)
+                .WithMany(d => d.Collaborators)
+                .HasForeignKey(e => e.TeamDraftId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configurazione DraftCandidate
+        modelBuilder.Entity<DraftCandidate>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.TeamDraftId);
+            entity.Property(e => e.Nome).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Stato).HasConversion<string>();
+            entity.Property(e => e.Posizione).HasConversion<string>();
+
+            entity.HasOne(e => e.TeamDraft)
+                .WithMany(d => d.Candidates)
+                .HasForeignKey(e => e.TeamDraftId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configurazione PushDevice
+        modelBuilder.Entity<PushDevice>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            // L'endpoint identifica univocamente il browser presso il push service
+            entity.HasIndex(e => e.Endpoint).IsUnique();
+            entity.HasIndex(e => e.UserId);
+            entity.Property(e => e.Endpoint).HasMaxLength(500).IsRequired();
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configurazione NotificationPreference
+        modelBuilder.Entity<NotificationPreference>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.UserId, e.Kind }).IsUnique();
+            entity.Property(e => e.Kind).HasConversion<string>().HasMaxLength(30);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configurazione NotificationOutboxItem
+        modelBuilder.Entity<NotificationOutboxItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            // Il dispatcher pesca per stato, momento di invio e ordine di inserimento
+            entity.HasIndex(e => new { e.Stato, e.ScheduledFor, e.Id });
+            entity.Property(e => e.Kind).HasConversion<string>().HasMaxLength(30);
+            entity.Property(e => e.Stato).HasConversion<string>().HasMaxLength(20);
+
+            entity.HasOne(e => e.Recipient)
+                .WithMany()
+                .HasForeignKey(e => e.RecipientUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configurazione PendingPlayer
+        modelBuilder.Entity<PendingPlayer>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.TeamId);
+            entity.Property(e => e.Nome).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Posizione).HasConversion<string>();
+
+            entity.HasOne(e => e.Team)
+                .WithMany(t => t.PendingPlayers)
+                .HasForeignKey(e => e.TeamId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

@@ -9,14 +9,46 @@ public static class DatabaseSeeder
     {
         if (context.Teams.Any()) return;
 
-        var team = new Team
+        // Societa demo con due squadre di formato diverso e l'admin iscritto a entrambe:
+        // e' lo scenario reale (giocatori condivisi, regole e costi separati).
+        var club = new Club
         {
-            Nome = "I Campioni del Giovedi",
-            PartitePerStagione = 8,
-            GettoniPerGiocatore = 4,
+            Nome = "ASD Campioni del Giovedi",
+            InviteCode = "DEMOCLUB",
             CreatedAt = DateTime.UtcNow
         };
-        context.Teams.Add(team);
+        context.Clubs.Add(club);
+        await context.SaveChangesAsync();
+
+        var teamA5 = new Team
+        {
+            ClubId = club.Id,
+            Nome = "Campioni A5",
+            Formato = TeamFormat.CalcioA5,
+            PartitePerStagione = 8,
+            GettoniPerGiocatore = 4,
+            QuotaIscrizione = 60m,
+            QuotaTesseramento = 15m,
+            CostoPartita = 8m,
+            CreatedAt = DateTime.UtcNow
+        };
+        teamA5.ApplyFormatDefaults();
+
+        var teamA7 = new Team
+        {
+            ClubId = club.Id,
+            Nome = "Campioni A7",
+            Formato = TeamFormat.CalcioA7,
+            PartitePerStagione = 14,
+            GettoniPerGiocatore = 7,
+            QuotaIscrizione = 90m,
+            QuotaTesseramento = 25m,
+            CostoPartita = 10m,
+            CreatedAt = DateTime.UtcNow
+        };
+        teamA7.ApplyFormatDefaults();
+
+        context.Teams.AddRange(teamA5, teamA7);
         await context.SaveChangesAsync();
 
         var adminUser = new User
@@ -30,18 +62,38 @@ public static class DatabaseSeeder
         context.Users.Add(adminUser);
         await context.SaveChangesAsync();
 
-        var adminPlayer = new Player
+        var adminMember = new ClubMember
         {
-            TeamId = team.Id,
+            ClubId = club.Id,
             UserId = adminUser.Id,
             Nome = "Admin",
             Soprannome = "Boss",
-            Ruolo = UserRole.Admin,
-            GettoniTotali = team.GettoniPerGiocatore,
-            GettoniConsumati = 0,
             CreatedAt = DateTime.UtcNow
         };
-        context.Players.Add(adminPlayer);
+        context.ClubMembers.Add(adminMember);
+        await context.SaveChangesAsync();
+
+        foreach (var (team, posizione) in new[]
+                 {
+                     (teamA5, PlayerPosition.Pivot),
+                     (teamA7, PlayerPosition.Centrocampista)
+                 })
+        {
+            context.Players.Add(new Player
+            {
+                TeamId = team.Id,
+                UserId = adminUser.Id,
+                ClubMemberId = adminMember.Id,
+                Nome = adminMember.Nome,
+                Soprannome = adminMember.Soprannome,
+                Ruolo = UserRole.Admin,
+                Posizione = posizione,
+                GettoniTotali = team.GettoniPerGiocatore,
+                GettoniConsumati = 0,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
         await context.SaveChangesAsync();
     }
 }

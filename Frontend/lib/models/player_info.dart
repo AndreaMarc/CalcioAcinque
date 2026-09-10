@@ -22,6 +22,20 @@ class PlayerInfo {
   );
 
   bool get isAdmin => ruolo == 'Admin';
+  bool get isMister => ruolo == 'Mister';
+  bool get isCassiere => ruolo == 'Cassiere';
+
+  /// Rosa, configurazione squadra, societa: solo l admin.
+  bool get puoGestireSquadra => isAdmin;
+
+  /// Partite, convocazioni, presenze, avvisi.
+  bool get puoGestireCampo => isAdmin || isMister;
+
+  /// Quote, incassi, solleciti.
+  bool get puoGestireSoldi => isAdmin || isCassiere;
+
+  /// La rettifica dei gettoni sta fra campo e cassa: la aprono entrambi.
+  bool get puoGestireGettoni => isAdmin || isMister || isCassiere;
 
   PlayerInfo copyWith({String? nome, String? soprannome, String? telefono}) => PlayerInfo(
     id: id, userId: userId, teamId: teamId, email: email,

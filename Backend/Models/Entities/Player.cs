@@ -14,6 +14,9 @@ public class Player
     public int TeamId { get; set; }
     public int UserId { get; set; }
 
+    /// <summary>Anagrafica di societa' a cui questa tessera appartiene. Null solo per dati pre-societa'.</summary>
+    public int? ClubMemberId { get; set; }
+
     [Required, MaxLength(100)]
     public string Nome { get; set; } = string.Empty;
 
@@ -26,8 +29,20 @@ public class Player
     [Required]
     public UserRole Ruolo { get; set; } = UserRole.User;
 
+    /// <summary>Ruolo in campo in QUESTA squadra: lo stesso giocatore puo' avere ruoli diversi a 5 e a 7.</summary>
+    public PlayerPosition? Posizione { get; set; }
+
+    public int? NumeroMaglia { get; set; }
+
     public int GettoniTotali { get; set; }
     public int GettoniConsumati { get; set; } = 0;
+
+    /// <summary>
+    /// Regime di pagamento personale. Null significa deliberatamente
+    /// eredita il default della squadra: cosi cambiare il default vale
+    /// per tutti quelli che non hanno una scelta esplicita.
+    /// </summary>
+    public RegimePagamento? RegimePagamento { get; set; }
 
     public bool IscrizionePagata { get; set; } = false;
     public bool TesseramentoPagato { get; set; } = false;
@@ -42,6 +57,9 @@ public class Player
 
     [ForeignKey("UserId")]
     public virtual User User { get; set; } = null!;
+
+    [ForeignKey("ClubMemberId")]
+    public virtual ClubMember? ClubMember { get; set; }
 
     public virtual ICollection<Convocation> Convocations { get; set; } = new List<Convocation>();
     public virtual ICollection<MatchAttendance> Attendances { get; set; } = new List<MatchAttendance>();

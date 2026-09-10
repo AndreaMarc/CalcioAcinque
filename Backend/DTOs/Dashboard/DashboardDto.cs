@@ -4,6 +4,16 @@ public class DashboardDto
 {
     public MatchSummaryDto? ProssimaPartita { get; set; }
     public bool UseGettoni { get; set; } = true;
+
+    // Contesto squadra: serve al client per etichette e conteggi coerenti col formato
+    public string TeamNome { get; set; } = string.Empty;
+    public string Formato { get; set; } = string.Empty;
+    public string FormatoLabel { get; set; } = string.Empty;
+    public string FormatoShortLabel { get; set; } = string.Empty;
+    public int GiocatoriInCampo { get; set; }
+    public int? MaxConvocati { get; set; }
+    public int? ClubId { get; set; }
+    public string? ClubNome { get; set; }
     public int GettoniRimanenti { get; set; }
     public int GettoniTotali { get; set; }
     public int ConvocazioniInAttesa { get; set; }

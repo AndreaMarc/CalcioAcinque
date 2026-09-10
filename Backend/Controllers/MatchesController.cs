@@ -25,13 +25,14 @@ public class MatchesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<List<MatchDto>>>> GetAll(int teamId, [FromQuery] string? stato = null)
+    public async Task<ActionResult<ApiResponse<List<MatchDto>>>> GetAll(
+        int teamId, [FromQuery] string? stato = null, [FromQuery] int? seasonId = null)
     {
         StatoPartita? statoEnum = null;
         if (!string.IsNullOrEmpty(stato) && Enum.TryParse<StatoPartita>(stato, true, out var parsed))
             statoEnum = parsed;
 
-        var result = await _matchService.GetAllByTeamAsync(teamId, statoEnum);
+        var result = await _matchService.GetAllByTeamAsync(teamId, statoEnum, seasonId);
         return Ok(new ApiResponse<List<MatchDto>> { Success = true, Data = result });
     }
 
@@ -42,7 +43,7 @@ public class MatchesController : ControllerBase
         return Ok(new ApiResponse<MatchDetailDto> { Success = true, Data = result });
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Ruoli.Campo)]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<MatchDto>>> Create(int teamId, [FromBody] CreateMatchDto dto)
     {
@@ -50,7 +51,7 @@ public class MatchesController : ControllerBase
         return Ok(new ApiResponse<MatchDto> { Success = true, Data = result, Message = "Partita creata" });
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Ruoli.Campo)]
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<MatchDto>>> Update(int teamId, int id, [FromBody] UpdateMatchDto dto)
     {
@@ -58,7 +59,7 @@ public class MatchesController : ControllerBase
         return Ok(new ApiResponse<MatchDto> { Success = true, Data = result, Message = "Partita aggiornata" });
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Ruoli.Campo)]
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> Delete(int teamId, int id)
     {
@@ -66,7 +67,7 @@ public class MatchesController : ControllerBase
         return Ok(new ApiResponse<object> { Success = true, Message = "Partita eliminata" });
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Ruoli.Campo)]
     [HttpPut("{id}/stato")]
     public async Task<ActionResult<ApiResponse<MatchDto>>> UpdateStato(int teamId, int id, [FromBody] StatoPartitaDto dto)
     {
@@ -99,7 +100,8 @@ public class MatchesController : ControllerBase
         foreach (var match in matches)
         {
             var startDt = match.Data.Date.Add(match.Ora);
-            var endDt = startDt.AddHours(1).AddMinutes(30); // Durata default 1h30m
+            // Durata dalla configurazione della squadra, con un margine per intervallo e spogliatoi
+            var endDt = startDt.AddMinutes(team.MinutiPerTempo * team.NumeroTempi + 15);
 
             sb.AppendLine("BEGIN:VEVENT");
             sb.AppendLine($"UID:match-{match.Id}@calcioacinque");
@@ -111,7 +113,7 @@ public class MatchesController : ControllerBase
             sb.AppendLine($"SUMMARY:{summary}");
             if (!string.IsNullOrEmpty(match.Luogo))
                 sb.AppendLine($"LOCATION:{match.Luogo}");
-            var desc = $"Calcio a 5 - {team.Nome}\\nGiornata {match.NumeroGiornata}\\nStato: {match.Stato}";
+            var desc = $"{TeamFormats.Label(team.Formato)} - {team.Nome}\\nGiornata {match.NumeroGiornata}\\nStato: {match.Stato}";
             if (!string.IsNullOrEmpty(match.Note))
                 desc += $"\\n{match.Note}";
             sb.AppendLine($"DESCRIPTION:{desc}");

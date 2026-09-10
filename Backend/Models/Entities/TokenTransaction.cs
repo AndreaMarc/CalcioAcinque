@@ -21,7 +21,16 @@ public class TokenTransaction
     public string Motivazione { get; set; } = string.Empty;
 
     public int Quantita { get; set; }
-    public int AdminId { get; set; }
+
+    /// <summary>
+    /// Chi ha registrato il movimento. Nullable perche' l'admin puo' lasciare la
+    /// squadra: il movimento resta, con il nome congelato in <see cref="AdminNome"/>.
+    /// </summary>
+    public int? AdminId { get; set; }
+
+    [Required, MaxLength(100)]
+    public string AdminNome { get; set; } = string.Empty;
+
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
     [ForeignKey("PlayerId")]
@@ -31,5 +40,5 @@ public class TokenTransaction
     public virtual Match? Match { get; set; }
 
     [ForeignKey("AdminId")]
-    public virtual Player Admin { get; set; } = null!;
+    public virtual Player? Admin { get; set; }
 }

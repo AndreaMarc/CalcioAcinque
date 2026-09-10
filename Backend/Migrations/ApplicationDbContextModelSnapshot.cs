@@ -25,8 +25,17 @@ namespace CalcioAcinque.Backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<int>("AuthorId")
+                    b.Property<int?>("AuthorId")
                         .HasColumnType("int");
+
+                    b.Property<string>("AutoreNome")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("AutoreSoprannome")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("Contenuto")
                         .IsRequired()
@@ -81,6 +90,91 @@ namespace CalcioAcinque.Backend.Migrations
                     b.ToTable("announcement_reads");
                 });
 
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.Club", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Iban")
+                        .HasMaxLength(34)
+                        .HasColumnType("varchar(34)");
+
+                    b.Property<string>("IntestatarioIban")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("InviteCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("PaypalLink")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InviteCode")
+                        .IsUnique();
+
+                    b.ToTable("clubs");
+                });
+
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.ClubMember", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("ClubId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("DataNascita")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("Soprannome")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Telefono")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClubId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ClubId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("club_members");
+                });
+
             modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.Convocation", b =>
                 {
                     b.Property<int>("Id")
@@ -116,6 +210,88 @@ namespace CalcioAcinque.Backend.Migrations
                     b.ToTable("convocations");
                 });
 
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.DraftCandidate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("Affidabilita")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Bravura")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsFriend")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("Posizione")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Soprannome")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Stato")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("TeamDraftId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Tesserato")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TeamDraftId");
+
+                    b.ToTable("draft_candidates");
+                });
+
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.DraftCollaborator", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsOwner")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("TeamDraftId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("TeamDraftId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("draft_collaborators");
+                });
+
             modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.Match", b =>
                 {
                     b.Property<int>("Id")
@@ -142,6 +318,12 @@ namespace CalcioAcinque.Backend.Migrations
                     b.Property<TimeSpan>("Ora")
                         .HasColumnType("time(6)");
 
+                    b.Property<DateTime?>("PromemoriaInviatoAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("SeasonId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Stato")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -154,6 +336,8 @@ namespace CalcioAcinque.Backend.Migrations
                         .HasColumnType("varchar(255)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("SeasonId");
 
                     b.HasIndex("TeamId", "Data");
 
@@ -217,10 +401,153 @@ namespace CalcioAcinque.Backend.Migrations
                     b.ToTable("match_attendance");
                 });
 
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.NotificationOutboxItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Corpo")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<int>("RecipientUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ScheduledFor")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Stato")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("Tag")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("TeamId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Tentativi")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Titolo")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<string>("UltimoErrore")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("Url")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipientUserId");
+
+                    b.HasIndex("Stato", "ScheduledFor", "Id");
+
+                    b.ToTable("notification_outbox");
+                });
+
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.NotificationPreference", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Kind")
+                        .IsUnique();
+
+                    b.ToTable("notification_preferences");
+                });
+
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.PendingPlayer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("Affidabilita")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Bravura")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Claimed")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int?>("ClaimedByPlayerId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("Posizione")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Soprannome")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("TeamId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Tesserato")
+                        .HasColumnType("tinyint(1)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TeamId");
+
+                    b.ToTable("pending_players");
+                });
+
             modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.Player", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ClubMemberId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
@@ -239,6 +566,17 @@ namespace CalcioAcinque.Backend.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("NumeroMaglia")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Posizione")
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<string>("RegimePagamento")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
 
                     b.Property<string>("Ruolo")
                         .IsRequired()
@@ -262,6 +600,8 @@ namespace CalcioAcinque.Backend.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ClubMemberId");
 
                     b.HasIndex("UserId");
 
@@ -312,8 +652,12 @@ namespace CalcioAcinque.Backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<int>("AdminId")
+                    b.Property<int?>("AdminId")
                         .HasColumnType("int");
+
+                    b.Property<string>("AdminNome")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
@@ -326,8 +670,19 @@ namespace CalcioAcinque.Backend.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
+                    b.Property<DateTime?>("DichiaratoPagatoAt")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<decimal>("Importo")
                         .HasColumnType("decimal(10,2)");
+
+                    b.Property<int?>("MatchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NomeGiocatore")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("Note")
                         .HasMaxLength(500)
@@ -336,16 +691,80 @@ namespace CalcioAcinque.Backend.Migrations
                     b.Property<bool>("Pagato")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<int>("PlayerId")
+                    b.Property<int?>("PlayerId")
                         .HasColumnType("int");
+
+                    b.Property<int?>("SeasonId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TeamId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("AdminId");
 
+                    b.HasIndex("MatchId");
+
                     b.HasIndex("PlayerId");
 
+                    b.HasIndex("SeasonId");
+
+                    b.HasIndex("PlayerId", "MatchId")
+                        .IsUnique();
+
+                    b.HasIndex("TeamId", "Pagato");
+
                     b.ToTable("player_payments");
+                });
+
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.PushDevice", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Auth")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Descrizione")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<DateTime>("LastUsedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("P256dh")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Endpoint")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("push_devices");
                 });
 
             modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.RefreshToken", b =>
@@ -381,7 +800,140 @@ namespace CalcioAcinque.Backend.Migrations
                     b.ToTable("refresh_tokens");
                 });
 
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.Season", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Chiusa")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("DataFine")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("DataInizio")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<int>("TeamId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TeamId", "Chiusa");
+
+                    b.ToTable("seasons");
+                });
+
             modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.Team", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("ApplicaIscrizioneA")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("ApplicaTesseramentoA")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<int?>("ClubId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("CostoPartita")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Formato")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<int>("GettoniPerGiocatore")
+                        .HasColumnType("int");
+
+                    b.Property<int>("GiocatoriInCampo")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Iban")
+                        .HasMaxLength(34)
+                        .HasColumnType("varchar(34)");
+
+                    b.Property<string>("IntestatarioIban")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("InviteCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<int?>("MaxConvocati")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MinutiMinimiPerAddebito")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MinutiPerTempo")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("NumeroTempi")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OrePromemoriaPartita")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PartitePerStagione")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PaypalLink")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<decimal>("QuotaIscrizione")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal>("QuotaTesseramento")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("RegimePagamentoDefault")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<bool>("UseGettoni")
+                        .HasColumnType("tinyint(1)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClubId");
+
+                    b.ToTable("teams");
+                });
+
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.TeamDraft", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -390,14 +942,15 @@ namespace CalcioAcinque.Backend.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int>("GettoniPerGiocatore")
-                        .HasColumnType("int");
-
-                    b.Property<string>("InviteCode")
+                    b.Property<string>("Formato")
+                        .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
 
-                    b.Property<string>("Nome")
+                    b.Property<int>("GettoniPerGiocatore")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NomeTeam")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
@@ -405,12 +958,27 @@ namespace CalcioAcinque.Backend.Migrations
                     b.Property<int>("PartitePerStagione")
                         .HasColumnType("int");
 
+                    b.Property<string>("ShareCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<bool>("UseGettoni")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
-                    b.ToTable("teams");
+                    b.HasIndex("ShareCode")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("team_drafts");
                 });
 
             modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.TokenTransaction", b =>
@@ -419,8 +987,13 @@ namespace CalcioAcinque.Backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<int>("AdminId")
+                    b.Property<int?>("AdminId")
                         .HasColumnType("int");
+
+                    b.Property<string>("AdminNome")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<int?>("MatchId")
                         .HasColumnType("int");
@@ -495,8 +1068,7 @@ namespace CalcioAcinque.Backend.Migrations
                     b.HasOne("CalcioAcinque.Backend.Models.Entities.Player", "Author")
                         .WithMany()
                         .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("CalcioAcinque.Backend.Models.Entities.Team", "Team")
                         .WithMany()
@@ -528,6 +1100,24 @@ namespace CalcioAcinque.Backend.Migrations
                     b.Navigation("Player");
                 });
 
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.ClubMember", b =>
+                {
+                    b.HasOne("CalcioAcinque.Backend.Models.Entities.Club", "Club")
+                        .WithMany("Members")
+                        .HasForeignKey("ClubId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CalcioAcinque.Backend.Models.Entities.User", "User")
+                        .WithMany("ClubMemberships")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Club");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.Convocation", b =>
                 {
                     b.HasOne("CalcioAcinque.Backend.Models.Entities.Match", "Match")
@@ -547,13 +1137,50 @@ namespace CalcioAcinque.Backend.Migrations
                     b.Navigation("Player");
                 });
 
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.DraftCandidate", b =>
+                {
+                    b.HasOne("CalcioAcinque.Backend.Models.Entities.TeamDraft", "TeamDraft")
+                        .WithMany("Candidates")
+                        .HasForeignKey("TeamDraftId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TeamDraft");
+                });
+
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.DraftCollaborator", b =>
+                {
+                    b.HasOne("CalcioAcinque.Backend.Models.Entities.TeamDraft", "TeamDraft")
+                        .WithMany("Collaborators")
+                        .HasForeignKey("TeamDraftId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CalcioAcinque.Backend.Models.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TeamDraft");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.Match", b =>
                 {
+                    b.HasOne("CalcioAcinque.Backend.Models.Entities.Season", "Season")
+                        .WithMany("Matches")
+                        .HasForeignKey("SeasonId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("CalcioAcinque.Backend.Models.Entities.Team", "Team")
                         .WithMany("Matches")
                         .HasForeignKey("TeamId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Season");
 
                     b.Navigation("Team");
                 });
@@ -577,8 +1204,46 @@ namespace CalcioAcinque.Backend.Migrations
                     b.Navigation("Player");
                 });
 
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.NotificationOutboxItem", b =>
+                {
+                    b.HasOne("CalcioAcinque.Backend.Models.Entities.User", "Recipient")
+                        .WithMany()
+                        .HasForeignKey("RecipientUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Recipient");
+                });
+
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.NotificationPreference", b =>
+                {
+                    b.HasOne("CalcioAcinque.Backend.Models.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.PendingPlayer", b =>
+                {
+                    b.HasOne("CalcioAcinque.Backend.Models.Entities.Team", "Team")
+                        .WithMany("PendingPlayers")
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Team");
+                });
+
             modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.Player", b =>
                 {
+                    b.HasOne("CalcioAcinque.Backend.Models.Entities.ClubMember", "ClubMember")
+                        .WithMany("Players")
+                        .HasForeignKey("ClubMemberId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("CalcioAcinque.Backend.Models.Entities.Team", "Team")
                         .WithMany("Players")
                         .HasForeignKey("TeamId")
@@ -590,6 +1255,8 @@ namespace CalcioAcinque.Backend.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("ClubMember");
 
                     b.Navigation("Team");
 
@@ -620,18 +1287,49 @@ namespace CalcioAcinque.Backend.Migrations
                     b.HasOne("CalcioAcinque.Backend.Models.Entities.Player", "Admin")
                         .WithMany()
                         .HasForeignKey("AdminId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CalcioAcinque.Backend.Models.Entities.Match", "Match")
+                        .WithMany()
+                        .HasForeignKey("MatchId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("CalcioAcinque.Backend.Models.Entities.Player", "Player")
                         .WithMany("Payments")
                         .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CalcioAcinque.Backend.Models.Entities.Season", "Season")
+                        .WithMany()
+                        .HasForeignKey("SeasonId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CalcioAcinque.Backend.Models.Entities.Team", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Admin");
 
+                    b.Navigation("Match");
+
                     b.Navigation("Player");
+
+                    b.Navigation("Season");
+
+                    b.Navigation("Team");
+                });
+
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.PushDevice", b =>
+                {
+                    b.HasOne("CalcioAcinque.Backend.Models.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.RefreshToken", b =>
@@ -645,13 +1343,44 @@ namespace CalcioAcinque.Backend.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.Season", b =>
+                {
+                    b.HasOne("CalcioAcinque.Backend.Models.Entities.Team", "Team")
+                        .WithMany("Seasons")
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Team");
+                });
+
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.Team", b =>
+                {
+                    b.HasOne("CalcioAcinque.Backend.Models.Entities.Club", "Club")
+                        .WithMany("Teams")
+                        .HasForeignKey("ClubId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Club");
+                });
+
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.TeamDraft", b =>
+                {
+                    b.HasOne("CalcioAcinque.Backend.Models.Entities.User", "User")
+                        .WithMany("TeamDrafts")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.TokenTransaction", b =>
                 {
                     b.HasOne("CalcioAcinque.Backend.Models.Entities.Player", "Admin")
                         .WithMany()
                         .HasForeignKey("AdminId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("CalcioAcinque.Backend.Models.Entities.Match", "Match")
                         .WithMany("TokenTransactions")
@@ -674,6 +1403,18 @@ namespace CalcioAcinque.Backend.Migrations
             modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.Announcement", b =>
                 {
                     b.Navigation("Reads");
+                });
+
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.Club", b =>
+                {
+                    b.Navigation("Members");
+
+                    b.Navigation("Teams");
+                });
+
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.ClubMember", b =>
+                {
+                    b.Navigation("Players");
                 });
 
             modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.Match", b =>
@@ -700,18 +1441,38 @@ namespace CalcioAcinque.Backend.Migrations
                     b.Navigation("TokenTransactions");
                 });
 
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.Season", b =>
+                {
+                    b.Navigation("Matches");
+                });
+
             modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.Team", b =>
                 {
                     b.Navigation("Matches");
 
+                    b.Navigation("PendingPlayers");
+
                     b.Navigation("Players");
+
+                    b.Navigation("Seasons");
+                });
+
+            modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.TeamDraft", b =>
+                {
+                    b.Navigation("Candidates");
+
+                    b.Navigation("Collaborators");
                 });
 
             modelBuilder.Entity("CalcioAcinque.Backend.Models.Entities.User", b =>
                 {
+                    b.Navigation("ClubMemberships");
+
                     b.Navigation("Players");
 
                     b.Navigation("RefreshTokens");
+
+                    b.Navigation("TeamDrafts");
                 });
 #pragma warning restore 612, 618
         }

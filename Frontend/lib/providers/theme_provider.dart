@@ -1,20 +1,116 @@
+// ─────────────────────────────────────────────────────────────
+// Gimmy theme — Material 3 mapping of the restyle design tokens
+// Drop-in replacement for lib/providers/theme_provider.dart
+// ─────────────────────────────────────────────────────────────
+//
+// Requires:
+//   google_fonts: ^6.2.1
+//
+// Add to pubspec.yaml:
+//   google_fonts: ^6.2.1
+//
+// Usage:
+//   The existing ThemeProvider API is preserved: teamName, primaryColor,
+//   accentColor, logoBase64, setPrimaryColor(), etc. — nothing on the
+//   screens needs to change. Internally buildTheme() now returns the
+//   Gimmy design system.
+//
+//   Dark mode: buildTheme(dark: true) returns the dark variant. Wire it
+//   by listening to MediaQuery.platformBrightnessOf(context) or exposing
+//   a user toggle on the Settings screen and storing it in SharedPrefs.
+
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// ─── Gimmy design tokens (1:1 with styles.css) ───
+class GimmyTokens {
+  // Brand
+  static const Color brand = Color(0xFF00D27F);
+  static const Color brandInk = Color(0xFF003D24);
+  static const Color brandSoft = Color(0xFFE4FBEE);
+
+  // Surface — light
+  static const Color ink = Color(0xFF0A0E0F);
+  static const Color ink2 = Color(0xFF151A1C);
+  static const Color ink3 = Color(0xFF1F2527);
+  static const Color paper = Color(0xFFFAFAF7);
+  static const Color card = Color(0xFFFFFFFF);
+  static const Color line = Color(0xFFE8E6DF);
+  static const Color line2 = Color(0xFFD8D5CC);
+
+  // Text
+  static const Color text = Color(0xFF0A0E0F);
+  static const Color textMute = Color(0xFF6B6A63);
+  static const Color textFaint = Color(0xFF9E9C91);
+  static const Color textOnInk = Color(0xFFFFFFFF);
+  static const Color textOnInkMute = Color(0xFF9FA7A9);
+
+  // Semantic
+  static const Color ok = Color(0xFF00B86B);
+  static const Color warn = Color(0xFFE89A2B);
+  static const Color bad = Color(0xFFE84A4A);
+  static const Color info = Color(0xFF3B7CF2);
+
+  // Dark surfaces
+  static const Color darkBrand = Color(0xFF00E88C);
+  static const Color darkPaper = Color(0xFF0A0E0F);
+  static const Color darkCard = Color(0xFF151A1C);
+  static const Color darkLine = Color(0xFF242A2C);
+  static const Color darkText = Color(0xFFF5F5F2);
+  static const Color darkTextMute = Color(0xFF8A908E);
+
+  // Radii
+  static const double rCard = 20;
+  static const double rCardLg = 24;
+  static const double rButton = 14;
+  static const double rChip = 999;
+  static const double rInput = 14;
+
+  // Typography — Space Grotesk (UI), Bebas Neue (display/numbers)
+  static TextTheme buildTextTheme(Brightness b, Color textColor, Color muteColor) {
+    final ui = GoogleFonts.spaceGroteskTextTheme();
+    final display = GoogleFonts.bebasNeue();
+
+    return ui.copyWith(
+      // Display — Bebas Neue, condensed sporty
+      displayLarge:  display.copyWith(fontSize: 64, height: 0.88, letterSpacing: 0.01, color: textColor),
+      displayMedium: display.copyWith(fontSize: 48, height: 0.92, letterSpacing: 0.01, color: textColor),
+      displaySmall:  display.copyWith(fontSize: 36, height: 0.95, letterSpacing: 0.02, color: textColor),
+      headlineLarge: display.copyWith(fontSize: 32, height: 1.0,  letterSpacing: 0.02, color: textColor),
+      headlineMedium:display.copyWith(fontSize: 26, height: 1.05, letterSpacing: 0.02, color: textColor),
+      headlineSmall: display.copyWith(fontSize: 22, height: 1.1,  letterSpacing: 0.02, color: textColor),
+      // Title/body — Space Grotesk
+      titleLarge:  ui.titleLarge?.copyWith(fontWeight: FontWeight.w600, fontSize: 18, letterSpacing: -0.01, color: textColor),
+      titleMedium: ui.titleMedium?.copyWith(fontWeight: FontWeight.w600, fontSize: 15, color: textColor),
+      titleSmall:  ui.titleSmall?.copyWith(fontWeight: FontWeight.w600, fontSize: 13, color: textColor),
+      bodyLarge:  ui.bodyLarge?.copyWith(fontSize: 15, height: 1.4, color: textColor),
+      bodyMedium: ui.bodyMedium?.copyWith(fontSize: 14, height: 1.4, color: textColor),
+      bodySmall:  ui.bodySmall?.copyWith(fontSize: 12, height: 1.35, color: muteColor),
+      labelLarge:  ui.labelLarge?.copyWith(fontWeight: FontWeight.w600, letterSpacing: 0.02, color: textColor),
+      labelMedium: ui.labelMedium?.copyWith(fontWeight: FontWeight.w600, letterSpacing: 0.14, color: muteColor),
+      labelSmall:  ui.labelSmall?.copyWith(fontWeight: FontWeight.w600, letterSpacing: 0.14, color: muteColor),
+    );
+  }
+}
+
 class ThemeProvider extends ChangeNotifier {
-  // Legacy keys (used as fallback when no teamId set)
   static const String _legacyKeyTeamName = 'team_name';
   static const String _legacyKeyPrimaryColor = 'primary_color';
   static const String _legacyKeyAccentColor = 'accent_color';
   static const String _legacyKeyLogoBase64 = 'team_logo_base64';
+  static const String _keyDarkMode = 'gimmy_dark_mode';
 
   int? _currentTeamId;
   String _teamName = 'Calcio a 5';
-  Color _primaryColor = const Color(0xFF1B5E20); // verde scuro
-  Color _accentColor = const Color(0xFFFFC107); // amber
+  // Default brand = Gimmy electric pitch green (was verde scuro 0xFF1B5E20)
+  Color _primaryColor = GimmyTokens.brand;
+  Color _accentColor = GimmyTokens.ink;
   String? _logoBase64;
+  bool _dark = false;
 
   String get teamName => _teamName;
   Color get primaryColor => _primaryColor;
@@ -22,6 +118,7 @@ class ThemeProvider extends ChangeNotifier {
   String? get logoBase64 => _logoBase64;
   bool get hasLogo => _logoBase64 != null && _logoBase64!.isNotEmpty;
   int? get currentTeamId => _currentTeamId;
+  bool get isDark => _dark;
 
   Uint8List? get logoBytes {
     if (_logoBase64 == null || _logoBase64!.isEmpty) return null;
@@ -37,20 +134,13 @@ class ThemeProvider extends ChangeNotifier {
   }
 
   String _keyTeamName() => _currentTeamId != null
-      ? 'team_${_currentTeamId}_name'
-      : _legacyKeyTeamName;
-
+      ? 'team_${_currentTeamId}_name' : _legacyKeyTeamName;
   String _keyPrimaryColor() => _currentTeamId != null
-      ? 'team_${_currentTeamId}_primary_color'
-      : _legacyKeyPrimaryColor;
-
+      ? 'team_${_currentTeamId}_primary_color' : _legacyKeyPrimaryColor;
   String _keyAccentColor() => _currentTeamId != null
-      ? 'team_${_currentTeamId}_accent_color'
-      : _legacyKeyAccentColor;
-
+      ? 'team_${_currentTeamId}_accent_color' : _legacyKeyAccentColor;
   String _keyLogoBase64() => _currentTeamId != null
-      ? 'team_${_currentTeamId}_logo_base64'
-      : _legacyKeyLogoBase64;
+      ? 'team_${_currentTeamId}_logo_base64' : _legacyKeyLogoBase64;
 
   Future<void> setCurrentTeamId(int? teamId) async {
     if (_currentTeamId == teamId) return;
@@ -62,18 +152,11 @@ class ThemeProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _teamName = prefs.getString(_keyTeamName()) ?? 'Calcio a 5';
     final primaryValue = prefs.getInt(_keyPrimaryColor());
-    if (primaryValue != null) {
-      _primaryColor = Color(primaryValue);
-    } else {
-      _primaryColor = const Color(0xFF1B5E20);
-    }
+    _primaryColor = primaryValue != null ? Color(primaryValue) : GimmyTokens.brand;
     final accentValue = prefs.getInt(_keyAccentColor());
-    if (accentValue != null) {
-      _accentColor = Color(accentValue);
-    } else {
-      _accentColor = const Color(0xFFFFC107);
-    }
+    _accentColor = accentValue != null ? Color(accentValue) : GimmyTokens.ink;
     _logoBase64 = prefs.getString(_keyLogoBase64());
+    _dark = prefs.getBool(_keyDarkMode) ?? false;
     notifyListeners();
   }
 
@@ -112,109 +195,286 @@ class ThemeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  ThemeData buildTheme() {
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: _primaryColor,
-      secondary: _accentColor,
-      brightness: Brightness.light,
+  Future<void> setDarkMode(bool value) async {
+    _dark = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyDarkMode, value);
+    notifyListeners();
+  }
+
+  // ─── Build the actual Gimmy theme ───
+  ThemeData buildTheme({bool? dark}) {
+    final isDark = dark ?? _dark;
+    final brightness = isDark ? Brightness.dark : Brightness.light;
+
+    final Color brand = isDark ? GimmyTokens.darkBrand : _primaryColor;
+    final Color paper = isDark ? GimmyTokens.darkPaper : GimmyTokens.paper;
+    final Color card  = isDark ? GimmyTokens.darkCard  : GimmyTokens.card;
+    final Color line  = isDark ? GimmyTokens.darkLine  : GimmyTokens.line;
+    final Color text  = isDark ? GimmyTokens.darkText  : GimmyTokens.text;
+    final Color mute  = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final Color onBrand = isDark ? GimmyTokens.brandInk : GimmyTokens.brandInk;
+
+    final colorScheme = ColorScheme(
+      brightness: brightness,
+      primary: brand,
+      onPrimary: onBrand,
+      primaryContainer: isDark ? GimmyTokens.darkBrand.withOpacity(0.18) : GimmyTokens.brandSoft,
+      onPrimaryContainer: isDark ? GimmyTokens.darkBrand : GimmyTokens.brandInk,
+      secondary: isDark ? Colors.white : GimmyTokens.ink,
+      onSecondary: isDark ? GimmyTokens.ink : Colors.white,
+      secondaryContainer: isDark ? GimmyTokens.ink3 : GimmyTokens.ink,
+      onSecondaryContainer: Colors.white,
+      tertiary: GimmyTokens.warn,
+      onTertiary: Colors.white,
+      tertiaryContainer: isDark
+          ? GimmyTokens.warn.withOpacity(0.15)
+          : const Color(0xFFFCEDD2),
+      onTertiaryContainer: const Color(0xFF8A5510),
+      error: GimmyTokens.bad,
+      onError: Colors.white,
+      errorContainer: isDark
+          ? GimmyTokens.bad.withOpacity(0.15)
+          : const Color(0xFFFCE0E0),
+      onErrorContainer: const Color(0xFF9E2323),
+      surface: paper,
+      onSurface: text,
+      surfaceContainerLowest: paper,
+      surfaceContainerLow: isDark ? const Color(0xFF0F1314) : const Color(0xFFF2F0EA),
+      surfaceContainer: card,
+      surfaceContainerHigh: isDark ? GimmyTokens.ink3 : const Color(0xFFF6F4EE),
+      surfaceContainerHighest: isDark ? GimmyTokens.ink3 : const Color(0xFFEEECE4),
+      onSurfaceVariant: mute,
+      outline: line,
+      outlineVariant: line.withOpacity(0.5),
+      shadow: Colors.black,
+      scrim: Colors.black.withOpacity(0.5),
+      inverseSurface: isDark ? paper : GimmyTokens.ink,
+      onInverseSurface: isDark ? text : Colors.white,
+      inversePrimary: brand,
     );
 
+    final textTheme = GimmyTokens.buildTextTheme(brightness, text, mute);
+
     return ThemeData(
-      colorScheme: colorScheme,
       useMaterial3: true,
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: paper,
+      textTheme: textTheme,
+      canvasColor: paper,
+      dividerColor: line,
+
       appBarTheme: AppBarTheme(
-        centerTitle: true,
+        centerTitle: false,
         elevation: 0,
-        backgroundColor: colorScheme.surface,
+        scrolledUnderElevation: 0,
+        backgroundColor: paper,
         surfaceTintColor: Colors.transparent,
+        foregroundColor: text,
+        titleTextStyle: textTheme.titleLarge,
+        systemOverlayStyle: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       ),
+
       cardTheme: CardTheme(
         elevation: 0,
+        margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: colorScheme.outlineVariant.withOpacity(0.5)),
+          borderRadius: BorderRadius.circular(GimmyTokens.rCard),
+          side: BorderSide(color: line),
         ),
-        color: colorScheme.surface,
+        color: card,
+        surfaceTintColor: Colors.transparent,
       ),
+
       inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
         filled: true,
-        fillColor: colorScheme.surfaceContainerLow,
+        fillColor: isDark ? const Color(0xFF0F1314) : const Color(0xFFF2F0EA),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(GimmyTokens.rInput),
+          borderSide: BorderSide(color: line),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(GimmyTokens.rInput),
+          borderSide: BorderSide(color: line),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(GimmyTokens.rInput),
+          borderSide: BorderSide(color: brand, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(GimmyTokens.rInput),
+          borderSide: BorderSide(color: GimmyTokens.bad),
+        ),
+        labelStyle: TextStyle(color: mute),
+        hintStyle: TextStyle(color: mute.withOpacity(0.7)),
+        prefixIconColor: mute,
+        suffixIconColor: mute,
       ),
+
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           minimumSize: const Size(double.infinity, 52),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(GimmyTokens.rButton),
+          ),
           elevation: 0,
-          backgroundColor: colorScheme.primary,
-          foregroundColor: colorScheme.onPrimary,
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          backgroundColor: isDark ? Colors.white : GimmyTokens.ink,
+          foregroundColor: isDark ? GimmyTokens.ink : Colors.white,
+          disabledBackgroundColor: (isDark ? Colors.white : GimmyTokens.ink).withOpacity(0.3),
+          textStyle: textTheme.labelLarge?.copyWith(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),
+
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+          minimumSize: const Size(0, 48),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(GimmyTokens.rButton),
+          ),
+          backgroundColor: brand,
+          foregroundColor: onBrand,
+          textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
         ),
       ),
+
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+          minimumSize: const Size(0, 48),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          side: BorderSide(color: line, width: 1),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(GimmyTokens.rButton),
+          ),
+          foregroundColor: text,
+          textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
         ),
       ),
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: brand,
+          textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+        ),
       ),
+
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        elevation: 0,
+        backgroundColor: brand,
+        foregroundColor: onBrand,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      ),
+
       navigationBarTheme: NavigationBarThemeData(
         elevation: 0,
-        indicatorColor: colorScheme.primaryContainer,
-        backgroundColor: colorScheme.surface,
+        height: 68,
+        indicatorColor: Colors.transparent,
+        backgroundColor: isDark ? Colors.black : GimmyTokens.ink,
         surfaceTintColor: Colors.transparent,
-        labelTextStyle: WidgetStateProperty.all(
-          const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return IconThemeData(
+            color: selected ? brand : GimmyTokens.textOnInkMute,
+            size: 22,
+          );
+        }),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return textTheme.labelSmall!.copyWith(
+            fontSize: 10,
+            letterSpacing: 0.02,
+            fontWeight: FontWeight.w500,
+            color: selected ? brand : GimmyTokens.textOnInkMute,
+          );
+        }),
+      ),
+
+      chipTheme: ChipThemeData(
+        backgroundColor: isDark ? GimmyTokens.ink3 : card,
+        side: BorderSide(color: line),
+        labelStyle: textTheme.labelMedium?.copyWith(fontSize: 11, letterSpacing: 0.02, color: mute),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(GimmyTokens.rChip),
         ),
       ),
-      chipTheme: ChipThemeData(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      ),
+
       dividerTheme: DividerThemeData(
-        color: colorScheme.outlineVariant.withOpacity(0.3),
+        color: line,
         thickness: 1,
+        space: 1,
       ),
+
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: isDark ? card : GimmyTokens.ink,
+        contentTextStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        elevation: 4,
+      ),
+
+      dialogTheme: DialogTheme(
+        backgroundColor: card,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(GimmyTokens.rCardLg)),
+        titleTextStyle: textTheme.headlineSmall,
+        contentTextStyle: textTheme.bodyMedium,
+      ),
+
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: card,
+        surfaceTintColor: Colors.transparent,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+      ),
+
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: brand,
+        linearTrackColor: line,
+      ),
+
+      tabBarTheme: TabBarTheme(
+        labelColor: text,
+        unselectedLabelColor: mute,
+        indicatorColor: brand,
+        indicatorSize: TabBarIndicatorSize.label,
+        labelStyle: textTheme.labelLarge,
+        unselectedLabelStyle: textTheme.labelLarge,
+      ),
+
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected) ? onBrand : Colors.white,
+        ),
+        trackColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected) ? brand : line,
+        ),
       ),
     );
   }
 
-  // Colori predefiniti disponibili
+  // Preset palettes — Gimmy curated (restyle defaults)
   static const List<Color> availableColors = [
-    Color(0xFF1B5E20), // Verde scuro
-    Color(0xFF0D47A1), // Blu scuro
-    Color(0xFFB71C1C), // Rosso scuro
-    Color(0xFF1A237E), // Indaco
-    Color(0xFF004D40), // Teal scuro
-    Color(0xFF311B92), // Viola scuro
-    Color(0xFFE65100), // Arancione scuro
-    Color(0xFF263238), // Grigio blu
-    Color(0xFF880E4F), // Rosa scuro
-    Color(0xFF33691E), // Lime scuro
+    Color(0xFF00D27F), // Gimmy brand — electric pitch green (default)
+    Color(0xFF0A0E0F), // Near-black
+    Color(0xFF3B7CF2), // Electric blue
+    Color(0xFFE84A4A), // Signal red
+    Color(0xFFE89A2B), // Ochre
+    Color(0xFF7C3AED), // Violet
+    Color(0xFF0EA5A5), // Teal
+    Color(0xFFEC4899), // Pink
+    Color(0xFF1B5E20), // Legacy verde scuro (kept for teams already on it)
+    Color(0xFF0D47A1), // Legacy blu scuro
   ];
 
   static const List<Color> availableAccentColors = [
-    Color(0xFFFFC107), // Amber
-    Color(0xFFFF5722), // Deep Orange
-    Color(0xFF00BCD4), // Cyan
-    Color(0xFF4CAF50), // Green
-    Color(0xFFE91E63), // Pink
-    Color(0xFF9C27B0), // Purple
-    Color(0xFFFF9800), // Orange
-    Color(0xFF03A9F4), // Light Blue
-    Color(0xFFCDDC39), // Lime
-    Color(0xFFF44336), // Red
+    Color(0xFF0A0E0F), // Ink
+    Color(0xFFFFFFFF), // Paper
+    Color(0xFFFFC107), // Amber (legacy)
+    Color(0xFF3B7CF2), // Blue
+    Color(0xFFE84A4A), // Red
   ];
 }

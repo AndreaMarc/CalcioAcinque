@@ -4,6 +4,7 @@ using System.Security.Claims;
 using CalcioAcinque.Backend.DTOs.Convocations;
 using CalcioAcinque.Backend.Models;
 using CalcioAcinque.Backend.Services;
+using CalcioAcinque.Backend.Models.Enums;
 
 namespace CalcioAcinque.Backend.Controllers;
 
@@ -26,7 +27,7 @@ public class ConvocationsController : ControllerBase
         return Ok(new ApiResponse<List<ConvocationDto>> { Success = true, Data = result });
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Ruoli.Campo)]
     [HttpPost("api/matches/{matchId}/convocations")]
     public async Task<ActionResult<ApiResponse<List<ConvocationDto>>>> SendConvocations(int matchId, [FromBody] SendConvocationsDto dto)
     {

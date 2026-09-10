@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using CalcioAcinque.Backend.DTOs.Auth;
+using CalcioAcinque.Backend.DTOs.Players;
 using CalcioAcinque.Backend.Models;
 using CalcioAcinque.Backend.Services;
+using CalcioAcinque.Backend.Models.Enums;
 
 namespace CalcioAcinque.Backend.Controllers;
 
@@ -25,7 +27,14 @@ public class AuthController : ControllerBase
         return Ok(new ApiResponse<LoginResponse> { Success = true, Data = result, Message = "Login effettuato" });
     }
 
-    [Authorize(Roles = "Admin")]
+    [HttpPost("signup")]
+    public async Task<ActionResult<ApiResponse<LoginResponse>>> Signup([FromBody] SignupRequest request)
+    {
+        var result = await _authService.SignupAsync(request);
+        return Ok(new ApiResponse<LoginResponse> { Success = true, Data = result, Message = "Registrazione completata" });
+    }
+
+    [Authorize(Roles = Ruoli.Squadra)]
     [HttpPost("register")]
     public async Task<ActionResult<ApiResponse<LoginResponse>>> Register([FromBody] RegisterRequest request)
     {
@@ -43,12 +52,12 @@ public class AuthController : ControllerBase
 
     [Authorize]
     [HttpGet("me")]
-    public async Task<ActionResult<ApiResponse<PlayerInfo>>> Me([FromQuery] int? teamId = null)
+    public async Task<ActionResult<ApiResponse<MeResponse>>> Me([FromQuery] int? teamId = null)
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var result = await _authService.GetCurrentPlayerAsync(userId, teamId);
-        if (result == null) return NotFound(new ApiResponse<PlayerInfo> { Success = false, Message = "Utente non trovato" });
-        return Ok(new ApiResponse<PlayerInfo> { Success = true, Data = result });
+        var result = await _authService.GetMeAsync(userId, teamId);
+        if (result == null) return NotFound(new ApiResponse<MeResponse> { Success = false, Message = "Utente non trovato" });
+        return Ok(new ApiResponse<MeResponse> { Success = true, Data = result });
     }
 
     [Authorize]
@@ -87,7 +96,17 @@ public class AuthController : ControllerBase
         return Ok(new ApiResponse<LoginResponse> { Success = true, Data = result, Message = "Ti sei unito al team" });
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize]
+    [HttpGet("join-info/{code}")]
+    public async Task<ActionResult<ApiResponse<JoinInfoResponse>>> GetJoinInfo(string code)
+    {
+        var result = await _authService.GetJoinInfoAsync(code);
+        if (result == null)
+            return NotFound(new ApiResponse<JoinInfoResponse> { Success = false, Message = "Codice invito non valido" });
+        return Ok(new ApiResponse<JoinInfoResponse> { Success = true, Data = result });
+    }
+
+    [Authorize(Roles = Ruoli.Squadra)]
     [HttpGet("invite-code")]
     public async Task<ActionResult<ApiResponse<object>>> GetInviteCode()
     {

@@ -4,6 +4,7 @@ import '../core/network/api_client.dart';
 import '../core/storage/secure_storage.dart';
 import '../core/constants/api_constants.dart';
 import '../models/player_info.dart';
+import '../models/team_format.dart';
 import '../models/team_membership_info.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -21,11 +22,32 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _isAuthenticated;
   bool get isAdmin => _currentPlayer?.isAdmin ?? false;
+  bool get isMister => _currentPlayer?.isMister ?? false;
+  bool get isCassiere => _currentPlayer?.isCassiere ?? false;
+
+  // Nei gate della UI si usano questi e non isAdmin: dicono cosa puoi fare,
+  // non chi sei, e il backend applica le stesse politiche (vedi Ruoli.cs).
+  bool get puoGestireSquadra => _currentPlayer?.puoGestireSquadra ?? false;
+  bool get puoGestireCampo => _currentPlayer?.puoGestireCampo ?? false;
+  bool get puoGestireSoldi => _currentPlayer?.puoGestireSoldi ?? false;
+  bool get puoGestireGettoni => _currentPlayer?.puoGestireGettoni ?? false;
   int get playerId => _currentPlayer?.id ?? 0;
   int get teamId => _currentPlayer?.teamId ?? 0;
   String? get error => _error;
   List<TeamMembershipInfo>? get teams => _teams;
   bool get needsTeamSelection => _needsTeamSelection;
+
+  /// Membership del team attivo: da qui la UI legge formato e societa'.
+  TeamMembershipInfo? get currentMembership {
+    final id = teamId;
+    if (id == 0) return null;
+    for (final t in _teams ?? const <TeamMembershipInfo>[]) {
+      if (t.teamId == id) return t;
+    }
+    return null;
+  }
+
+  int? get currentClubId => currentMembership?.clubId;
 
   AuthProvider({required this.apiClient, required this.storage});
 
@@ -145,9 +167,15 @@ class AuthProvider extends ChangeNotifier {
     required String nomeTeam,
     required String nomeGiocatore,
     String? soprannome,
+    TeamFormat formato = TeamFormat.calcioA5,
+    int? clubId,
+    String? nomeSocieta,
     int partitePerStagione = 8,
     int gettoniPerGiocatore = 4,
     bool useGettoni = true,
+    double quotaIscrizione = 0,
+    double quotaTesseramento = 0,
+    double costoPartita = 0,
   }) async {
     _isLoading = true;
     _error = null;
@@ -160,9 +188,15 @@ class AuthProvider extends ChangeNotifier {
           'nomeTeam': nomeTeam,
           'nomeGiocatore': nomeGiocatore,
           if (soprannome != null && soprannome.isNotEmpty) 'soprannome': soprannome,
+          'formato': formato.apiValue,
+          if (clubId != null) 'clubId': clubId,
+          if (nomeSocieta != null && nomeSocieta.isNotEmpty) 'nomeSocieta': nomeSocieta,
           'partitePerStagione': partitePerStagione,
           'gettoniPerGiocatore': gettoniPerGiocatore,
           'useGettoni': useGettoni,
+          'quotaIscrizione': quotaIscrizione,
+          'quotaTesseramento': quotaTesseramento,
+          'costoPartita': costoPartita,
         },
       );
 
@@ -196,11 +230,71 @@ class AuthProvider extends ChangeNotifier {
     return false;
   }
 
+  Future<bool> launchTeamFromDraft({
+    required int draftId,
+    String? nomeGiocatore,
+    String? soprannome,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await apiClient.dio.post(
+        ApiConstants.draftLaunch(draftId),
+        data: {
+          if (nomeGiocatore != null && nomeGiocatore.isNotEmpty) 'nomeGiocatore': nomeGiocatore,
+          if (soprannome != null && soprannome.isNotEmpty) 'soprannome': soprannome,
+        },
+      );
+
+      if (response.data['success'] == true) {
+        final data = response.data['data'];
+        await storage.saveAccessToken(data['accessToken']);
+        await storage.saveRefreshToken(data['refreshToken']);
+        _currentPlayer = PlayerInfo.fromJson(data['player']);
+        await storage.savePlayerData(
+          playerId: _currentPlayer!.id,
+          userId: _currentPlayer!.userId,
+          teamId: _currentPlayer!.teamId,
+          nome: _currentPlayer!.nome,
+          ruolo: _currentPlayer!.ruolo,
+        );
+        await storage.saveLastTeamId(_currentPlayer!.teamId);
+        _needsTeamSelection = false;
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+      _error = response.data['message'] ?? 'Errore nel lancio della squadra';
+    } on DioException catch (e) {
+      _error = e.response?.data?['message'] ?? 'Errore di connessione';
+    } catch (e) {
+      _error = 'Errore imprevisto: $e';
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  }
+
+  Future<Map<String, dynamic>?> getJoinInfo(String code) async {
+    try {
+      final response = await apiClient.dio.get(ApiConstants.joinInfo(code));
+      if (response.data['success'] == true) {
+        return response.data['data'] as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    return null;
+  }
+
   Future<bool> joinTeam({
     required String inviteCode,
     required String nome,
     String? soprannome,
     String? telefono,
+    int? pendingPlayerId,
+    int? teamId,
   }) async {
     _isLoading = true;
     _error = null;
@@ -214,6 +308,9 @@ class AuthProvider extends ChangeNotifier {
           'nome': nome,
           if (soprannome != null && soprannome.isNotEmpty) 'soprannome': soprannome,
           if (telefono != null && telefono.isNotEmpty) 'telefono': telefono,
+          if (pendingPlayerId != null) 'pendingPlayerId': pendingPlayerId,
+          // Serve solo con un codice societa' che ha piu' di una squadra
+          if (teamId != null) 'teamId': teamId,
         },
       );
 
@@ -264,24 +361,63 @@ class AuthProvider extends ChangeNotifier {
     try {
       final response = await apiClient.dio.get(ApiConstants.me);
       if (response.data['success'] == true) {
-        final data = response.data['data'];
-        if (data is Map<String, dynamic> && data.containsKey('teams') && data['teams'] != null) {
-          // User has multiple teams but no team selected yet
-          _teams = (data['teams'] as List)
-              .map((e) => TeamMembershipInfo.fromJson(e))
-              .toList();
-          _isAuthenticated = true;
-          _needsTeamSelection = true;
-          notifyListeners();
-          return true;
-        }
-        _currentPlayer = PlayerInfo.fromJson(data);
+        final data = response.data['data'] as Map<String, dynamic>;
+        final playerJson = data['player'];
+        final teamsJson = data['teams'] as List?;
+
+        _teams = teamsJson != null
+            ? teamsJson.map((e) => TeamMembershipInfo.fromJson(e)).toList()
+            : null;
         _isAuthenticated = true;
-        _needsTeamSelection = false;
+
+        if (playerJson != null && (teamsJson == null || teamsJson.length <= 1)) {
+          // Singolo team o nessun team alternativo → entra direttamente
+          _currentPlayer = PlayerInfo.fromJson(playerJson);
+          _needsTeamSelection = false;
+        } else {
+          // Nessun team OR multipli team → manda a /select-team
+          _currentPlayer = null;
+          _needsTeamSelection = true;
+        }
         notifyListeners();
         return true;
       }
     } catch (_) {}
+    return false;
+  }
+
+  Future<bool> signup(String email, String password) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await apiClient.dio.post(ApiConstants.signup, data: {
+        'email': email,
+        'password': password,
+      });
+
+      if (response.data['success'] == true) {
+        final data = response.data['data'];
+        await storage.saveAccessToken(data['accessToken']);
+        await storage.saveRefreshToken(data['refreshToken']);
+        _currentPlayer = null;
+        _teams = [];
+        _isAuthenticated = true;
+        _needsTeamSelection = true;
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+      _error = response.data['message'] ?? 'Errore nella registrazione';
+    } on DioException catch (e) {
+      _error = e.response?.data?['message'] ?? 'Errore di connessione';
+    } catch (e) {
+      _error = 'Errore imprevisto: $e';
+    }
+
+    _isLoading = false;
+    notifyListeners();
     return false;
   }
 

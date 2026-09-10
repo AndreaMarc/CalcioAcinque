@@ -1,0 +1,619 @@
+<title>CalcioAcinque per lo staff</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@500&display=swap">
+
+<style>
+  :root {
+    --paper: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #0A0E0F;
+    --text: #0A0E0F;
+    --mute: #6B6A63;
+    --faint: #9E9C91;
+    --line: #E8E6DF;
+    --brand: #00D27F;
+    --brand-deep: #00A863;
+    --brand-ink: #003D24;
+    --brand-soft: #E4FBEE;
+    --brand-on-soft: #00593A;
+    --warn: #E89A2B;
+    --warn-soft: #FCEDD2;
+    --warn-ink: #8A5510;
+    --bad: #E84A4A;
+    --bad-soft: #FCE0E0;
+    --bad-ink: #9E2323;
+    --info: #3B7CF2;
+    --info-soft: #E4EDFD;
+    --info-ink: #1B4BA8;
+    --chip-bg: #F1EFE8;
+    --chip-line: #DEDBD1;
+    --grid-line: #E8E6DF;
+
+    --display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+    --body: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0A0E0F;
+      --card: #151A1C;
+      --ink: #F5F5F2;
+      --text: #F5F5F2;
+      --mute: #8A908E;
+      --faint: #6E7573;
+      --line: #242A2C;
+      --brand: #00E88C;
+      --brand-deep: #00E88C;
+      --brand-ink: #04120B;
+      --brand-soft: #10241A;
+      --brand-on-soft: #38EFA1;
+      --warn: #F0AC4C;
+      --warn-soft: #2C2213;
+      --warn-ink: #F0AC4C;
+      --bad: #F26A6A;
+      --bad-soft: #2E1717;
+      --bad-ink: #F26A6A;
+      --info: #6A9CF7;
+      --info-soft: #141F33;
+      --info-ink: #6A9CF7;
+      --chip-bg: #1D2325;
+      --chip-line: #2E3537;
+      --grid-line: #242A2C;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #0A0E0F;
+    --card: #151A1C;
+    --ink: #F5F5F2;
+    --text: #F5F5F2;
+    --mute: #8A908E;
+    --faint: #6E7573;
+    --line: #242A2C;
+    --brand: #00E88C;
+    --brand-deep: #00E88C;
+    --brand-ink: #04120B;
+    --brand-soft: #10241A;
+    --brand-on-soft: #38EFA1;
+    --warn: #F0AC4C;
+    --warn-soft: #2C2213;
+    --warn-ink: #F0AC4C;
+    --bad: #F26A6A;
+    --bad-soft: #2E1717;
+    --bad-ink: #F26A6A;
+    --info: #6A9CF7;
+    --info-soft: #141F33;
+    --info-ink: #6A9CF7;
+    --chip-bg: #1D2325;
+    --chip-line: #2E3537;
+    --grid-line: #242A2C;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.62;
+    overflow-wrap: break-word;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Come il manuale giocatori: la colonna singola centrata deve reggere da sola,
+     la barra laterale si aggiunge solo quando c'e' spazio vero. */
+  .wrap { max-width: 750px; margin: 0 auto; padding: 0 22px 96px; }
+  @media (min-width: 1000px) { .wrap { max-width: 1084px; } }
+
+  .masthead {
+    padding: 40px 0 28px;
+    border-bottom: 2px solid var(--ink);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .kicker {
+    font-family: var(--display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--brand-deep);
+  }
+  h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(34px, 6.4vw, 56px);
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .standfirst { font-size: 19px; color: var(--mute); max-width: 62ch; margin: 0; }
+
+  .roles { display: flex; flex-wrap: wrap; gap: 8px; }
+  .role-pill {
+    font-family: var(--display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--chip-line);
+    background: var(--card);
+  }
+  .role-pill.mister { color: var(--info-ink); background: var(--info-soft); border-color: transparent; }
+  .role-pill.cassiere { color: var(--brand-on-soft); background: var(--brand-soft); border-color: transparent; }
+  .role-pill.admin { color: var(--paper); background: var(--ink); border-color: transparent; }
+
+  /* minmax(0, ...) e non 1fr: con 1fr il minimo della colonna e' il contenuto
+     piu' largo che contiene, e la striscia dell'indice (pastiglie nowrap)
+     stirava tutto il documento oltre il bordo del riquadro. */
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr); }
+
+  /* Un solo indice per due forme: pastiglie in fila in colonna singola,
+     colonna fissa appiccicata in alto quando la pagina si allarga. */
+  .index { padding: 26px 0 2px; min-width: 0; }
+  .index ol {
+    list-style: none; margin: 0; padding: 0 0 6px;
+    display: flex; flex-direction: row; gap: 8px;
+    overflow-x: auto;
+    min-width: 0;
+    scrollbar-width: thin;
+  }
+  .index li { flex: none; }
+  .index a {
+    display: block;
+    font-family: var(--display);
+    font-size: 12.5px;
+    line-height: 1.3;
+    color: var(--mute);
+    text-decoration: none;
+    white-space: nowrap;
+    padding: 7px 13px;
+    background: var(--card);
+    border: 1px solid var(--chip-line);
+    border-radius: 999px;
+  }
+  .index a:hover { color: var(--text); border-color: var(--mute); }
+  .index a:focus-visible { outline: 2px solid var(--brand-deep); outline-offset: 2px; }
+
+  @media (min-width: 1000px) {
+    .layout { grid-template-columns: 186px minmax(0, 1fr); gap: 48px; align-items: start; }
+    .index { position: sticky; top: 26px; padding: 50px 0 0; }
+    .index ol { flex-direction: column; gap: 2px; overflow: visible; padding-bottom: 0; }
+    .index li { flex: 0 1 auto; }
+    .index a {
+      white-space: normal;
+      background: none;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 8px;
+      font-size: 13px;
+    }
+    .index a:hover { background: var(--chip-bg); }
+  }
+
+  main { padding-top: 8px; min-width: 0; container-type: inline-size; }
+  section { padding: 40px 0 8px; border-top: 1px solid var(--line); }
+  section:first-of-type { border-top: none; }
+
+  h2 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(23px, 3.4vw, 30px);
+    letter-spacing: -0.02em;
+    line-height: 1.14;
+    margin: 0 0 6px;
+    text-wrap: balance;
+    scroll-margin-top: 20px;
+  }
+  h2 .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 9px;
+    color: var(--faint);
+  }
+  h2.mister .eyebrow { color: var(--info-ink); }
+  h2.cassiere .eyebrow { color: var(--brand-deep); }
+  h2.admin .eyebrow { color: var(--text); }
+  h3 { font-family: var(--display); font-weight: 700; font-size: 16px; margin: 26px 0 6px; }
+  p { margin: 0 0 14px; max-width: 64ch; }
+  .lede { color: var(--mute); max-width: 64ch; margin-bottom: 20px; }
+  strong { font-weight: 600; }
+  a { color: var(--brand-deep); }
+
+  /* Niente nowrap: una pastiglia lunga come l'indirizzo del sito allargherebbe
+     la pagina invece di andare a capo. */
+  .tap {
+    font-family: var(--mono);
+    font-size: 0.84em;
+    background: var(--chip-bg);
+    border: 1px solid var(--chip-line);
+    border-radius: 6px;
+    padding: 1px 6px;
+    overflow-wrap: anywhere;
+  }
+
+  /* ---------- matrice permessi ---------- */
+  .matrix-scroll { overflow-x: auto; margin: 6px 0 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+  table.matrix { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 15px; }
+  table.matrix th, table.matrix td { padding: 11px 12px; text-align: left; border-bottom: 1px solid var(--grid-line); }
+  table.matrix thead th {
+    font-family: var(--display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--mute);
+    background: var(--chip-bg);
+    white-space: nowrap;
+  }
+  table.matrix thead th:first-child { text-align: left; }
+  table.matrix th:not(:first-child), table.matrix td:not(:first-child) { text-align: center; width: 96px; }
+  table.matrix tbody tr:last-child th, table.matrix tbody tr:last-child td { border-bottom: none; }
+  table.matrix tbody th { font-weight: 400; font-family: var(--body); color: var(--text); }
+  table.matrix tbody tr:nth-child(even) { background: color-mix(in srgb, var(--chip-bg) 45%, transparent); }
+  .yes {
+    display: inline-block; width: 20px; height: 20px; line-height: 20px;
+    border-radius: 6px; background: var(--brand); color: var(--brand-ink);
+    font-family: var(--display); font-weight: 700; font-size: 12px;
+  }
+  .no { color: var(--faint); font-family: var(--mono); font-size: 13px; }
+
+  /* ---------- passi ---------- */
+  ol.steps { list-style: none; margin: 0 0 18px; padding: 0; counter-reset: step; display: flex; flex-direction: column; gap: 12px; max-width: 64ch; }
+  /* Il numero e' posizionato in assoluto e non come cella di un grid: dentro un
+     grid ogni figlio inline (strong, span) diventerebbe un item per conto suo
+     e il passo si spezzerebbe in pezzi sovrapposti. */
+  ol.steps > li { counter-increment: step; position: relative; padding-left: 38px; min-height: 24px; }
+  ol.steps > li::before {
+    content: counter(step);
+    position: absolute; left: 0; top: 2px; width: 24px; height: 24px;
+    font-family: var(--display); font-size: 12px; font-weight: 700;
+    line-height: 24px; text-align: center; border-radius: 7px;
+    background: var(--ink); color: var(--paper);
+    font-variant-numeric: tabular-nums;
+  }
+  section.mister ol.steps > li::before { background: var(--info); color: #FFFFFF; }
+  section.cassiere ol.steps > li::before { background: var(--brand); color: var(--brand-ink); }
+
+  ul.plain { margin: 0 0 16px; padding-left: 20px; max-width: 64ch; }
+  ul.plain li { margin-bottom: 7px; }
+
+  /* ---------- riquadri ---------- */
+  .note {
+    border-left: 3px solid var(--brand);
+    background: var(--brand-soft);
+    border-radius: 0 12px 12px 0;
+    padding: 16px 18px;
+    margin: 22px 0;
+    max-width: 64ch;
+  }
+  .note.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  .note.stop { border-left-color: var(--bad); background: var(--bad-soft); }
+  .note h3 { margin: 0 0 6px; font-size: 15px; }
+  .note p { font-size: 15.5px; }
+  .note p:last-child { margin-bottom: 0; }
+
+  /* ---------- elenco definizioni ---------- */
+  .legend { display: flex; flex-direction: column; margin: 18px 0 8px; border-top: 1px solid var(--line); max-width: 64ch; }
+  .legend > div {
+    display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 16px;
+    padding: 13px 2px; border-bottom: 1px solid var(--line); align-items: baseline;
+  }
+  @container (max-width: 460px) {
+    .legend > div { grid-template-columns: 1fr; gap: 3px; }
+  }
+  .legend .name { font-family: var(--display); font-weight: 700; font-size: 14px; }
+  .legend .desc { font-size: 15.5px; color: var(--mute); }
+  .legend .desc em { font-style: normal; color: var(--text); }
+
+  /* ---------- avvertenze finali ---------- */
+  .gotchas { display: flex; flex-direction: column; border-top: 1px solid var(--line); max-width: 64ch; }
+  .gotchas > div { padding: 18px 0; border-bottom: 1px solid var(--line); }
+  .gotchas .q { font-family: var(--display); font-weight: 700; font-size: 16px; margin: 0 0 6px; }
+  .gotchas p { font-size: 16px; margin: 0; color: var(--mute); }
+  .gotchas p .tap { color: var(--text); }
+
+  .footer {
+    margin-top: 48px; padding-top: 22px;
+    border-top: 2px solid var(--ink);
+    font-size: 14px; color: var(--mute); max-width: 64ch;
+  }
+
+
+  /* ---------- carta ----------
+     Su stampa si forza la tavolozza chiara: il tema scuro dell'artifact su
+     carta sarebbe illeggibile e sprecherebbe toner. */
+  @media print {
+    /* I tre selettori insieme, non solo :root: il blocco del tema scuro usa
+       :root:not([data-theme="light"]), che ha specificita' piu' alta e senza
+       questo vincerebbe anche in stampa, mandando in stampa il fondo nero. */
+    :root,
+    :root:not([data-theme="light"]),
+    :root[data-theme="dark"] {
+      color-scheme: light;
+      --paper: #FFFFFF;
+      --card: #FFFFFF;
+      --ink: #0A0E0F;
+      --text: #14181A;
+      --mute: #4C4B45;
+      --faint: #77756C;
+      --line: #CFCCC3;
+      --line-2: #CFCCC3;
+      --grid-line: #D8D5CC;
+      --brand: #00A15F;
+      --brand-deep: #006B45;
+      --brand-ink: #00291A;
+      --brand-soft: #EAF9F1;
+      --brand-on-soft: #00563A;
+      --warn: #B87614;
+      --warn-soft: #FBF1DE;
+      --warn-ink: #6B4209;
+      --bad: #C23333;
+      --bad-soft: #FBE7E7;
+      --bad-ink: #8A1F1F;
+      --info: #2B5FBF;
+      --info-soft: #EAF0FC;
+      --info-ink: #17408F;
+      --chip-bg: #F2F1EC;
+      --chip-line: #D6D3CA;
+    }
+
+    @page { margin: 16mm 14mm 18mm; }
+
+    body { background: #FFFFFF; font-size: 10.5pt; line-height: 1.5; }
+    .wrap { max-width: none; margin: 0; padding: 0; }
+    .layout { display: block; }
+    .index { display: none; }
+    main { padding-top: 0; container-type: normal; }
+
+    .masthead { padding: 0 0 16px; break-after: avoid; }
+    h1 { font-size: 26pt; }
+    .standfirst { font-size: 12pt; }
+    section { padding: 16px 0 4px; }
+    h2 { font-size: 15pt; break-after: avoid; }
+    h3 { font-size: 11.5pt; break-after: avoid; }
+    p { orphans: 2; widows: 2; }
+
+    /* Un passo, una scheda o un riquadro spezzati a meta' pagina si leggono male */
+    ol.steps > li, .legend > div, .note, .track, .faq > div, .gotchas > div,
+    table.matrix tr { break-inside: avoid; }
+
+    .tracks { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .matrix-scroll { overflow: visible; }
+    table.matrix { min-width: 0; font-size: 9.5pt; }
+    table.matrix th, table.matrix td { padding: 7px 8px; }
+
+    a { color: inherit; text-decoration: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <span class="kicker">Manuale — chi gestisce la squadra</span>
+    <h1>CalcioAcinque per lo staff</h1>
+    <p class="standfirst">Cosa può fare ciascun ruolo, in che ordine si fanno le cose e quali sono i punti in cui l'app si comporta in modo non ovvio.</p>
+    <div class="roles">
+      <span class="role-pill mister">Mister</span>
+      <span class="role-pill cassiere">Cassiere</span>
+      <span class="role-pill admin">Admin</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="index" aria-label="Indice">
+      <ol>
+        <li><a href="#matrice">Chi può fare cosa</a></li>
+        <li><a href="#assegnare">Assegnare i ruoli</a></li>
+        <li><a href="#mister">Il Mister</a></li>
+        <li><a href="#cassiere">Il Cassiere</a></li>
+        <li><a href="#admin">L'Admin</a></li>
+        <li><a href="#stagione">Fine stagione</a></li>
+        <li><a href="#trappole">Da sapere prima</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="matrice">
+        <h2>Chi può fare cosa</h2>
+        <p class="lede">I ruoli valgono <strong>per squadra</strong>: la stessa persona può essere Mister nella squadra a 7 e semplice giocatore in quella a 5. L'Admin può fare tutto quello che fanno gli altri due.</p>
+
+        <div class="matrix-scroll">
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th scope="col">Azione</th>
+                <th scope="col">Giocatore</th>
+                <th scope="col">Mister</th>
+                <th scope="col">Cassiere</th>
+                <th scope="col">Admin</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">Dare la disponibilità e rispondere alle convocazioni</th><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
+              <tr><th scope="row">Vedere rosa, calendario, statistiche, bacheca</th><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
+              <tr><th scope="row">Creare, spostare ed eliminare partite</th><td><span class="no">—</span></td><td><span class="yes">✓</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td></tr>
+              <tr><th scope="row">Convocare e inviare le convocazioni</th><td><span class="no">—</span></td><td><span class="yes">✓</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td></tr>
+              <tr><th scope="row">Segnare presenze, minuti, gol e assist</th><td><span class="no">—</span></td><td><span class="yes">✓</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td></tr>
+              <tr><th scope="row">Pubblicare ed eliminare comunicazioni</th><td><span class="no">—</span></td><td><span class="yes">✓</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td></tr>
+              <tr><th scope="row">Correggere i gettoni a mano</th><td><span class="no">—</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
+              <tr><th scope="row">Vedere i pagamenti di tutta la squadra</th><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
+              <tr><th scope="row">Creare voci, generare quote, confermare i pagamenti</th><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
+              <tr><th scope="row">Registrare l'incasso di una partita e sollecitare</th><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
+              <tr><th scope="row">Aggiungere, modificare ed eliminare giocatori</th><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td></tr>
+              <tr><th scope="row">Assegnare i ruoli e resettare le password</th><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td></tr>
+              <tr><th scope="row">Cambiare regole, costi e codice invito</th><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td></tr>
+              <tr><th scope="row">Gestire la società e chiudere la stagione</th><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Il taglio è voluto: il mister organizza il campo senza vedere i soldi di nessuno, il cassiere tiene la cassa senza poter spostare le partite.</p>
+      </section>
+
+      <section id="assegnare">
+        <h2>Assegnare i ruoli</h2>
+        <p class="lede">Lo fa solo l'Admin, e solo per la propria squadra.</p>
+        <ol class="steps">
+          <li>Apri la scheda <span class="tap">Rosa</span> e tocca il giocatore</li>
+          <li>Scegli <span class="tap">Modifica</span> dal menu</li>
+          <li>Seleziona il ruolo e salva</li>
+        </ol>
+        <p>Nella rosa i ruoli si riconoscono dalla sigla sulla maglia: <span class="tap">CAP</span> per l'Admin, <span class="tap">MIS</span> per il Mister, <span class="tap">CAS</span> per il Cassiere. Chi gioca e basta non ha sigla.</p>
+        <p>Lo stesso si fa dalla schermata <span class="tap">Società</span> quando iscrivi qualcuno dell'anagrafica a una squadra: scegli il ruolo lì, al momento dell'iscrizione.</p>
+        <div class="note warn">
+          <h3>L'ultimo Admin non si può togliere</h3>
+          <p>L'app rifiuta di rimuovere o declassare l'unico amministratore rimasto: senza, la squadra diventerebbe ingestibile. Se devi passare la mano, nomina prima il nuovo Admin.</p>
+        </div>
+      </section>
+
+      <section id="mister" class="mister">
+        <h2 class="mister"><span class="eyebrow">Mister</span>La partita, dall'inizio alla fine</h2>
+        <p class="lede">Il ciclo è sempre lo stesso, e lo stato della partita cambia con te: <span class="tap">Programmata</span> → <span class="tap">ConvocazioniInviate</span> → <span class="tap">InCorso</span> → <span class="tap">Conclusa</span>. Le voci nel menu <span class="tap">⋮</span> della partita cambiano di conseguenza.</p>
+
+        <ol class="steps">
+          <li><strong>Metti la partita in calendario.</strong> Dalla scheda <span class="tap">Partite</span>, tocca <span class="tap">+</span> in alto. Data, ora, campo e avversario. Da qui i giocatori iniziano a dare la disponibilità.</li>
+          <li><strong>Guarda chi c'è.</strong> Apri la partita: sotto la scheda trovi il riepilogo delle disponibilità, giocatore per giocatore. Serve a scegliere, non è ancora una convocazione.</li>
+          <li><strong>Convoca.</strong> Apri la partita, tocca <span class="tap">Convocazioni</span>, poi <span class="tap">Convoca Giocatori</span> e seleziona chi vuoi. Se la squadra ha un tetto di convocati per partita, l'app te lo ricorda quando lo superi.</li>
+          <li><strong>Invia.</strong> Dal menu <span class="tap">⋮</span> scegli <span class="tap">Invia Convocazioni</span>. Solo adesso partono le notifiche ai convocati, e loro possono confermare o dare forfait.</li>
+          <li><strong>Il giorno della partita.</strong> Dal dettaglio, <span class="tap">Match Day</span> per segnare le presenze, oppure <span class="tap">Inizia Partita</span> per passare alla schermata <span class="tap">Live</span>.</li>
+          <li><strong>Segna presenze e statistiche.</strong> In <span class="tap">Match Day</span> spunti chi c'era e chi ha giocato; toccando un giocatore inserisci minuti, gol, assist, autogol e gol subiti.</li>
+          <li><strong>Concludi.</strong> Dal menu, <span class="tap">Concludi Partita</span>. I risultati entrano nelle statistiche.</li>
+        </ol>
+
+        <div class="note warn">
+          <h3>Le presenze si bloccano quando concludi</h3>
+          <p>Una partita <span class="tap">Conclusa</span> non accetta più modifiche alle presenze. Se ti accorgi di un errore, riportala a <span class="tap">InCorso</span> dal menu, correggi e richiudila: i gettoni si riallineano da soli. Meglio ancora, sistema tutto <em>prima</em> di concludere.</p>
+        </div>
+
+        <h3>Gettoni: non devi fare niente</h3>
+        <p>Se la squadra usa i gettoni, spuntare un giocatore come presente ne scala uno in automatico. Togliendo la presenza il gettone torna indietro. Chi finisce i gettoni gioca lo stesso: la presenza viene registrata e resta traccia che era a zero.</p>
+
+        <h3>Bacheca</h3>
+        <p>Dalla scheda <span class="tap">Bacheca</span>, <span class="tap">Nuova Comunicazione</span>. Spuntando <span class="tap">Importante</span> l'avviso viene messo in evidenza. Alla pubblicazione parte una notifica a tutti tranne che a te, e puoi vedere chi ha dato <span class="tap">Presa Visione</span>.</p>
+      </section>
+
+      <section id="cassiere" class="cassiere">
+        <h2 class="cassiere"><span class="eyebrow">Cassiere</span>Far quadrare i conti</h2>
+        <p class="lede">Tutto passa da una schermata sola: il <strong>portafoglio</strong> in alto sulla Home, oppure <span class="tap">Impostazioni</span> → <span class="tap">Cassa</span>. Tu vedi le voci di tutti; ogni giocatore vede solo le proprie.</p>
+
+        <h3>Le quote di inizio stagione</h3>
+        <ol class="steps">
+          <li>Controlla che gli importi siano giusti: <span class="tap">Impostazioni</span> → <span class="tap">CONFIGURAZIONE TEAM</span> → <span class="tap">Modifica</span>, sezione <span class="tap">Costi (EUR)</span></li>
+          <li>Torna in Impostazioni e tocca <span class="tap">Genera quote in Pagamenti</span></li>
+          <li>L'app crea una voce di iscrizione e una di tesseramento per ogni giocatore. <strong>Rilanciarla non crea duplicati</strong>, quindi puoi usarla di nuovo dopo aver aggiunto qualcuno</li>
+        </ol>
+        <p>Chi paga a partita può essere esentato dalle quote fisse: è una scelta per singola quota, nella sezione <span class="tap">Chi deve le quote fisse</span> della configurazione. Di default l'iscrizione la paga solo chi ha la quota stagionale, il tesseramento lo pagano tutti.</p>
+
+        <h3>L'incasso di una partita</h3>
+        <ol class="steps">
+          <li>Quando la partita viene conclusa ti compare un avviso in basso con <span class="tap">Gestisci</span>. Non è bloccante: puoi rimandare</li>
+          <li>In qualsiasi momento riapri la partita e scegli <span class="tap">Incasso partita</span> dal menu <span class="tap">⋮</span></li>
+          <li>L'app propone già selezionati i giocatori che erano presenti, hanno giocato e pagano a partita. Aggiungi o togli come vuoi: <strong>l'ultima parola è tua</strong></li>
+          <li>Lascia acceso <span class="tap">Avvisa con una notifica</span> se vuoi che ricevano l'avviso subito</li>
+          <li>Conferma con <span class="tap">Addebita</span></li>
+        </ol>
+        <div class="note">
+          <h3>Nessun rischio di addebitare due volte</h3>
+          <p>Chi è già stato addebitato per quella partita risulta segnalato e viene saltato. Puoi riaprire l'incasso quante volte vuoi — capita spesso, perché le presenze si sistemano dopo.</p>
+        </div>
+
+        <h3>Il giro di un pagamento</h3>
+        <div class="legend">
+          <div><span class="name">Da pagare</span><span class="desc">La voce è stata creata e nessuno l'ha ancora saldata</span></div>
+          <div><span class="name">In verifica</span><span class="desc">Il giocatore ha toccato <em>Ho pagato</em>. È una dichiarazione, non una prova: tocca a te controllare l'accredito</span></div>
+          <div><span class="name">Pagato</span><span class="desc">L'hai confermato tu, aprendo la voce</span></div>
+        </div>
+        <p>Per il resto: <span class="tap">+</span> in alto crea una voce a mano, l'icona della campanella manda un <span class="tap">Sollecita</span> a chi è in arretrato. Il sollecito è sempre manuale — l'app non ne manda mai per conto suo.</p>
+
+        <h3>PayPal e IBAN</h3>
+        <p>Sono i dati che i giocatori vedono nel riquadro <span class="tap">Come pagare</span>. Si impostano una volta sulla <strong>società</strong> e valgono per tutte le sue squadre; se una squadra incassa su un conto diverso, la si sovrascrive da <span class="tap">Impostazioni</span> → <span class="tap">Come farsi pagare</span> → <span class="tap">Modifica</span>. Svuotando il campo si torna ai dati della società.</p>
+      </section>
+
+      <section id="admin" class="admin">
+        <h2 class="admin"><span class="eyebrow">Admin</span>Rosa, regole e società</h2>
+        <p class="lede">Quasi tutto vive in <span class="tap">Impostazioni</span>, l'ingranaggio in alto a destra della Home.</p>
+
+        <h3>Far entrare la gente</h3>
+        <p>Il <strong>codice invito</strong> è in <span class="tap">Impostazioni</span> → <span class="tap">I MIEI TEAM</span> → <span class="tap">Codice invito</span>. È uno solo per squadra e si può girare a tutti: chi lo usa entra come semplice giocatore, i ruoli li assegni dopo.</p>
+        <p>Puoi anche precaricare la rosa dalla scheda <span class="tap">Rosa</span> con <span class="tap">Nuovo Giocatore</span>: quando la persona si registra con il codice, trova il proprio nome sotto <span class="tap">Sei uno di questi?</span> e riprende la scheda già pronta, con numero di maglia e storico.</p>
+
+        <h3>Regole e costi</h3>
+        <p>Da <span class="tap">Impostazioni</span> → <span class="tap">CONFIGURAZIONE TEAM</span> → <span class="tap">Modifica</span> si imposta tutto quello che definisce la squadra:</p>
+        <div class="legend">
+          <div><span class="name">Formato</span><span class="desc">A5, A7, A8 o A11. Cambiarlo azzera i ruoli non previsti dal nuovo formato — per esempio il Pivot passando da A5 ad A7</span></div>
+          <div><span class="name">Regole di gioco</span><span class="desc">Giocatori in campo, tetto di convocati per partita (0 = nessun limite), numero di tempi e minuti per tempo</span></div>
+          <div><span class="name">Sistema gettoni</span><span class="desc">Acceso o spento, e quanti gettoni a testa. Da spento, la scheda Gettoni sparisce per tutti</span></div>
+          <div><span class="name">Costi</span><span class="desc">Quota iscrizione, quota tesseramento e costo a partita</span></div>
+          <div><span class="name">Come pagano</span><span class="desc">Il regime di default della squadra e i minuti minimi perché una presenza faccia scattare l'addebito</span></div>
+          <div><span class="name">Promemoria partita</span><span class="desc">Quante ore prima far partire l'avviso ai convocati. <em>0 lo spegne</em></span></div>
+        </div>
+        <p>Il regime di pagamento si può cambiare sul singolo giocatore dalla <span class="tap">Rosa</span>: lasciandolo su "come la squadra" segue il default, così cambiando il default cambiano tutti quelli che non hanno una scelta personale.</p>
+
+        <h3>La società</h3>
+        <p>Da <span class="tap">Impostazioni</span> → <span class="tap">SOCIETA</span>. La società raggruppa più squadre — tipicamente una a 5 e una a 7 — con un'unica anagrafica: una persona registrata lì si iscrive a entrambe le squadre e resta una persona sola, con tessere, ruoli e conti separati per squadra. Qui imposti anche i dati di pagamento validi per tutte.</p>
+      </section>
+
+      <section id="stagione">
+        <h2>Fine stagione</h2>
+        <p class="lede">Ogni squadra ha la sua stagione e la chiude quando vuole: la squadra a 5 e quella a 7 della stessa società possono trovarsi in stagioni diverse. La trovi in <span class="tap">Impostazioni</span> → <span class="tap">STAGIONE</span>.</p>
+
+        <p>Chiudere significa due cose insieme: <strong>archiviare</strong> quello che c'è stato e <strong>ripartire da zero</strong>.</p>
+        <ul class="plain">
+          <li>Partite e pagamenti della stagione restano consultabili nell'archivio, in sola lettura</li>
+          <li>A tutta la rosa vengono azzerati i gettoni e ricaricati quelli della nuova stagione</li>
+          <li>Iscrizione e tesseramento tornano da pagare per tutti</li>
+          <li>Si apre una stagione nuova, che diventa quella corrente</li>
+        </ul>
+
+        <div class="note stop">
+          <h3>Non si torna indietro</h3>
+          <p>La chiusura non è annullabile dall'app. Prima di chiudere, incassa quello che puoi: <strong>se ci sono voci non saldate l'app si ferma e ti dice quanto manca</strong>. Puoi comunque forzare con <span class="tap">Chiudi e condona</span>, ma è esattamente quello che dice — quegli arretrati non li rivedi più nei conti della stagione nuova.</p>
+        </div>
+
+        <p>Il nome della stagione lo calcola l'app dall'anno in corso ("2026/27"): puoi scriverne uno tuo. Chiudendo a metà stagione il nome calcolato sarebbe uguale a quello appena chiuso, e in quel caso l'app accoda un progressivo — "2026/27 (2)" — così nell'archivio le due voci restano distinguibili.</p>
+
+        <h3>Consultare l'archivio</h3>
+        <p>Quando esiste più di una stagione, nelle schede <span class="tap">Partite</span> e nella <span class="tap">Cassa</span> compare l'icona del calendario per cambiare stagione. Su una stagione chiusa appare una fascia che avvisa che sei nell'archivio, e i tasti per creare o modificare spariscono.</p>
+      </section>
+
+      <section id="trappole">
+        <h2>Da sapere prima</h2>
+        <div class="gotchas">
+          <div>
+            <p class="q">Le notifiche arrivano solo a chi le ha attivate</p>
+            <p>Nessuna notifica raggiunge chi non ha acceso l'interruttore, e su iPhone chi non ha aggiunto l'app alla schermata Home. Per le cose importanti, la bacheca resta il posto giusto: quella la vedono tutti quando aprono l'app.</p>
+          </div>
+          <div>
+            <p class="q">Spostare una partita rifà il promemoria</p>
+            <p>Se cambi data, ora o campo, ai convocati parte una notifica di modifica e il promemoria viene ricalcolato sul nuovo orario. Non devi fare nulla, e non ne arrivano due.</p>
+          </div>
+          <div>
+            <p class="q">Le spunte "iscrizione pagata" sulla scheda giocatore non si toccano</p>
+            <p>Non sono modificabili a mano di proposito: si accendono da sole quando la voce corrispondente in Cassa risulta pagata. Un solo posto dove segnare i soldi, così non ci sono due verità che si contraddicono.</p>
+          </div>
+          <div>
+            <p class="q">Cancellare un giocatore non cancella i suoi conti</p>
+            <p>Le voci di pagamento restano, con il nome congelato al momento della creazione: i totali della stagione non cambiano da sotto. Lo stesso vale per i movimenti dei gettoni e per le comunicazioni che aveva scritto.</p>
+          </div>
+          <div>
+            <p class="q">La disponibilità non è la convocazione</p>
+            <p>Sono due cose separate e i giocatori le confondono spesso. La disponibilità la danno loro, quando vogliono; la convocazione la mandi tu a un gruppo ristretto, ed è la risposta a quella che fa fede.</p>
+          </div>
+          <div>
+            <p class="q">Ogni squadra ha i suoi conti e le sue regole</p>
+            <p>Anche dentro la stessa società: costi, gettoni, promemoria e ruoli sono per squadra. Se gestisci entrambe, controlla in alto quale hai aperta prima di cambiare qualcosa.</p>
+          </div>
+        </div>
+      </section>
+
+      <p class="footer">Manuale per Mister, Cassiere e Admin di CalcioAcinque. Per i giocatori c'è un manuale a parte, con l'installazione su Android e iPhone.</p>
+    </main>
+  </div>
+</div>

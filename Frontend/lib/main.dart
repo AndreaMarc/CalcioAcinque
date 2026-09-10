@@ -14,6 +14,11 @@ import 'providers/dashboard_provider.dart';
 import 'providers/tokens_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/announcements_provider.dart';
+import 'providers/team_draft_provider.dart';
+import 'providers/club_provider.dart';
+import 'providers/notifications_provider.dart';
+import 'screens/draft_screen.dart';
+import 'screens/draft_join_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/app_scaffold.dart';
 import 'screens/dashboard_screen.dart';
@@ -30,6 +35,7 @@ import 'screens/stats_screen.dart';
 import 'screens/live_match_screen.dart';
 import 'screens/bacheca_screen.dart';
 import 'screens/team_selection_screen.dart';
+import 'screens/club_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,6 +63,12 @@ class _CalcioAcinqueAppState extends State<CalcioAcinqueApp> {
     _apiClient = ApiClient(storage: _storage);
     _authProvider = AuthProvider(apiClient: _apiClient, storage: _storage);
     _router = _buildRouter();
+    // Sessione scaduta (refresh fallito) → logout pulito + ritorno al login
+    _apiClient.onSessionExpired = () async {
+      if (!_authProvider.isAuthenticated) return;
+      await _authProvider.logout();
+      _router.go('/login');
+    };
   }
 
   @override
@@ -72,13 +84,18 @@ class _CalcioAcinqueAppState extends State<CalcioAcinqueApp> {
         ChangeNotifierProvider(create: (_) => TokensProvider(apiClient: _apiClient)),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AnnouncementsProvider(apiClient: _apiClient)),
+        ChangeNotifierProvider(create: (_) => TeamDraftProvider(apiClient: _apiClient)),
+        ChangeNotifierProvider(create: (_) => ClubProvider(apiClient: _apiClient)),
+        ChangeNotifierProvider(create: (_) => NotificationsProvider(apiClient: _apiClient)),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
           return MaterialApp.router(
             title: themeProvider.teamName,
             debugShowCheckedModeBanner: false,
-            theme: themeProvider.buildTheme(),
+            theme: themeProvider.buildTheme(dark: false),
+            darkTheme: themeProvider.buildTheme(dark: true),
+            themeMode: themeProvider.isDark ? ThemeMode.dark : ThemeMode.light,
             routerConfig: _router,
           );
         },
@@ -91,13 +108,24 @@ class _CalcioAcinqueAppState extends State<CalcioAcinqueApp> {
       initialLocation: '/login',
       redirect: (context, state) {
         final isAuth = _authProvider.isAuthenticated;
-        final isLoginRoute = state.matchedLocation == '/login';
-        final isSelectTeamRoute = state.matchedLocation == '/select-team';
+        final loc = state.matchedLocation;
+        final isLoginRoute = loc == '/login';
+        final isSelectTeamRoute = loc == '/select-team';
+        final isDraftRoute = loc == '/draft';
+        final isJoinRoute = loc.startsWith('/draft/join/');
         final needsTeamSelection = _authProvider.needsTeamSelection;
 
-        if (!isAuth && !isLoginRoute) return '/login';
-        if (isAuth && needsTeamSelection && !isSelectTeamRoute) return '/select-team';
-        if (isAuth && !needsTeamSelection && (isLoginRoute || isSelectTeamRoute)) return '/dashboard';
+        // /draft/join/:code è accessibile anche senza login (lo screen gestisce il redirect a /login)
+        if (!isAuth && !isLoginRoute && !isJoinRoute) {
+          final next = Uri.encodeQueryComponent(state.uri.toString());
+          return '/login?next=$next';
+        }
+        if (isAuth && needsTeamSelection && !isSelectTeamRoute && !isDraftRoute && !isJoinRoute) {
+          return '/select-team';
+        }
+        if (isAuth && !needsTeamSelection && (isLoginRoute || isSelectTeamRoute)) {
+          return '/dashboard';
+        }
         return null;
       },
       routes: [
@@ -108,6 +136,16 @@ class _CalcioAcinqueAppState extends State<CalcioAcinqueApp> {
         GoRoute(
           path: '/select-team',
           builder: (context, state) => const TeamSelectionScreen(),
+        ),
+        GoRoute(
+          path: '/draft',
+          builder: (context, state) => DraftScreen(
+            initialDraftId: int.tryParse(state.uri.queryParameters['id'] ?? ''),
+          ),
+        ),
+        GoRoute(
+          path: '/draft/join/:code',
+          builder: (context, state) => DraftJoinScreen(code: state.pathParameters['code']!),
         ),
         ShellRoute(
           builder: (context, state, child) => AppScaffold(child: child),
@@ -120,6 +158,10 @@ class _CalcioAcinqueAppState extends State<CalcioAcinqueApp> {
             GoRoute(path: '/stats', builder: (context, state) => const StatsScreen()),
             GoRoute(path: '/bacheca', builder: (context, state) => const BachecaScreen()),
           ],
+        ),
+        GoRoute(
+          path: '/club',
+          builder: (context, state) => const ClubScreen(),
         ),
         GoRoute(
           path: '/settings',

@@ -4,7 +4,7 @@ public class AnnouncementDto
 {
     public int Id { get; set; }
     public int TeamId { get; set; }
-    public int AuthorId { get; set; }
+    public int? AuthorId { get; set; }
     public string AutoreNome { get; set; } = string.Empty;
     public string? AutoreSoprannome { get; set; }
     public string Titolo { get; set; } = string.Empty;

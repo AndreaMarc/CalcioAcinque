@@ -1,0 +1,19 @@
+# La build gira nel container (`flutter build web`): gli artefatti locali non
+# devono entrare nel contesto, sono inutili e rallentano il COPY.
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Piattaforme non usate dal build web
+android/
+ios/
+linux/
+macos/
+windows/
+
+# Archivi e roba di editor
+*.zip
+*.tar.gz
+.vscode/
+.idea/

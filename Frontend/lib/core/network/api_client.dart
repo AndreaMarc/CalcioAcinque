@@ -5,6 +5,16 @@ import '../storage/secure_storage.dart';
 class ApiClient {
   late final Dio dio;
   final SecureStorageService storage;
+  Future<bool>? _refreshing;
+
+  /// Invocato quando la sessione è realmente scaduta (refresh fallito):
+  /// l'app deve fare logout e tornare al login. Impostato da main.dart.
+  Future<void> Function()? onSessionExpired;
+
+  static bool _isAuthEndpoint(String path) =>
+      path.contains('/auth/login') ||
+      path.contains('/auth/signup') ||
+      path.contains('/auth/refresh');
 
   ApiClient({required this.storage}) {
     dio = Dio(BaseOptions(
@@ -23,7 +33,9 @@ class ApiClient {
         handler.next(options);
       },
       onError: (error, handler) async {
-        if (error.response?.statusCode == 401) {
+        // Non gestire i 401 degli endpoint di auth (credenziali errate, non sessione scaduta)
+        if (error.response?.statusCode == 401 &&
+            !_isAuthEndpoint(error.requestOptions.path)) {
           final refreshed = await _tryRefreshToken();
           if (refreshed) {
             final token = await storage.getAccessToken();
@@ -31,13 +43,21 @@ class ApiClient {
             final response = await dio.fetch(error.requestOptions);
             return handler.resolve(response);
           }
+          // Refresh fallito → sessione scaduta: logout + redirect al login
+          await onSessionExpired?.call();
         }
         handler.next(error);
       },
     ));
   }
 
-  Future<bool> _tryRefreshToken() async {
+  Future<bool> _tryRefreshToken() {
+    // Single-flight: se un refresh è già in corso, attende quello invece di
+    // avviarne un secondo (che fallirebbe perché il refresh token viene ruotato).
+    return _refreshing ??= _doRefresh().whenComplete(() => _refreshing = null);
+  }
+
+  Future<bool> _doRefresh() async {
     try {
       final refreshToken = await storage.getRefreshToken();
       if (refreshToken == null) return false;

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
 import '../providers/dashboard_provider.dart';
+import '../providers/theme_provider.dart';
 import '../core/constants/api_constants.dart';
 import '../models/dashboard_model.dart';
+import '../widgets/gimmy_widgets.dart';
 
 class TokensScreen extends StatefulWidget {
   const TokensScreen({super.key});
@@ -32,7 +34,8 @@ class _TokensScreenState extends State<TokensScreen> {
       if (response.data['success'] == true) {
         setState(() {
           _summaries = (response.data['data'] as List)
-              .map((e) => PlayerTokenSummary.fromJson(e)).toList();
+              .map((e) => PlayerTokenSummary.fromJson(e))
+              .toList();
         });
       }
     } catch (_) {}
@@ -42,88 +45,312 @@ class _TokensScreenState extends State<TokensScreen> {
   @override
   Widget build(BuildContext context) {
     final useGettoni = context.watch<DashboardProvider>().useGettoni;
+    final auth = context.watch<AuthProvider>();
+    final theme = context.watch<ThemeProvider>();
+    final initials = teamInitials(theme.teamName, fallback: 'CA');
+
     if (!useGettoni) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.toll, size: 64,
-              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.4)),
-            const SizedBox(height: 16),
-            Text('Sistema gettoni disabilitato',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant)),
-            const SizedBox(height: 8),
-            Text('Puoi attivarlo nelle Impostazioni del team',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
-                fontSize: 13)),
-          ],
-        ),
+      return Column(
+        children: [
+          GimmyTopBar(
+            teamInitials: initials,
+            title: 'Gettoni',
+            subtitle: 'Sistema disabilitato',
+          ),
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.toll, size: 48, color: GimmyTokens.textMute),
+                  const SizedBox(height: 12),
+                  Text('Sistema gettoni disabilitato',
+                      style: GoogleFonts.spaceGrotesk(
+                          fontSize: 15, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          ),
+        ],
       );
     }
 
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_summaries.isEmpty) {
-      return const Center(child: Text('Nessun giocatore'));
+      return Column(
+        children: [
+          GimmyTopBar(
+            teamInitials: initials,
+            title: 'Gettoni',
+          ),
+          const Expanded(child: Center(child: CircularProgressIndicator())),
+        ],
+      );
     }
 
     final sorted = List<PlayerTokenSummary>.from(_summaries)
       ..sort((a, b) => b.gettoniRimanenti.compareTo(a.gettoniRimanenti));
 
-    return RefreshIndicator(
-      onRefresh: _loadTokens,
-      child: ListView.builder(
-        itemCount: sorted.length + 1,
-        padding: const EdgeInsets.all(8),
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: OutlinedButton.icon(
-                onPressed: () => context.push('/payments'),
-                icon: const Icon(Icons.payments_outlined),
-                label: const Text('Gestione Pagamenti'),
-              ),
-            );
-          }
-          index = index - 1;
-          final p = sorted[index];
-          return Card(
-            child: ListTile(
-              onTap: () => context.push('/player/${p.playerId}'),
-              leading: CircleAvatar(
-                backgroundColor: p.gettoniRimanenti > 0
-                    ? Theme.of(context).colorScheme.primaryContainer
-                    : Theme.of(context).colorScheme.errorContainer,
-                child: Text(
-                  '${p.gettoniRimanenti}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: p.gettoniRimanenti > 0
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.error,
+    final mySummary = _summaries
+        .where((s) => s.playerId == auth.playerId)
+        .cast<PlayerTokenSummary?>()
+        .firstOrNull;
+    final myTokens = mySummary?.gettoniRimanenti ?? 0;
+    final myTotal = mySummary?.gettoniTotali ?? 0;
+
+    return Column(
+      children: [
+        GimmyTopBar(
+          teamInitials: initials,
+          title: 'Gettoni',
+          subtitle: 'Classifica squadra',
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _loadTokens,
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: 100),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                  child: _TokensHero(
+                    tokens: myTokens,
+                    total: myTotal,
                   ),
                 ),
-              ),
-              title: Text(p.soprannome ?? p.nome),
-              subtitle: p.gettoniTotali > 0
-                  ? LinearProgressIndicator(
-                      value: p.gettoniRimanenti.toDouble() / p.gettoniTotali.toDouble(),
-                      borderRadius: BorderRadius.circular(4),
-                      color: p.gettoniRimanenti > 0 ? null : Colors.red,
-                    )
-                  : null,
-              trailing: Text(
-                '${p.gettoniRimanenti} / ${p.gettoniTotali}',
-                style: Theme.of(context).textTheme.bodySmall,
+                SectionHead(
+                  title: 'CLASSIFICA TEAM',
+                  more: 'Chi resta più a lungo',
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: sorted.asMap().entries.map((e) {
+                      final idx = e.key;
+                      final p = e.value;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: _RankRow(
+                          rank: idx + 1,
+                          player: p,
+                          isMe: p.playerId == auth.playerId,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TokensHero extends StatelessWidget {
+  final int tokens;
+  final int total;
+  const _TokensHero({required this.tokens, required this.total});
+
+  @override
+  Widget build(BuildContext context) {
+    final remaining = total > 0 ? '$tokens' : '0';
+    return CardInk(
+      padding: const EdgeInsets.all(22),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -30,
+            top: -30,
+            child: Container(
+              width: 140,
+              height: 140,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: GimmyTokens.brand.withOpacity(0.2),
+                  width: 2,
+                ),
               ),
             ),
-          );
-        },
+          ),
+          Positioned(
+            right: 10,
+            top: 10,
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: GimmyTokens.brand.withOpacity(0.3),
+                  width: 2,
+                ),
+              ),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'I TUOI GETTONI',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.54,
+                  color: GimmyTokens.brand,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    remaining,
+                    style: GoogleFonts.bebasNeue(
+                      fontSize: 96,
+                      height: 0.85,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      '/ $total',
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 18,
+                        color: Colors.white.withOpacity(0.5),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                tokens > 0
+                    ? 'Ti restano $tokens ${tokens == 1 ? "partita" : "partite"} prima della ricarica'
+                    : 'Gettoni esauriti — ricarica disponibile',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 13,
+                  color: Colors.white.withOpacity(0.7),
+                ),
+              ),
+              const SizedBox(height: 14),
+              if (total > 0) ...[
+                GimmyTokensBar(filled: tokens, total: total, cellHeight: 6),
+                const SizedBox(height: 8),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RankRow extends StatelessWidget {
+  final int rank;
+  final PlayerTokenSummary player;
+  final bool isMe;
+  const _RankRow({
+    required this.rank,
+    required this.player,
+    required this.isMe,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
+    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
+    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+
+    final bg = isMe
+        ? (isDark ? GimmyTokens.brand.withOpacity(0.12) : GimmyTokens.brandSoft)
+        : cardColor;
+    final border =
+        isMe ? GimmyTokens.brand : lineColor;
+    final warn = player.gettoniRimanenti <= 2 && player.gettoniRimanenti > 0;
+    final out = player.gettoniRimanenti == 0;
+    final valueColor = out
+        ? GimmyTokens.bad
+        : warn
+            ? GimmyTokens.warn
+            : textColor;
+
+    return Opacity(
+      opacity: out ? 0.6 : 1,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: border, width: isMe ? 1.5 : 1),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 22,
+              child: Text(
+                '$rank',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: muteColor,
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            JerseyNumber(
+              number: rank,
+              size: 40,
+              fontSize: 19,
+              bg: GimmyTokens.ink,
+              fg: out
+                  ? GimmyTokens.bad
+                  : (isDark ? GimmyTokens.darkBrand : GimmyTokens.brand),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${player.soprannome?.isNotEmpty == true ? player.soprannome : player.nome}${isMe ? " (tu)" : ""}',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  GimmyTokensBar(
+                    filled: player.gettoniRimanenti,
+                    total: player.gettoniTotali.clamp(1, 999),
+                    cellHeight: 4,
+                    filledColor: out
+                        ? GimmyTokens.bad
+                        : warn
+                            ? GimmyTokens.warn
+                            : (isDark ? Colors.white : GimmyTokens.ink),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              '${player.gettoniRimanenti}',
+              style: GoogleFonts.bebasNeue(
+                fontSize: 22,
+                color: valueColor,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
