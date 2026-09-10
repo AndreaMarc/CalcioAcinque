@@ -44,10 +44,17 @@ class AppTopBar extends StatelessWidget {
   /// sheet di cambio squadra.
   final VoidCallback? onCrestTap;
 
+  /// Sostituisce del tutto titolo/sottotitolo (es. pill LIVE, selettore draft).
+  final Widget? titleWidget;
+
+  /// Forza la resa "su fondo ink" anche in tema chiaro: per le schermate che
+  /// dipingono scuro (scelta squadra, live, draft).
+  final bool onInk;
+
   const AppTopBar({
     super.key,
     this.teamInitials = 'IC',
-    required this.title,
+    this.title = '',
     this.subtitle,
     this.onBack,
     this.actions = const [],
@@ -56,11 +63,13 @@ class AppTopBar extends StatelessWidget {
     this.logo,
     this.showTeamLogo = true,
     this.onCrestTap,
+    this.titleWidget,
+    this.onInk = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = onInk || Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? AppTokens.darkText : AppTokens.text;
     final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
     final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
@@ -81,6 +90,9 @@ class AppTopBar extends StatelessWidget {
           else
             _crest(context, isDark),
           const SizedBox(width: 10),
+          if (titleWidget != null)
+            Expanded(child: titleWidget!)
+          else
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,8 +180,9 @@ class AppTopBar extends StatelessWidget {
     IconData icon,
     VoidCallback onTap, {
     Widget? badge,
+    bool onInk = false,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = onInk || Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? AppTokens.darkText : AppTokens.text;
     final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
     final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
@@ -209,12 +222,16 @@ Widget _iconBtn(
 class Eyebrow extends StatelessWidget {
   final String text;
   final Color? color;
-  const Eyebrow(this.text, {super.key, this.color});
+  final bool onInk;
+  const Eyebrow(this.text, {super.key, this.color, this.onInk = false});
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final c = color ?? (isDark ? AppTokens.darkTextMute : AppTokens.textMute);
+    final isDark = onInk || Theme.of(context).brightness == Brightness.dark;
+    final c = color ??
+        (onInk
+            ? AppTokens.textOnInkMute
+            : (isDark ? AppTokens.darkTextMute : AppTokens.textMute));
     return Text(
       text,
       style: GoogleFonts.spaceGrotesk(
@@ -254,26 +271,30 @@ class SectionHead extends StatelessWidget {
   final String? more;
   final VoidCallback? onMore;
   final EdgeInsets padding;
+  final double size;
+  final bool onInk;
   const SectionHead({
     super.key,
     required this.title,
     this.more,
     this.onMore,
     this.padding = const EdgeInsets.fromLTRB(20, 20, 20, 10),
+    this.size = 22,
+    this.onInk = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
-    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
+    final isDark = onInk || Theme.of(context).brightness == Brightness.dark;
+    final textColor = onInk ? Colors.white : (isDark ? AppTokens.darkText : AppTokens.text);
+    final muteColor = onInk ? AppTokens.textOnInkMute : (isDark ? AppTokens.darkTextMute : AppTokens.textMute);
     return Padding(
       padding: padding,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
         children: [
-          Text(title, style: _display(22, color: textColor, letter: 0.02)),
+          Text(title, style: _display(size, color: textColor, letter: 0.02)),
           const Spacer(),
           if (more != null)
             InkWell(
@@ -302,6 +323,7 @@ class AppChip extends StatelessWidget {
   final Widget? leading;
   final EdgeInsets padding;
   final double fontSize;
+  final bool onInk;
 
   const AppChip({
     super.key,
@@ -311,11 +333,12 @@ class AppChip extends StatelessWidget {
     this.leading,
     this.padding = const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
     this.fontSize = 11,
+    this.onInk = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = onInk || Theme.of(context).brightness == Brightness.dark;
     late Color bg;
     late Color fg;
     switch (variant) {
@@ -1158,4 +1181,517 @@ class PitchGlow extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Alone radiale brand posizionato in un angolo: sostituisce i cerchi
+/// `Positioned` copiati a mano in login, scelta squadra e live.
+class GlowSpot extends StatelessWidget {
+  final double? top;
+  final double? left;
+  final double? right;
+  final double? bottom;
+  final double size;
+  final double opacity;
+  const GlowSpot({
+    super.key,
+    this.top,
+    this.left,
+    this.right,
+    this.bottom,
+    this.size = 480,
+    this.opacity = 0.22,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: top,
+      left: left,
+      right: right,
+      bottom: bottom,
+      child: IgnorePointer(
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [AppTokens.brand.withOpacity(opacity), Colors.transparent],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Card standard: fondo card, bordo line, raggio rCard. Con [onInk] diventa
+/// una lastra traslucida per le schermate scure. [onTap] la rende cliccabile.
+class AppCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsets padding;
+  final EdgeInsets? margin;
+  final double radius;
+  final Color? color;
+  final Color? borderColor;
+  final double borderWidth;
+  final bool onInk;
+  final VoidCallback? onTap;
+
+  const AppCard({
+    super.key,
+    required this.child,
+    this.padding = EdgeInsets.zero,
+    this.margin,
+    this.radius = AppTokens.rCard,
+    this.color,
+    this.borderColor,
+    this.borderWidth = 1,
+    this.onInk = false,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = color ??
+        (onInk
+            ? Colors.white.withOpacity(0.04)
+            : (isDark ? AppTokens.darkCard : AppTokens.card));
+    final line = borderColor ??
+        (onInk
+            ? Colors.white.withOpacity(0.08)
+            : (isDark ? AppTokens.darkLine : AppTokens.line));
+    Widget box = Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: line, width: borderWidth),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: child,
+    );
+    if (onTap != null) {
+      box = Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(radius),
+          child: box,
+        ),
+      );
+    }
+    if (margin != null) box = Padding(padding: margin!, child: box);
+    return box;
+  }
+}
+
+/// Stato vuoto: icona in un riquadro brand tenue, titolo Bebas, messaggio
+/// smorzato e un'azione opzionale.
+class EmptyState extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? message;
+  final Widget? action;
+  final bool onInk;
+  final EdgeInsets padding;
+
+  const EmptyState({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.message,
+    this.action,
+    this.onInk = false,
+    this.padding = const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = onInk || Theme.of(context).brightness == Brightness.dark;
+    final textColor = onInk ? Colors.white : (isDark ? AppTokens.darkText : AppTokens.text);
+    final muteColor = onInk
+        ? Colors.white.withOpacity(0.6)
+        : (isDark ? AppTokens.darkTextMute : AppTokens.textMute);
+    return Center(
+      child: Padding(
+        padding: padding,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppTokens.brand.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(22),
+              ),
+              alignment: Alignment.center,
+              child: Icon(icon, color: isDark ? AppTokens.darkBrand : AppTokens.brand, size: 34),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: _display(28, color: textColor, letter: 0.02, height: 1.05),
+            ),
+            if (message != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                message!,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.spaceGrotesk(fontSize: 13, color: muteColor, height: 1.4),
+              ),
+            ],
+            if (action != null) ...[const SizedBox(height: 22), action!],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet dell'app: fondo card (o ink), angoli 24 in alto, maniglia.
+/// Il [builder] riceve il context del sheet; per gli sheet scrollabili passare
+/// `scrollControlled: true` e gestire l'altezza dentro.
+Future<T?> showAppSheet<T>(
+  BuildContext context, {
+  required WidgetBuilder builder,
+  bool onInk = false,
+  bool scrollControlled = false,
+  bool handle = true,
+  EdgeInsets padding = const EdgeInsets.fromLTRB(20, 8, 20, 20),
+}) {
+  final isDark = onInk || Theme.of(context).brightness == Brightness.dark;
+  final bg = onInk ? AppTokens.ink2 : (isDark ? AppTokens.darkCard : AppTokens.card);
+  return showModalBottomSheet<T>(
+    context: context,
+    isScrollControlled: scrollControlled,
+    backgroundColor: bg,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(AppTokens.rCardLg)),
+    ),
+    builder: (ctx) => SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+        child: Padding(
+          padding: padding,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (handle) AppSheetHandle(onInk: onInk),
+              builder(ctx),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Maniglia dei bottom sheet (40x4, centrata).
+class AppSheetHandle extends StatelessWidget {
+  final bool onInk;
+  const AppSheetHandle({super.key, this.onInk = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = onInk || Theme.of(context).brightness == Brightness.dark;
+    final c = onInk
+        ? Colors.white.withOpacity(0.25)
+        : (isDark ? AppTokens.darkTextMute : AppTokens.textMute).withOpacity(0.3);
+    return Center(
+      child: Container(
+        width: 40,
+        height: 4,
+        margin: const EdgeInsets.only(top: 4, bottom: 16),
+        decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(2)),
+      ),
+    );
+  }
+}
+
+/// Riga d'azione dentro un [showAppSheet]: icona in riquadro, etichetta,
+/// sottotitolo opzionale. [destructive] la colora di rosso.
+class AppSheetAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String? subtitle;
+  final bool destructive;
+  final bool selected;
+  final Widget? trailing;
+  final bool onInk;
+  final VoidCallback? onTap;
+
+  const AppSheetAction({
+    super.key,
+    required this.icon,
+    required this.label,
+    this.subtitle,
+    this.destructive = false,
+    this.selected = false,
+    this.trailing,
+    this.onInk = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = onInk || Theme.of(context).brightness == Brightness.dark;
+    final textColor = onInk ? Colors.white : (isDark ? AppTokens.darkText : AppTokens.text);
+    final muteColor = onInk ? AppTokens.textOnInkMute : (isDark ? AppTokens.darkTextMute : AppTokens.textMute);
+    final lineColor = onInk ? Colors.white.withOpacity(0.1) : (isDark ? AppTokens.darkLine : AppTokens.line);
+    final fg = destructive ? AppTokens.bad : textColor;
+    final iconBg = destructive
+        ? AppTokens.softOf(AppTokens.bad, isDark: isDark)
+        : (onInk ? Colors.white.withOpacity(0.06) : (isDark ? AppTokens.ink3 : AppTokens.paperLow));
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppTokens.rButton),
+      child: Opacity(
+        opacity: onTap == null && !selected ? 0.5 : 1,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: destructive ? Colors.transparent : lineColor),
+                ),
+                alignment: Alignment.center,
+                child: Icon(icon, size: 18, color: destructive ? AppTokens.bad : muteColor),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: fg,
+                      ),
+                    ),
+                    if (subtitle != null)
+                      Text(
+                        subtitle!,
+                        style: GoogleFonts.spaceGrotesk(fontSize: 12, color: muteColor, height: 1.2),
+                      ),
+                  ],
+                ),
+              ),
+              if (trailing != null)
+                trailing!
+              else if (selected)
+                Icon(Icons.check_circle, color: isDark ? AppTokens.darkBrand : AppTokens.brand, size: 20)
+              else if (onTap != null)
+                Icon(Icons.chevron_right, color: muteColor, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Fila di chip di scelta singola nello stile dei filtri della rosa:
+/// attivo = ink con testo bianco, inattivo = card con bordo line.
+/// Con [allowNull] si puo' deselezionare toccando di nuovo il chip attivo.
+class AppChoiceChips<T> extends StatelessWidget {
+  final List<T> values;
+  final T? selected;
+  final String Function(T) label;
+  final ValueChanged<T?> onChanged;
+  final bool allowNull;
+  final bool onInk;
+  final double spacing;
+
+  const AppChoiceChips({
+    super.key,
+    required this.values,
+    required this.selected,
+    required this.label,
+    required this.onChanged,
+    this.allowNull = false,
+    this.onInk = false,
+    this.spacing = 8,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = onInk || Theme.of(context).brightness == Brightness.dark;
+    return Wrap(
+      spacing: spacing,
+      runSpacing: spacing,
+      children: values.map((v) {
+        final active = v == selected;
+        final bg = active
+            ? (onInk ? AppTokens.brand : (isDark ? Colors.white : AppTokens.ink))
+            : (onInk ? Colors.white.withOpacity(0.06) : (isDark ? AppTokens.darkCard : AppTokens.card));
+        final fg = active
+            ? (onInk ? AppTokens.brandInk : (isDark ? AppTokens.ink : Colors.white))
+            : (onInk ? Colors.white.withOpacity(0.75) : (isDark ? AppTokens.darkTextMute : AppTokens.textMute));
+        final border = active
+            ? Colors.transparent
+            : (onInk ? Colors.white.withOpacity(0.12) : (isDark ? AppTokens.darkLine : AppTokens.line));
+        return InkWell(
+          onTap: () {
+            if (active) {
+              if (allowNull) onChanged(null);
+              return;
+            }
+            onChanged(v);
+          },
+          borderRadius: BorderRadius.circular(AppTokens.rChip),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(AppTokens.rChip),
+              border: Border.all(color: border),
+            ),
+            child: Text(
+              label(v),
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: fg,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+/// Riquadro di avviso: tinta e bordo del colore semantico, testo, azione
+/// opzionale.
+class NoticeBox extends StatelessWidget {
+  final String text;
+  final AppChipVariant variant;
+  final IconData? icon;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+  final bool onInk;
+  final EdgeInsets margin;
+
+  const NoticeBox({
+    super.key,
+    required this.text,
+    this.variant = AppChipVariant.warn,
+    this.icon,
+    this.actionLabel,
+    this.onAction,
+    this.onInk = false,
+    this.margin = EdgeInsets.zero,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = onInk || Theme.of(context).brightness == Brightness.dark;
+    late Color sem;
+    late Color ink;
+    switch (variant) {
+      case AppChipVariant.ok:
+        sem = AppTokens.ok;
+        ink = isDark ? AppTokens.ok : AppTokens.okInk;
+        break;
+      case AppChipVariant.bad:
+        sem = AppTokens.bad;
+        ink = isDark ? AppTokens.bad : AppTokens.badInk;
+        break;
+      case AppChipVariant.brand:
+        sem = AppTokens.brand;
+        ink = isDark ? AppTokens.darkBrand : AppTokens.brandInk;
+        break;
+      case AppChipVariant.warn:
+      case AppChipVariant.neutral:
+      case AppChipVariant.dark:
+        sem = AppTokens.warn;
+        ink = isDark ? AppTokens.warn : AppTokens.warnInk;
+        break;
+    }
+    return Padding(
+      padding: margin,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: BoxDecoration(
+          color: sem.withOpacity(isDark ? 0.12 : 0.10),
+          borderRadius: BorderRadius.circular(AppTokens.rButton),
+          border: Border.all(color: sem.withOpacity(0.3)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon ?? Icons.info_outline, size: 18, color: sem),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                text,
+                style: GoogleFonts.spaceGrotesk(fontSize: 13, color: ink, height: 1.35),
+              ),
+            ),
+            if (actionLabel != null) ...[
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: onAction,
+                style: TextButton.styleFrom(
+                  foregroundColor: ink,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minimumSize: const Size(0, 32),
+                ),
+                child: Text(actionLabel!),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Dialog di conferma coerente: titolo, messaggio, Annulla + azione.
+/// Con [destructive] il bottone e' rosso. Ritorna `true` se confermato.
+Future<bool> showConfirmDialog(
+  BuildContext context, {
+  required String title,
+  required String message,
+  String confirmLabel = 'Conferma',
+  String cancelLabel = 'Annulla',
+  bool destructive = false,
+}) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(title),
+      content: Text(message),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: Text(cancelLabel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          style: destructive
+              ? FilledButton.styleFrom(
+                  backgroundColor: AppTokens.bad,
+                  foregroundColor: Colors.white,
+                )
+              : null,
+          child: Text(confirmLabel),
+        ),
+      ],
+    ),
+  );
+  return ok == true;
 }

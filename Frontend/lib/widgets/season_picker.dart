@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/season_model.dart';
 import '../providers/club_provider.dart';
+import '../providers/theme_provider.dart';
+import 'app_widgets.dart';
 
 /// Sceglie la stagione da guardare. Ritorna l'id scelto, `null` per la stagione
 /// in corso, e non ritorna nulla se si chiude senza scegliere: per distinguere
@@ -23,43 +25,39 @@ Future<SeasonChoice?> showSeasonPicker(
     return null;
   }
 
-  return showModalBottomSheet<SeasonChoice>(
-    context: context,
-    showDragHandle: true,
+  return showAppSheet<SeasonChoice>(
+    context,
     builder: (ctx) {
-      final cs = Theme.of(ctx).colorScheme;
+      final isDark = Theme.of(ctx).brightness == Brightness.dark;
+      final textColor = isDark ? AppTokens.darkText : AppTokens.text;
       final corrente = _aperta(seasons);
 
-      return SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.only(bottom: 12),
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text('Stagione',
-                  style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w600, color: cs.onSurface)),
-            ),
-            ListTile(
-              leading: const Icon(Icons.play_circle_outline),
-              title: Text(corrente != null ? 'In corso (${corrente.nome})' : 'In corso'),
-              subtitle: const Text('Segue sempre la stagione aperta'),
-              trailing: selected == null ? Icon(Icons.check, color: cs.primary) : null,
-              onTap: () => Navigator.of(ctx).pop(const SeasonChoice(null)),
-            ),
-            const Divider(height: 1),
-            ...seasons.map((s) => ListTile(
-                  leading: Icon(s.chiusa ? Icons.inventory_2_outlined : Icons.circle_outlined),
-                  title: Text(s.nome),
-                  subtitle: Text(
-                    '${s.partite} partite'
-                    '${s.chiusa ? ' · archiviata' : ' · aperta'}',
-                  ),
-                  trailing: selected == s.id ? Icon(Icons.check, color: cs.primary) : null,
-                  onTap: () => Navigator.of(ctx).pop(SeasonChoice(s.id)),
-                )),
-          ],
+      return ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(ctx).height * 0.7),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              DisplayText('STAGIONE', size: 22, color: textColor),
+              const SizedBox(height: 6),
+              AppSheetAction(
+                icon: Icons.play_circle_outline,
+                label: corrente != null ? 'In corso (${corrente.nome})' : 'In corso',
+                subtitle: 'Segue sempre la stagione aperta',
+                selected: selected == null,
+                onTap: () => Navigator.of(ctx).pop(const SeasonChoice(null)),
+              ),
+              const Divider(height: 16),
+              ...seasons.map((s) => AppSheetAction(
+                    icon: s.chiusa ? Icons.inventory_2_outlined : Icons.circle_outlined,
+                    label: s.nome,
+                    subtitle: '${s.partite} partite${s.chiusa ? ' · archiviata' : ' · aperta'}',
+                    selected: selected == s.id,
+                    onTap: () => Navigator.of(ctx).pop(SeasonChoice(s.id)),
+                  )),
+            ],
+          ),
         ),
       );
     },
@@ -103,22 +101,25 @@ class SeasonArchiveBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
-      color: cs.secondaryContainer,
+      color: AppTokens.ink,
       padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
       child: Row(
         children: [
-          Icon(Icons.inventory_2_outlined, size: 16, color: cs.onSecondaryContainer),
+          const Icon(Icons.inventory_2_outlined, size: 16, color: AppTokens.textOnInkMute),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               '$label - archivio, solo consultazione',
-              style: TextStyle(fontSize: 12, color: cs.onSecondaryContainer),
+              style: const TextStyle(fontSize: 12, color: AppTokens.textOnInk),
             ),
           ),
-          TextButton(onPressed: onTorna, child: const Text('Torna a oggi')),
+          TextButton(
+            onPressed: onTorna,
+            style: TextButton.styleFrom(foregroundColor: AppTokens.brand),
+            child: const Text('Torna a oggi'),
+          ),
         ],
       ),
     );

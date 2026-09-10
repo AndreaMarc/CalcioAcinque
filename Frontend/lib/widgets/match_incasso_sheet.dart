@@ -6,6 +6,9 @@ import 'package:provider/provider.dart';
 import '../core/constants/api_constants.dart';
 import '../models/payment_model.dart';
 import '../providers/auth_provider.dart';
+import '../providers/theme_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'app_widgets.dart';
 
 /// Incasso di una partita: propone chi deve pagare e lascia decidere all'admin.
 ///
@@ -173,7 +176,7 @@ class _MatchIncassoSheetState extends State<MatchIncassoSheet> {
   Widget _erroreIniziale(ColorScheme cs) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.error_outline, size: 40, color: cs.error),
+          Icon(Icons.error_outline, size: 40, color: AppTokens.bad),
           const SizedBox(height: 12),
           Text(_errore ?? 'Non riesco a caricare l incasso', textAlign: TextAlign.center),
           const SizedBox(height: 16),
@@ -198,36 +201,34 @@ class _MatchIncassoSheetState extends State<MatchIncassoSheet> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Center(
-          child: Container(
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: cs.onSurfaceVariant.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-        ),
-        const SizedBox(height: 14),
-        Text('Incasso partita',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: cs.onSurface)),
+        const AppSheetHandle(),
+        DisplayText('INCASSO PARTITA', size: 26, color: cs.onSurface),
         const SizedBox(height: 2),
-        Text(preview.partita, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+        Text(preview.partita, style: GoogleFonts.spaceGrotesk(fontSize: 12, color: cs.onSurfaceVariant)),
         const SizedBox(height: 12),
 
-        if (preview.giaGestita) _avviso(cs, Icons.check_circle_outline, cs.primary,
-            'Per questa partita hai gia registrato degli addebiti. Chi e gia stato addebitato non ricompare.'),
+        if (preview.giaGestita)
+          const NoticeBox(
+            variant: AppChipVariant.brand,
+            icon: Icons.check_circle_outline,
+            text: 'Per questa partita hai gia registrato degli addebiti. Chi e gia stato addebitato non ricompare.',
+            margin: EdgeInsets.only(bottom: 10),
+          ),
 
         if (preview.presenzeDaRegistrare)
-          _avviso(cs, Icons.info_outline, cs.error,
-              preview.presenzeBloccate
-                  ? 'Nessuna presenza registrata. La partita e conclusa, quindi per correggerle va prima riaperta.'
-                  : 'Nessuna presenza registrata: senza quelle non so chi ha giocato.',
-              azione: 'Vai alle presenze',
-              onAzione: () {
-                Navigator.of(context).pop(false);
-                context.push('/match/${widget.matchId}/day');
-              }),
+          NoticeBox(
+            variant: AppChipVariant.bad,
+            icon: Icons.info_outline,
+            text: preview.presenzeBloccate
+                ? 'Nessuna presenza registrata. La partita e conclusa, quindi per correggerle va prima riaperta.'
+                : 'Nessuna presenza registrata: senza quelle non so chi ha giocato.',
+            actionLabel: 'Presenze',
+            onAction: () {
+              Navigator.of(context).pop(false);
+              context.push('/match/${widget.matchId}/day');
+            },
+            margin: const EdgeInsets.only(bottom: 10),
+          ),
 
         if (addebitabili.isEmpty)
           Padding(
@@ -268,9 +269,7 @@ class _MatchIncassoSheetState extends State<MatchIncassoSheet> {
                 children: [
                   Text('${_selezionati.length} selezionati',
                       style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
-                  Text(formatEuro(_totale),
-                      style: TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold, color: cs.onSurface)),
+                  DisplayText(formatEuro(_totale), size: 26, color: cs.onSurface),
                 ],
               ),
             ],
@@ -289,7 +288,7 @@ class _MatchIncassoSheetState extends State<MatchIncassoSheet> {
         if (_errore != null)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: Text(_errore!, style: TextStyle(fontSize: 12, color: cs.error)),
+            child: Text(_errore!, style: TextStyle(fontSize: 12, color: AppTokens.bad)),
           ),
 
         Row(
@@ -337,7 +336,7 @@ class _MatchIncassoSheetState extends State<MatchIncassoSheet> {
         style: TextStyle(
           fontSize: 11,
           // Il motivo per cui non e' preselezionato va notato, non nascosto
-          color: c.motivo != null ? cs.error : cs.onSurfaceVariant,
+          color: c.motivo != null ? AppTokens.bad : cs.onSurfaceVariant,
         ),
       ),
       onChanged: (v) => setState(() {
@@ -347,43 +346,6 @@ class _MatchIncassoSheetState extends State<MatchIncassoSheet> {
           _selezionati.remove(c.playerId);
         }
       }),
-    );
-  }
-
-  Widget _avviso(ColorScheme cs, IconData icona, Color colore, String testo,
-      {String? azione, VoidCallback? onAzione}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: colore.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icona, size: 16, color: colore),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(testo, style: TextStyle(fontSize: 12, color: cs.onSurface)),
-                if (azione != null)
-                  TextButton(
-                    onPressed: onAzione,
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: const Size(0, 28),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    child: Text(azione, style: const TextStyle(fontSize: 12)),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 

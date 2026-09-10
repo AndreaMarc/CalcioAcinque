@@ -294,7 +294,7 @@ class _LoginScreenState extends State<LoginScreen>
                             const SizedBox(height: 60),
                             // Hero copy
                             Text(
-                              'CALCIO A 5 · 7 · 8 · 11  ·  STAGIONE ${seasonLabel()}',
+                              'CALCIO A 5 · 7 · 8 · 11  ·  STAGIONE ${currentSeasonLabel()}',
                               maxLines: 1,
                               overflow: TextOverflow.fade,
                               softWrap: false,

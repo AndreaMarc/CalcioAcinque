@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:web/web.dart' as web;
+import 'package:google_fonts/google_fonts.dart';
+import '../providers/theme_provider.dart';
+import 'app_widgets.dart';
 
 /// Scorciatoie per pagare: PayPal si apre in una nuova scheda, l'IBAN si copia.
 ///
@@ -139,34 +142,30 @@ class PaymentInfoCard extends StatelessWidget {
         (iban != null && iban!.isNotEmpty);
     if (!haDati) return const SizedBox.shrink();
 
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: cs.outlineVariant),
-      ),
+    return AppCard(
       padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.payments_outlined, size: 18, color: cs.primary),
+              Icon(Icons.payments_outlined, size: 16, color: isDark ? AppTokens.darkBrand : AppTokens.brand),
               const SizedBox(width: 8),
-              Text('Come pagare',
-                  style: TextStyle(fontWeight: FontWeight.w700, color: cs.onSurface)),
+              const Eyebrow('COME PAGARE'),
             ],
           ),
           if (iban != null && iban!.isNotEmpty) ...[
             const SizedBox(height: 10),
             SelectableText(
               iban!,
-              style: const TextStyle(fontSize: 13, letterSpacing: 0.5, fontFamily: 'monospace'),
+              style: TextStyle(fontSize: 13, letterSpacing: 0.5, fontFamily: 'monospace', color: textColor),
             ),
             if (intestatario != null && intestatario!.isNotEmpty)
-              Text(intestatario!, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+              Text(intestatario!, style: GoogleFonts.spaceGrotesk(fontSize: 12, color: muteColor)),
           ],
           const SizedBox(height: 12),
           PaymentLinks(

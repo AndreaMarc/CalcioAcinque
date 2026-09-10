@@ -301,12 +301,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Icon(Icons.warning_amber_rounded, size: 18, color: cs.error),
+                        Icon(Icons.warning_amber_rounded, size: 18, color: AppTokens.bad),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             'Ci sono ancora ${formatEuro(corrente.daIncassare)} da incassare.',
-                            style: TextStyle(fontSize: 12, color: cs.error),
+                            style: TextStyle(fontSize: 12, color: AppTokens.bad),
                           ),
                         ),
                       ],
@@ -454,35 +454,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     decoration: const InputDecoration(labelText: 'Nome squadra'),
                   ),
                   const SizedBox(height: 16),
-                  const Text('Formato', style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 8,
-                    children: TeamFormat.values
-                        .map((f) => ChoiceChip(
-                              label: Text(f.shortLabel),
-                              selected: formato == f,
-                              onSelected: (_) => setDialogState(() {
-                                formato = f;
-                                final preset = club.formatInfo(f);
-                                inCampoCtrl.text = '${preset.giocatoriInCampo}';
-                                convocatiCtrl.text = '${preset.maxConvocati}';
-                                minutiCtrl.text = '${preset.minutiPerTempo}';
-                                tempiCtrl.text = '${preset.numeroTempi}';
-                              }),
-                            ))
-                        .toList(),
+                  const Eyebrow('FORMATO'),
+                  const SizedBox(height: 8),
+                  AppChoiceChips<TeamFormat>(
+                    values: TeamFormat.values,
+                    selected: formato,
+                    label: (f) => f.shortLabel,
+                    onChanged: (f) => setDialogState(() {
+                      formato = f!;
+                      final preset = club.formatInfo(f);
+                      inCampoCtrl.text = '${preset.giocatoriInCampo}';
+                      convocatiCtrl.text = '${preset.maxConvocati}';
+                      minutiCtrl.text = '${preset.minutiPerTempo}';
+                      tempiCtrl.text = '${preset.numeroTempi}';
+                    }),
                   ),
                   if (formato != config.formato) ...[
                     const SizedBox(height: 6),
                     Text(
                       'Passando a ${info.label} i ruoli non previsti (per esempio Pivot) '
                       'vengono azzerati sui giocatori.',
-                      style: TextStyle(fontSize: 12, color: cs.error),
+                      style: TextStyle(fontSize: 12, color: AppTokens.bad),
                     ),
                   ],
                   const SizedBox(height: 16),
-                  const Text('Regole di gioco', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Eyebrow('REGOLE DI GIOCO'),
                   TextField(
                     controller: inCampoCtrl,
                     keyboardType: TextInputType.number,
@@ -534,7 +530,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       decoration: const InputDecoration(labelText: 'Gettoni per giocatore'),
                     ),
                   const SizedBox(height: 16),
-                  const Text('Costi (EUR)', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Eyebrow('COSTI (EUR)'),
                   TextField(
                     controller: iscrizioneCtrl,
                     keyboardType: TextInputType.number,
@@ -554,22 +550,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const Text('Come pagano', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Eyebrow('COME PAGANO'),
                   const SizedBox(height: 4),
                   Text(
                     'Vale per chi non ha una scelta personale. Il singolo si cambia dalla Rosa.',
                     style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                   ),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 8,
-                    children: RegimePagamento.values
-                        .map((r) => ChoiceChip(
-                              label: Text(r.label),
-                              selected: regimeDefault == r,
-                              onSelected: (_) => setDialogState(() => regimeDefault = r),
-                            ))
-                        .toList(),
+                  const SizedBox(height: 8),
+                  AppChoiceChips<RegimePagamento>(
+                    values: RegimePagamento.values,
+                    selected: regimeDefault,
+                    label: (r) => r.label,
+                    onChanged: (r) => setDialogState(() => regimeDefault = r!),
                   ),
                   const SizedBox(height: 12),
                   TextField(
@@ -860,7 +852,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (societaAmministrate.isNotEmpty) ...[
-                      const Text('Societa', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Eyebrow('SOCIETA'),
                       const SizedBox(height: 6),
                       DropdownButtonFormField<int?>(
                         // `value` e non `initialValue`: l'SDK pinnato e Flutter 3.27
@@ -902,17 +894,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       validator: (v) => v == null || v.trim().isEmpty ? 'Obbligatorio' : null,
                     ),
                     const SizedBox(height: 16),
-                    const Text('Formato', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 8,
-                      children: TeamFormat.values
-                          .map((f) => ChoiceChip(
-                                label: Text(f.shortLabel),
-                                selected: formato == f,
-                                onSelected: (_) => setDialogState(() => formato = f),
-                              ))
-                          .toList(),
+                    const Eyebrow('FORMATO'),
+                    const SizedBox(height: 8),
+                    AppChoiceChips<TeamFormat>(
+                      values: TeamFormat.values,
+                      selected: formato,
+                      label: (f) => f.shortLabel,
+                      onChanged: (f) => setDialogState(() => formato = f!),
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -950,7 +938,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         keyboardType: TextInputType.number,
                       ),
                     const SizedBox(height: 16),
-                    const Text('Costi (EUR)', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Eyebrow('COSTI (EUR)'),
                     TextFormField(
                       controller: iscrizioneCtrl,
                       decoration: const InputDecoration(labelText: 'Quota iscrizione'),
@@ -1309,7 +1297,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const _Head(text: 'SOCIETA'),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-                      child: _CardShell(
+                      child: AppCard(
                         child: ListTile(
                           leading: const Icon(Icons.shield_outlined, color: AppTokens.brand),
                           title: Text(
@@ -1362,7 +1350,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const _Head(text: 'PAGAMENTI'),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-                    child: _CardShell(
+                    child: AppCard(
                       child: ListTile(
                         leading: const Icon(Icons.account_balance_wallet_outlined,
                             color: AppTokens.brand),
@@ -1495,7 +1483,7 @@ class _NotificationsCard extends StatelessWidget {
     final env = provider.environment;
 
     if (provider.isLoading) {
-      return const _CardShell(
+      return const AppCard(
         child: Padding(
           padding: EdgeInsets.all(24),
           child: Center(child: CircularProgressIndicator()),
@@ -1504,7 +1492,7 @@ class _NotificationsCard extends StatelessWidget {
     }
 
     if (!env.supported) {
-      return _CardShell(
+      return AppCard(
         child: _info(
           context,
           Icons.notifications_off_outlined,
@@ -1515,7 +1503,7 @@ class _NotificationsCard extends StatelessWidget {
     }
 
     if (!provider.serverEnabled) {
-      return _CardShell(
+      return AppCard(
         child: _info(
           context,
           Icons.notifications_paused_outlined,
@@ -1526,10 +1514,10 @@ class _NotificationsCard extends StatelessWidget {
     }
 
     if (env.needsHomeScreenInstall) {
-      return _CardShell(child: _IosInstallHint(muteColor: muteColor, textColor: textColor));
+      return AppCard(child: _IosInstallHint(muteColor: muteColor, textColor: textColor));
     }
 
-    return _CardShell(
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1579,7 +1567,7 @@ class _NotificationsCard extends StatelessWidget {
                 provider.error!,
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 12,
-                  color: Theme.of(context).colorScheme.error,
+                  color: AppTokens.bad,
                 ),
               ),
             ),
@@ -1741,16 +1729,12 @@ class _DestinatariRow extends StatelessWidget {
         children: [
           SizedBox(width: 110, child: Text(label, style: const TextStyle(fontSize: 13))),
           Expanded(
-            child: Wrap(
+            child: AppChoiceChips<DestinatariQuota>(
+              values: DestinatariQuota.values,
+              selected: valore,
+              label: (d) => d.label,
+              onChanged: (d) => onChanged(d!),
               spacing: 6,
-              children: DestinatariQuota.values
-                  .map((d) => ChoiceChip(
-                        label: Text(d.label, style: const TextStyle(fontSize: 11)),
-                        selected: valore == d,
-                        visualDensity: VisualDensity.compact,
-                        onSelected: (_) => onChanged(d),
-                      ))
-                  .toList(),
             ),
           ),
         ],
@@ -1785,7 +1769,7 @@ class _PaymentInfoSettingsCard extends StatelessWidget {
       return (proprio != null && proprio.isNotEmpty) ? 'squadra' : 'societa';
     }
 
-    return _CardShell(
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1824,32 +1808,6 @@ class _PaymentInfoSettingsCard extends StatelessWidget {
   }
 }
 
-class _CardShell extends StatelessWidget {
-  final Widget child;
-  final EdgeInsets padding;
-  const _CardShell({
-    required this.child,
-    this.padding = const EdgeInsets.all(0),
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
-    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
-    return Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: lineColor),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: child,
-    );
-  }
-}
-
 class _ProfileCard extends StatelessWidget {
   final VoidCallback onEdit;
   const _ProfileCard({required this.onEdit});
@@ -1862,7 +1820,7 @@ class _ProfileCard extends StatelessWidget {
     final auth = context.watch<AuthProvider>();
     final player = auth.currentPlayer;
 
-    return _CardShell(
+    return AppCard(
       padding: const EdgeInsets.all(18),
       child: Column(
         children: [
@@ -1970,7 +1928,7 @@ class _TeamsCard extends StatelessWidget {
         ? AppTokens.darkTextMute.withOpacity(0.5)
         : AppTokens.textFaint;
 
-    return _CardShell(
+    return AppCard(
       child: Column(
         children: [
           if (teams.isEmpty)
@@ -2177,7 +2135,7 @@ class _SeasonCard extends StatelessWidget {
     final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
 
     if (seasons.isEmpty) {
-      return _CardShell(
+      return AppCard(
         child: ListTile(
           leading: const Icon(Icons.event_repeat, color: AppTokens.brand),
           title: Text('Stagione',
@@ -2192,7 +2150,7 @@ class _SeasonCard extends StatelessWidget {
     final corrente = seasons.firstWhere((s) => !s.chiusa, orElse: () => seasons.first);
     final archivio = seasons.where((s) => s.id != corrente.id).toList();
 
-    return _CardShell(
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2259,7 +2217,7 @@ class _SeasonCard extends StatelessWidget {
                           style: GoogleFonts.spaceGrotesk(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: Theme.of(context).colorScheme.error))
+                              color: AppTokens.bad))
                       : null,
                 )),
             const SizedBox(height: 8),
@@ -2293,7 +2251,7 @@ class _ConfigCard extends StatelessWidget {
     final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
     final cfg = config;
 
-    return _CardShell(
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2412,7 +2370,7 @@ class _BrandCard extends StatelessWidget {
     final textColor = dark ? AppTokens.darkText : AppTokens.text;
     final muteColor = dark ? AppTokens.darkTextMute : AppTokens.textMute;
 
-    return _CardShell(
+    return AppCard(
       child: Column(
         children: [
           // Tema scuro
@@ -2625,7 +2583,7 @@ class _AccountCard extends StatelessWidget {
     final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
     final textColor = isDark ? AppTokens.darkText : AppTokens.text;
     final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
-    return _CardShell(
+    return AppCard(
       child: Column(
         children: [
           ListTile(

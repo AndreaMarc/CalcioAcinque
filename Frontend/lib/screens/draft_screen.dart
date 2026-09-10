@@ -155,15 +155,11 @@ class _DraftScreenState extends State<DraftScreen> with WidgetsBindingObserver {
                         style: Theme.of(ctx).textTheme.labelLarge),
                   ),
                   const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 8,
-                    children: TeamFormat.values
-                        .map((f) => ChoiceChip(
-                              label: Text(f.shortLabel),
-                              selected: formato == f,
-                              onSelected: (_) => setLocal(() => formato = f),
-                            ))
-                        .toList(),
+                  AppChoiceChips<TeamFormat>(
+                    values: TeamFormat.values,
+                    selected: formato,
+                    label: (f) => f.shortLabel,
+                    onChanged: (f) => setLocal(() => formato = f!),
                   ),
                   const SizedBox(height: 4),
                   Align(
@@ -303,17 +299,11 @@ class _DraftScreenState extends State<DraftScreen> with WidgetsBindingObserver {
                   style: const TextStyle(fontSize: 13, height: 1.4),
                 ),
                 const SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  children: List.generate(6, (i) {
-                    final n = i + 1;
-                    final isSel = n == selected;
-                    return ChoiceChip(
-                      label: Text('$n'),
-                      selected: isSel,
-                      onSelected: (_) => setLocal(() => selected = n),
-                    );
-                  }),
+                AppChoiceChips<int>(
+                  values: List.generate(6, (i) => i + 1),
+                  selected: selected,
+                  label: (n) => '$n',
+                  onChanged: (n) => setLocal(() => selected = n!),
                 ),
               ],
             ),
@@ -362,21 +352,8 @@ class _DraftScreenState extends State<DraftScreen> with WidgetsBindingObserver {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Invita collaboratori',
-                style: GoogleFonts.bebasNeue(fontSize: 28, color: Colors.white),
-              ),
+              const AppSheetHandle(onInk: true),
+              const DisplayText('INVITA COLLABORATORI', size: 28, color: Colors.white),
               const SizedBox(height: 6),
               Text(
                 'Condividi il link: chi lo apre può vedere e modificare la rosa, ma solo te puoi lanciare la squadra.',
@@ -599,70 +576,33 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      child: Row(
+    return AppTopBar(
+      onInk: true,
+      onBack: onBack,
+      titleWidget: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          InkWell(
-            onTap: onBack,
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.arrow_back, color: Colors.white, size: 18),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'CONFIGURATORE',
-                  style: GoogleFonts.spaceGrotesk(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.5,
-                    color: AppTokens.brand,
-                  ),
-                ),
-                if (drafts.length <= 1)
-                  Text(
-                    currentDraft?.nomeTeam.toUpperCase() ?? 'Pianifica la squadra',
-                    style: GoogleFonts.bebasNeue(fontSize: 26, color: Colors.white, height: 1.05),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  )
-                else
-                  _DraftSwitcher(
-                    drafts: drafts,
-                    currentDraft: currentDraft,
-                    onSwitch: onSwitchDraft,
-                  ),
-              ],
-            ),
-          ),
-          if (onShare != null)
-            InkWell(
-              onTap: onShare,
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                width: 40,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppTokens.brand.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.share, color: AppTokens.brand, size: 18),
-              ),
+          const Eyebrow('CONFIGURATORE', color: AppTokens.brand),
+          if (drafts.length <= 1)
+            Text(
+              currentDraft?.nomeTeam.toUpperCase() ?? 'Pianifica la squadra',
+              style: GoogleFonts.bebasNeue(fontSize: 26, color: Colors.white, height: 1.05),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            )
+          else
+            _DraftSwitcher(
+              drafts: drafts,
+              currentDraft: currentDraft,
+              onSwitch: onSwitchDraft,
             ),
         ],
       ),
+      actions: [
+        if (onShare != null)
+          AppTopBar.iconAction(context, Icons.share, onShare!, onInk: true),
+      ],
     );
   }
 }
@@ -720,50 +660,21 @@ class _EmptyDraft extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppTokens.brand.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: const Icon(Icons.groups, color: AppTokens.brand, size: 38),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Inizia il draft',
-              style: GoogleFonts.bebasNeue(fontSize: 32, color: Colors.white),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Costruisci la lista di candidati con stato, '
-              'bravura e affidabilità. Lanci la squadra quando hai i numeri giusti.',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.spaceGrotesk(
-                fontSize: 13,
-                color: Colors.white.withOpacity(0.6),
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: onCreate,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppTokens.brand,
-                foregroundColor: AppTokens.brandInk,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              ),
-              icon: const Icon(Icons.add),
-              label: const Text('Crea draft'),
-            ),
-          ],
+    return EmptyState(
+      onInk: true,
+      icon: Icons.groups,
+      title: 'INIZIA IL DRAFT',
+      message: 'Costruisci la lista di candidati con stato, '
+          'bravura e affidabilità. Lanci la squadra quando hai i numeri giusti.',
+      action: FilledButton.icon(
+        onPressed: onCreate,
+        style: FilledButton.styleFrom(
+          backgroundColor: AppTokens.brand,
+          foregroundColor: AppTokens.brandInk,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         ),
+        icon: const Icon(Icons.add),
+        label: const Text('Crea draft'),
       ),
     );
   }
@@ -1386,20 +1297,11 @@ class _CandidateEditorState extends State<_CandidateEditor> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                widget.existing == null ? 'Nuovo candidato' : 'Modifica candidato',
-                style: GoogleFonts.bebasNeue(fontSize: 26, color: Colors.white),
+              const AppSheetHandle(onInk: true),
+              DisplayText(
+                widget.existing == null ? 'NUOVO CANDIDATO' : 'MODIFICA CANDIDATO',
+                size: 26,
+                color: Colors.white,
               ),
               const SizedBox(height: 16),
               TextField(

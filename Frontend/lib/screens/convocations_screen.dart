@@ -103,29 +103,22 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
                       return ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         children: [
-                          const SizedBox(height: 100),
-                          Center(
-                            child: Text(
-                              'Nessuna convocazione',
-                              style: GoogleFonts.spaceGrotesk(
-                                fontSize: 14,
-                                color: isDark
-                                    ? AppTokens.darkTextMute
-                                    : AppTokens.textMute,
-                              ),
-                            ),
+                          const SizedBox(height: 40),
+                          EmptyState(
+                            icon: Icons.campaign_outlined,
+                            title: 'NESSUNA CONVOCAZIONE',
+                            message: auth.puoGestireCampo
+                                ? 'Scegli i convocati e invia: partono le notifiche.'
+                                : 'Quando il mister convoca, lo vedi qui.',
+                            action: auth.puoGestireCampo
+                                ? FilledButton.icon(
+                                    onPressed: () =>
+                                        _showSendConvocationsDialog(context),
+                                    icon: const Icon(Icons.send, size: 18),
+                                    label: const Text('Invia Convocazioni'),
+                                  )
+                                : null,
                           ),
-                          if (auth.puoGestireCampo) ...[
-                            const SizedBox(height: 20),
-                            Center(
-                              child: FilledButton.icon(
-                                onPressed: () =>
-                                    _showSendConvocationsDialog(context),
-                                icon: const Icon(Icons.send, size: 18),
-                                label: const Text('Invia Convocazioni'),
-                              ),
-                            ),
-                          ],
                         ],
                       );
                     }
@@ -361,16 +354,9 @@ class _SummaryStrip extends StatelessWidget {
 
   Widget _card(BuildContext context, String v, String l, Color c) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final card = isDark ? AppTokens.darkCard : AppTokens.card;
-    final line = isDark ? AppTokens.darkLine : AppTokens.line;
     final mute = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
-    return Container(
+    return AppCard(
       padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        color: card,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: line),
-      ),
       child: Column(
         children: [
           Text(v, style: GoogleFonts.bebasNeue(fontSize: 30, color: c)),
@@ -439,35 +425,24 @@ class _ConvTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
-    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
     final textColor = isDark ? AppTokens.darkText : AppTokens.text;
     final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
 
-    Color bg;
-    Color fg;
+    AppChipVariant variant;
     IconData icon;
     if (conv.isConfermato) {
-      bg = AppTokens.softOf(AppTokens.ok, isDark: isDark);
-      fg = AppTokens.ok;
+      variant = AppChipVariant.ok;
       icon = Icons.check;
     } else if (conv.isNonDisponibile) {
-      bg = AppTokens.softOf(AppTokens.bad, isDark: isDark);
-      fg = AppTokens.bad;
+      variant = AppChipVariant.bad;
       icon = Icons.close;
     } else {
-      bg = AppTokens.softOf(AppTokens.warn, isDark: isDark);
-      fg = AppTokens.warn;
+      variant = AppChipVariant.warn;
       icon = Icons.access_time;
     }
 
-    return Container(
+    return AppCard(
       padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: lineColor),
-      ),
       child: Row(
         children: [
           const JerseyNumber(size: 40, fontSize: 19),
@@ -515,16 +490,7 @@ class _ConvTile extends StatelessWidget {
               },
             ),
           ] else
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: bg,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              alignment: Alignment.center,
-              child: Icon(icon, size: 16, color: fg),
-            ),
+            AppChip(text: _statusLabel(), variant: variant, leadingIcon: icon),
         ],
       ),
     );

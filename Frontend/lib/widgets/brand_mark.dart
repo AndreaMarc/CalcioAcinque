@@ -97,7 +97,7 @@ class BrandWordmark extends StatelessWidget {
 /// Etichetta della stagione sportiva corrente, es. "25/26".
 /// La stagione parte a luglio: da gennaio a giugno si e' ancora in quella
 /// iniziata l'anno prima.
-String seasonLabel([DateTime? now]) {
+String currentSeasonLabel([DateTime? now]) {
   final d = now ?? DateTime.now();
   final start = d.month >= 7 ? d.year : d.year - 1;
   String yy(int y) => (y % 100).toString().padLeft(2, '0');

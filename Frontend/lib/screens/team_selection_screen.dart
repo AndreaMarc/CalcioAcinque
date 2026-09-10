@@ -64,23 +64,7 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
       backgroundColor: AppTokens.ink,
       body: Stack(
         children: [
-          Positioned(
-            top: -180,
-            left: -140,
-            child: Container(
-              width: 480,
-              height: 480,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    AppTokens.brand.withOpacity(0.22),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
+          const GlowSpot(top: -180, left: -140, size: 480, opacity: 0.22),
           SafeArea(
             child: Column(
               children: [
@@ -91,23 +75,13 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
                     children: [
                       const BrandWordmark(markSize: 28),
                       const SizedBox(height: 28),
-                      Text(
-                        'I TUOI TEAM',
-                        style: GoogleFonts.spaceGrotesk(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 1.54,
-                          color: AppTokens.brand,
-                        ),
-                      ),
+                      const Eyebrow('I TUOI TEAM', color: AppTokens.brand),
                       const SizedBox(height: 12),
-                      Text(
+                      const DisplayText(
                         'SCEGLI\nLA SQUADRA',
-                        style: GoogleFonts.bebasNeue(
-                          fontSize: 44,
-                          height: 0.95,
-                          color: Colors.white,
-                        ),
+                        size: 44,
+                        height: 0.95,
+                        color: Colors.white,
                       ),
                     ],
                   ),
@@ -125,15 +99,7 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
                                 if (group.clubId != null && !group.isSingleTeam)
                                   Padding(
                                     padding: const EdgeInsets.fromLTRB(4, 10, 4, 8),
-                                    child: Text(
-                                      group.nome.toUpperCase(),
-                                      style: GoogleFonts.spaceGrotesk(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 1.2,
-                                        color: Colors.white.withOpacity(0.5),
-                                      ),
-                                    ),
+                                    child: Eyebrow(group.nome.toUpperCase(), onInk: true),
                                   ),
                                 ...group.teams.map((t) => Padding(
                                       padding: const EdgeInsets.only(bottom: 10),
@@ -151,15 +117,7 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    'I MIEI DRAFT · ${drafts.length}',
-                                    style: GoogleFonts.spaceGrotesk(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 1.4,
-                                      color: AppTokens.brand,
-                                    ),
-                                  ),
+                                  Eyebrow('I MIEI DRAFT · ${drafts.length}', color: AppTokens.brand),
                                   if (draftProvider.isLoading)
                                     const SizedBox(
                                       width: 12,
@@ -181,34 +139,26 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
                                 )),
                           ],
                           const SizedBox(height: 8),
-                          InkWell(
+                          AppCard(
+                            onInk: true,
+                            radius: 16,
+                            borderColor: Colors.white.withOpacity(0.2),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
                             onTap: _showCreateOrJoin,
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.04),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.2),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.add, size: 18, color: Colors.white),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Crea o unisciti a team',
-                                    style: GoogleFonts.spaceGrotesk(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.add, size: 18, color: Colors.white),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Crea o unisciti a team',
+                                  style: GoogleFonts.spaceGrotesk(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -218,18 +168,18 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-                  child: InkWell(
-                    onTap: _selectedTeamId != null ? _confirm : null,
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      height: 54,
-                      decoration: BoxDecoration(
-                        color: _selectedTeamId != null
-                            ? AppTokens.brand
-                            : AppTokens.brand.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(16),
+                  child: SizedBox(
+                    height: 54,
+                    child: FilledButton(
+                      onPressed: _selectedTeamId != null && !_isSelecting ? _confirm : null,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTokens.brand,
+                        foregroundColor: AppTokens.brandInk,
+                        disabledBackgroundColor: AppTokens.brand.withOpacity(0.3),
+                        disabledForegroundColor: AppTokens.brandInk.withOpacity(0.7),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        textStyle: GoogleFonts.spaceGrotesk(fontSize: 15, fontWeight: FontWeight.w700),
                       ),
-                      alignment: Alignment.center,
                       child: _isSelecting
                           ? const SizedBox(
                               width: 22,
@@ -239,24 +189,13 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
                                 color: AppTokens.brandInk,
                               ),
                             )
-                          : Row(
+                          : const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  'Entra',
-                                  style: GoogleFonts.spaceGrotesk(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppTokens.brandInk,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                const Icon(
-                                  Icons.arrow_forward,
-                                  color: AppTokens.brandInk,
-                                  size: 18,
-                                ),
+                                Text('Entra'),
+                                SizedBox(width: 8),
+                                Icon(Icons.arrow_forward, size: 18),
                               ],
                             ),
                     ),
@@ -271,61 +210,42 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
   }
 
   void _showCreateOrJoin() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppTokens.ink2,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.tune, color: AppTokens.brand),
-              title: const Text('Pianifica con il configuratore',
-                  style: TextStyle(color: Colors.white)),
-              subtitle: Text(
-                'Costruisci la rosa con stati e voti prima di lanciarla',
-                style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
-              ),
-              onTap: () {
-                Navigator.pop(ctx);
-                context.go('/draft');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.add_circle_outline,
-                  color: AppTokens.brand),
-              title: const Text('Crea nuovo team',
-                  style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _showCreateTeamDialog();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.link, color: AppTokens.brand),
-              title: const Text('Unisciti con codice',
-                  style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _showJoinTeamDialog();
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
+    showAppSheet<void>(
+      context,
+      onInk: true,
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppSheetAction(
+            icon: Icons.tune,
+            label: 'Pianifica con il configuratore',
+            subtitle: 'Costruisci la rosa con stati e voti prima di lanciarla',
+            onInk: true,
+            onTap: () {
+              Navigator.pop(ctx);
+              context.go('/draft');
+            },
+          ),
+          AppSheetAction(
+            icon: Icons.add_circle_outline,
+            label: 'Crea nuovo team',
+            onInk: true,
+            onTap: () {
+              Navigator.pop(ctx);
+              _showCreateTeamDialog();
+            },
+          ),
+          AppSheetAction(
+            icon: Icons.link,
+            label: 'Unisciti con codice',
+            onInk: true,
+            onTap: () {
+              Navigator.pop(ctx);
+              _showJoinTeamDialog();
+            },
+          ),
+        ],
       ),
     );
   }
@@ -485,29 +405,25 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
                             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                       ),
                       const SizedBox(height: 6),
-                      Wrap(
+                      AppChoiceChips<int>(
+                        values: pending.map<int>((p) => p['id'] as int).toList(),
+                        selected: selectedPendingId,
+                        allowNull: true,
                         spacing: 6,
-                        runSpacing: 6,
-                        children: pending.map<Widget>((p) {
-                          final id = p['id'] as int;
-                          final nome = p['nome'] as String;
-                          final sel = selectedPendingId == id;
-                          return ChoiceChip(
-                            label: Text(nome),
-                            selected: sel,
-                            onSelected: (_) => setLocal(() {
-                              if (sel) {
-                                selectedPendingId = null;
-                              } else {
-                                selectedPendingId = id;
-                                nomeCtrl.text = nome;
-                                if (p['soprannome'] != null) {
-                                  soprannomeCtrl.text = p['soprannome'] as String;
-                                }
-                              }
-                            }),
-                          );
-                        }).toList(),
+                        label: (id) =>
+                            pending.firstWhere((p) => p['id'] == id)['nome'] as String,
+                        onChanged: (id) => setLocal(() {
+                          if (id == null) {
+                            selectedPendingId = null;
+                            return;
+                          }
+                          final p = pending.firstWhere((p) => p['id'] == id);
+                          selectedPendingId = id;
+                          nomeCtrl.text = p['nome'] as String;
+                          if (p['soprannome'] != null) {
+                            soprannomeCtrl.text = p['soprannome'] as String;
+                          }
+                        }),
                       ),
                     ],
                     const SizedBox(height: 12),
@@ -580,24 +496,14 @@ class _TeamTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final initials = teamInitials(team.teamName, fallback: '?');
-    return InkWell(
+    return AppCard(
+      onInk: true,
+      padding: const EdgeInsets.all(18),
+      color: selected ? AppTokens.brand.withOpacity(0.08) : null,
+      borderColor: selected ? AppTokens.brand : null,
+      borderWidth: selected ? 1.5 : 1,
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: selected
-              ? AppTokens.brand.withOpacity(0.08)
-              : Colors.white.withOpacity(0.04),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected
-                ? AppTokens.brand
-                : Colors.white.withOpacity(0.08),
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
+      child: Row(
           children: [
             TeamCrest(
               initials: initials,
@@ -653,7 +559,6 @@ class _TeamTile extends StatelessWidget {
                 : Icon(Icons.chevron_right,
                     color: Colors.white.withOpacity(0.4), size: 18),
           ],
-        ),
       ),
     );
   }
@@ -733,23 +638,12 @@ class _DraftTile extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: draft.isOwner
-                              ? AppTokens.brand.withOpacity(0.25)
-                              : Colors.white.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          draft.isOwner ? 'OWNER' : 'EDITOR',
-                          style: GoogleFonts.spaceGrotesk(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.8,
-                            color: draft.isOwner ? AppTokens.brand : Colors.white70,
-                          ),
-                        ),
+                      AppChip(
+                        text: draft.isOwner ? 'OWNER' : 'EDITOR',
+                        variant: draft.isOwner ? AppChipVariant.brand : AppChipVariant.dark,
+                        onInk: true,
+                        fontSize: 9,
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                       ),
                     ],
                   ),

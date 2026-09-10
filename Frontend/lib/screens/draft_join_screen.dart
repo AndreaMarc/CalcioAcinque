@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
 import '../providers/team_draft_provider.dart';
 import '../providers/theme_provider.dart';
+import '../widgets/app_widgets.dart';
+import '../widgets/brand_mark.dart';
 
 class DraftJoinScreen extends StatefulWidget {
   final String code;
@@ -77,23 +79,14 @@ class _DraftJoinScreenState extends State<DraftJoinScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'DRAFT INVITE',
-                    style: GoogleFonts.spaceGrotesk(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.5,
-                      color: AppTokens.brand,
-                    ),
-                  ),
+                  const BrandWordmark(markSize: 28),
+                  const SizedBox(height: 36),
+                  const Eyebrow('INVITO AL DRAFT', color: AppTokens.brand),
                   const SizedBox(height: 10),
-                  Text(
+                  DisplayText(
                     _preview?['nomeTeam'] ?? 'Caricamento...',
-                    style: GoogleFonts.bebasNeue(
-                      fontSize: 44,
-                      color: Colors.white,
-                      height: 1.0,
-                    ),
+                    size: 44,
+                    color: Colors.white,
                   ),
                   if (_preview != null) ...[
                     const SizedBox(height: 8),
@@ -124,28 +117,11 @@ class _DraftJoinScreenState extends State<DraftJoinScreen> {
                       ],
                     ),
                   if (_error != null) ...[
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppTokens.bad.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppTokens.bad.withOpacity(0.3)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.error_outline, color: AppTokens.bad, size: 18),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              _error!,
-                              style: GoogleFonts.spaceGrotesk(
-                                color: AppTokens.bad,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                    NoticeBox(
+                      text: _error!,
+                      variant: AppChipVariant.bad,
+                      icon: Icons.error_outline,
+                      onInk: true,
                     ),
                     const SizedBox(height: 16),
                     TextButton(
