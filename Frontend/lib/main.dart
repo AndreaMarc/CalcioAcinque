@@ -56,7 +56,7 @@ void _removeSplash() {
   final el = web.document.getElementById('splash');
   if (el == null) return;
   el.classList.add('out');
-  Future.delayed(const Duration(milliseconds: 300), el.remove);
+  Future.delayed(const Duration(milliseconds: 300), () => el.remove());
 }
 
 class InCampoApp extends StatefulWidget {
