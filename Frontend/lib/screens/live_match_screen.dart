@@ -223,23 +223,7 @@ class _LiveMatchScreenState extends State<LiveMatchScreen>
           body: SafeArea(
             child: Stack(
               children: [
-                Positioned(
-                  top: -120,
-                  left: -100,
-                  child: Container(
-                    width: 400,
-                    height: 400,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          AppTokens.brand.withOpacity(0.2),
-                          Colors.transparent,
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+                const GlowSpot(top: -120, left: -100, size: 400, opacity: 0.2),
                 Column(
                   children: [
                     _LiveHeader(
@@ -279,51 +263,34 @@ class _LiveMatchScreenState extends State<LiveMatchScreen>
                           ],
                           _QuickActions(onTap: _onQuickAction),
                           const SizedBox(height: 20),
-                          Text(
-                            'IN CAMPO',
-                            style: GoogleFonts.bebasNeue(
-                              fontSize: 20,
-                              color: Colors.white,
-                              letterSpacing: 0.04 * 20,
-                            ),
-                          ),
+                          const SectionHead(title: 'IN CAMPO', onInk: true, size: 20, padding: EdgeInsets.zero),
                           const SizedBox(height: 12),
                           if (playing.isEmpty)
-                            Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.04),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.08),
-                                ),
-                              ),
-                              child: Column(
-                                children: [
-                                  Text(
-                                    'Nessun giocatore in campo',
+                            AppCard(
+                              onInk: true,
+                              radius: 16,
+                              child: EmptyState(
+                                onInk: true,
+                                icon: Icons.people_outline,
+                                title: 'NESSUNO IN CAMPO',
+                                message: 'Segna le presenze dal Match Day per vedere qui chi gioca.',
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+                                action: OutlinedButton.icon(
+                                  onPressed: () =>
+                                      context.push('/match/${match.id}/day'),
+                                  icon: const Icon(Icons.people, size: 16,
+                                      color: Colors.white),
+                                  label: Text(
+                                    'Match Day',
                                     style: GoogleFonts.spaceGrotesk(
-                                      color: Colors.white.withOpacity(0.7),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  OutlinedButton.icon(
-                                    onPressed: () =>
-                                        context.push('/match/${match.id}/day'),
-                                    icon: const Icon(Icons.people, size: 16,
                                         color: Colors.white),
-                                    label: Text(
-                                      'Match Day',
-                                      style: GoogleFonts.spaceGrotesk(
-                                          color: Colors.white),
-                                    ),
-                                    style: OutlinedButton.styleFrom(
-                                      side: BorderSide(
-                                          color:
-                                              Colors.white.withOpacity(0.2)),
-                                    ),
                                   ),
-                                ],
+                                  style: OutlinedButton.styleFrom(
+                                    side: BorderSide(
+                                        color:
+                                            Colors.white.withOpacity(0.2)),
+                                  ),
+                                ),
                               ),
                             )
                           else
@@ -342,14 +309,7 @@ class _LiveMatchScreenState extends State<LiveMatchScreen>
                             ),
                           const SizedBox(height: 20),
                           if ((goalsScored + goalsConceded) > 0) ...[
-                            Text(
-                              'TIMELINE',
-                              style: GoogleFonts.bebasNeue(
-                                fontSize: 20,
-                                color: Colors.white,
-                                letterSpacing: 0.04 * 20,
-                              ),
-                            ),
+                            const SectionHead(title: 'TIMELINE', onInk: true, size: 20, padding: EdgeInsets.zero),
                             const SizedBox(height: 12),
                             ...attendances
                                 .where((a) => (a.goal ?? 0) > 0)
@@ -392,34 +352,35 @@ class _LiveMatchScreenState extends State<LiveMatchScreen>
   }
 
   void _showMenu(BuildContext context, bool isLive, int matchId) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppTokens.ink2,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.people, color: Colors.white),
-              title: const Text('Match Day',
-                  style: TextStyle(color: Colors.white)),
+    showAppSheet<void>(
+      context,
+      onInk: true,
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppSheetAction(
+            icon: Icons.people,
+            label: 'Match Day',
+            subtitle: 'Presenze, minuti e statistiche',
+            onInk: true,
+            onTap: () {
+              Navigator.pop(ctx);
+              context.push('/match/$matchId/day');
+            },
+          ),
+          if (isLive)
+            AppSheetAction(
+              icon: Icons.stop,
+              label: 'Concludi Partita',
+              destructive: true,
+              onInk: true,
               onTap: () {
                 Navigator.pop(ctx);
-                context.push('/match/$matchId/day');
+                _concludeMatch();
               },
             ),
-            if (isLive)
-              ListTile(
-                leading: const Icon(Icons.stop, color: AppTokens.bad),
-                title: const Text('Concludi Partita',
-                    style: TextStyle(color: AppTokens.bad)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _concludeMatch();
-                },
-              ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -497,83 +458,61 @@ class _LiveHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+    final pill = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: isConclusa
+            ? Colors.white.withOpacity(0.08)
+            : AppTokens.bad.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(AppTokens.rChip),
+        border: Border.all(
+          color: isConclusa
+              ? Colors.white.withOpacity(0.2)
+              : AppTokens.bad.withOpacity(0.4),
+        ),
+      ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          _darkBtn(Icons.arrow_back, onBack),
-          const Spacer(),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: isConclusa
-                  ? Colors.white.withOpacity(0.08)
-                  : AppTokens.bad.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: isConclusa
-                    ? Colors.white.withOpacity(0.2)
-                    : AppTokens.bad.withOpacity(0.4),
+          if (!isConclusa)
+            AnimatedBuilder(
+              animation: pulse,
+              builder: (c, _) => Container(
+                width: 8,
+                height: 8,
+                margin: const EdgeInsets.only(right: 6),
+                decoration: BoxDecoration(
+                  color: AppTokens.live,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTokens.live.withOpacity(0.4 + 0.4 * pulse.value),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
               ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (!isConclusa)
-                  AnimatedBuilder(
-                    animation: pulse,
-                    builder: (c, _) => Container(
-                      width: 8,
-                      height: 8,
-                      margin: const EdgeInsets.only(right: 6),
-                      decoration: BoxDecoration(
-                        color: AppTokens.live,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTokens.live.withOpacity(
-                              0.4 + 0.4 * pulse.value,
-                            ),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                Text(
-                  isConclusa ? 'FINE' : 'LIVE',
-                  style: GoogleFonts.spaceGrotesk(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ],
+          Text(
+            isConclusa ? 'FINE' : 'LIVE',
+            style: GoogleFonts.spaceGrotesk(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+              letterSpacing: 1,
             ),
           ),
-          const Spacer(),
-          _darkBtn(Icons.more_vert, onMore),
         ],
       ),
     );
-  }
 
-  Widget _darkBtn(IconData icon, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.12)),
-        ),
-        child: Icon(icon, size: 18, color: Colors.white),
-      ),
+    return AppTopBar(
+      onInk: true,
+      onBack: onBack,
+      titleWidget: Center(child: pill),
+      actions: [
+        AppTopBar.iconAction(context, Icons.more_vert, onMore, onInk: true),
+      ],
     );
   }
 }
@@ -1149,23 +1088,8 @@ class _PlayerSelectorSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'ASSEGNA $_actionLabel',
-              style: GoogleFonts.bebasNeue(
-                fontSize: 22,
-                color: AppTokens.brand,
-                letterSpacing: 0.04 * 22,
-              ),
-            ),
+            const AppSheetHandle(onInk: true),
+            DisplayText('ASSEGNA $_actionLabel', size: 22, color: AppTokens.brand),
             const SizedBox(height: 12),
             ConstrainedBox(
               constraints: BoxConstraints(
@@ -1179,19 +1103,13 @@ class _PlayerSelectorSheet extends StatelessWidget {
                   final att = players[i];
                   final current = _currentValue(att);
                   final name = att.soprannome ?? att.nomeGiocatore;
-                  return InkWell(
+                  return AppCard(
+                    onInk: true,
+                    radius: 14,
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(10),
                     onTap: () => _assign(context, att),
-                    borderRadius: BorderRadius.circular(14),
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                            color: Colors.white.withOpacity(0.08)),
-                      ),
-                      child: Row(
+                    child: Row(
                         children: [
                           JerseyNumber(
                             number: i + 1,
@@ -1227,7 +1145,6 @@ class _PlayerSelectorSheet extends StatelessWidget {
                             ),
                         ],
                       ),
-                    ),
                   );
                 },
               ),

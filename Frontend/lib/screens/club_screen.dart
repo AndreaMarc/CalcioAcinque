@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../models/club_model.dart';
 import '../models/team_draft.dart' show PlayerPosition, PlayerPositionX;
@@ -53,7 +54,7 @@ class _ClubScreenState extends State<ClubScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
-      backgroundColor: error ? Theme.of(context).colorScheme.error : null,
+      backgroundColor: error ? AppTokens.bad : null,
     ));
   }
 
@@ -75,10 +76,10 @@ class _ClubScreenState extends State<ClubScreen> {
               onBack: () => context.go('/dashboard'),
               actions: [
                 if (selected != null && selected.isAdmin)
-                  IconButton(
-                    tooltip: 'Codice invito societa',
-                    icon: const Icon(Icons.qr_code_2),
-                    onPressed: () => _showInviteCode(selected),
+                  AppTopBar.iconAction(
+                    context,
+                    Icons.qr_code_2,
+                    () => _showInviteCode(selected),
                   ),
               ],
             ),
@@ -158,14 +159,13 @@ class _ClubScreenState extends State<ClubScreen> {
 
     if (members.isEmpty) {
       return [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          child: Text(
-            _soloCondivisi
-                ? 'Nessuno gioca in piu di una squadra.'
-                : 'Anagrafica vuota: aggiungi le persone della societa e poi iscrivile alle squadre.',
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-          ),
+        EmptyState(
+          icon: _soloCondivisi ? Icons.people_outline : Icons.badge_outlined,
+          title: _soloCondivisi ? 'NESSUNO IN COMUNE' : 'ANAGRAFICA VUOTA',
+          message: _soloCondivisi
+              ? 'Nessuno gioca in piu di una squadra.'
+              : 'Aggiungi le persone della societa e poi iscrivile alle squadre.',
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
         )
       ];
     }
@@ -214,7 +214,7 @@ class _ClubScreenState extends State<ClubScreen> {
             const SizedBox(height: 16),
             SelectableText(
               code,
-              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, letterSpacing: 3),
+              style: GoogleFonts.bebasNeue(fontSize: 34, letterSpacing: 3),
             ),
           ],
         ),
@@ -405,21 +405,15 @@ class _ClubScreenState extends State<ClubScreen> {
   }
 
   Future<void> _confirmDeleteMember(ClubModel club, ClubMember member) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Eliminare ${member.nome}?'),
-        content: const Text(
-          'La persona viene rimossa dall\'anagrafica della societa. '
+    final ok = await showConfirmDialog(
+      context,
+      title: 'Eliminare ${member.nome}?',
+      message: 'La persona viene rimossa dall\'anagrafica della societa. '
           'Funziona solo se non e iscritta a nessuna squadra.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Annulla')),
-          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Elimina')),
-        ],
-      ),
+      confirmLabel: 'Elimina',
+      destructive: true,
     );
-    if (ok != true) return;
+    if (!ok) return;
 
     final provider = context.read<ClubProvider>();
     if (await provider.deleteMember(club.id, member.id)) {
@@ -431,21 +425,15 @@ class _ClubScreenState extends State<ClubScreen> {
 
   Future<void> _unenroll(ClubModel club, ClubMember member, int teamId) async {
     final squadra = member.squadre.firstWhere((s) => s.teamId == teamId);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Togliere ${member.nome} da ${squadra.teamNome}?'),
-        content: const Text(
-          'Vengono perse convocazioni, presenze e gettoni di quella squadra. '
+    final ok = await showConfirmDialog(
+      context,
+      title: 'Togliere ${member.nome} da ${squadra.teamNome}?',
+      message: 'Vengono perse convocazioni, presenze e gettoni di quella squadra. '
           'La persona resta nell\'anagrafica e nelle altre squadre.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Annulla')),
-          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Rimuovi')),
-        ],
-      ),
+      confirmLabel: 'Rimuovi',
+      destructive: true,
     );
-    if (ok != true) return;
+    if (!ok) return;
 
     final provider = context.read<ClubProvider>();
     final done = await provider.unenrollMember(
@@ -478,9 +466,10 @@ class _ClubScreenState extends State<ClubScreen> {
       return;
     }
 
-    final done = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
+    final done = await showAppSheet<bool>(
+      context,
+      scrollControlled: true,
+      padding: EdgeInsets.zero,
       builder: (ctx) => _EnrollSheet(
         member: member,
         squadre: disponibili,
@@ -514,38 +503,16 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.shield_outlined, size: 56, color: cs.onSurfaceVariant),
-            const SizedBox(height: 16),
-            const Text(
-              'Nessuna societa',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Una societa raggruppa piu squadre (per esempio una a 5 e una a 7) '
-              'che condividono i giocatori ma hanno regole e costi propri.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: cs.onSurfaceVariant),
-            ),
-            if (error != null) ...[
-              const SizedBox(height: 12),
-              Text(error!, style: TextStyle(color: cs.error), textAlign: TextAlign.center),
-            ],
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: onCreate,
-              icon: const Icon(Icons.add),
-              label: const Text('Crea societa'),
-            ),
-          ],
-        ),
+    return EmptyState(
+      icon: Icons.shield_outlined,
+      title: 'NESSUNA SOCIETA',
+      message: 'Una societa raggruppa piu squadre (per esempio una a 5 e una a 7) '
+          'che condividono i giocatori ma hanno regole e costi propri.'
+          '${error != null ? '\n\n$error' : ''}',
+      action: FilledButton.icon(
+        onPressed: onCreate,
+        icon: const Icon(Icons.add),
+        label: const Text('Crea societa'),
       ),
     );
   }
@@ -566,15 +533,11 @@ class _ClubSwitcher extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-      child: Wrap(
-        spacing: 8,
-        children: clubs
-            .map((c) => ChoiceChip(
-                  label: Text(c.nome),
-                  selected: c.id == selectedId,
-                  onSelected: (_) => onSelect(c.id),
-                ))
-            .toList(),
+      child: AppChoiceChips<int>(
+        values: clubs.map((c) => c.id).toList(),
+        selected: selectedId,
+        label: (id) => clubs.firstWhere((c) => c.id == id).nome,
+        onChanged: (id) => onSelect(id!),
       ),
     );
   }
@@ -593,7 +556,9 @@ class _TeamsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -607,54 +572,57 @@ class _TeamsSection extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Text(
               'Nessuna squadra: creane una scegliendo il formato (a 5, a 7, ...).',
-              style: TextStyle(color: cs.onSurfaceVariant),
+              style: GoogleFonts.spaceGrotesk(fontSize: 13, color: muteColor),
             ),
           )
         else
-          ...club.squadre.map((t) => Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-                child: Material(
-                  color: cs.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(16),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: t.mioPlayerId != null ? () => onOpenTeam(t.id) : null,
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Row(
+          ...club.squadre.map((t) => AppCard(
+                margin: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                padding: const EdgeInsets.all(14),
+                onTap: t.mioPlayerId != null ? () => onOpenTeam(t.id) : null,
+                child: Row(
+                  children: [
+                    TeamCrest(
+                      initials: teamInitials(t.nome, fallback: 'SQ'),
+                      logo: context.watch<ThemeProvider>().logoBytesForTeam(t.id),
+                      size: 42,
+                      radius: 12,
+                      fontSize: 18,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          CrestBox(initials: teamInitials(t.nome, fallback: 'SQ'), size: 42),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(t.nome,
-                                    style: const TextStyle(fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${t.formatoLabel} · ${t.totaleGiocatori} in rosa · ${t.giocatoriInCampo} in campo',
-                                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-                                ),
-                              ],
+                          Text(
+                            t.nome,
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: textColor,
                             ),
                           ),
-                          FormatBadge(t.formato, tone: FormatBadgeTone.soft),
-                          if (t.mioPlayerId != null)
-                            const Padding(
-                              padding: EdgeInsets.only(left: 6),
-                              child: Icon(Icons.chevron_right),
-                            )
-                          else
-                            Padding(
-                              padding: const EdgeInsets.only(left: 6),
-                              child: Text('non iscritto',
-                                  style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
-                            ),
+                          const SizedBox(height: 3),
+                          Text(
+                            '${t.totaleGiocatori} in rosa · ${t.giocatoriInCampo} in campo',
+                            style: GoogleFonts.spaceGrotesk(fontSize: 12, color: muteColor),
+                          ),
                         ],
                       ),
                     ),
-                  ),
+                    FormatBadge(t.formato, tone: FormatBadgeTone.soft),
+                    if (t.mioPlayerId != null)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 6),
+                        child: Icon(Icons.chevron_right, size: 20, color: muteColor),
+                      )
+                    else
+                      Padding(
+                        padding: const EdgeInsets.only(left: 6),
+                        child: Text('non iscritto',
+                            style: GoogleFonts.spaceGrotesk(fontSize: 11, color: muteColor)),
+                      ),
+                  ],
                 ),
               )),
       ],
@@ -671,7 +639,9 @@ class _ClubPaymentSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
     final haDati = (club.paypalLink != null && club.paypalLink!.isNotEmpty) ||
         (club.iban != null && club.iban!.isNotEmpty);
 
@@ -679,49 +649,44 @@ class _ClubPaymentSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionHead(title: 'Come farsi pagare', more: 'Modifica', onMore: onEdit),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-          child: Container(
-            decoration: BoxDecoration(
-              color: cs.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            padding: const EdgeInsets.all(14),
-            child: haDati
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (club.paypalLink != null && club.paypalLink!.isNotEmpty) ...[
-                        Text('PayPal',
-                            style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
-                        SelectableText(club.paypalLink!, style: const TextStyle(fontSize: 13)),
-                        const SizedBox(height: 8),
-                      ],
-                      if (club.iban != null && club.iban!.isNotEmpty) ...[
-                        Text('IBAN',
-                            style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
-                        SelectableText(club.iban!,
-                            style: const TextStyle(fontSize: 13, letterSpacing: 0.4)),
-                        if (club.intestatarioIban != null &&
-                            club.intestatarioIban!.isNotEmpty)
-                          Text(club.intestatarioIban!,
-                              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
-                        const SizedBox(height: 10),
-                      ],
-                      PaymentLinks(
-                        paypalLink: club.paypalLink,
-                        iban: club.iban,
-                        intestatario: club.intestatarioIban,
-                        compatto: true,
-                      ),
+        AppCard(
+          margin: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+          padding: const EdgeInsets.all(14),
+          child: haDati
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (club.paypalLink != null && club.paypalLink!.isNotEmpty) ...[
+                      const Eyebrow('PAYPAL'),
+                      const SizedBox(height: 2),
+                      SelectableText(club.paypalLink!,
+                          style: GoogleFonts.spaceGrotesk(fontSize: 13, color: textColor)),
+                      const SizedBox(height: 10),
                     ],
-                  )
-                : Text(
-                    'Non hai ancora messo PayPal o IBAN: senza quelli i giocatori '
-                    'ricevono la notifica ma non sanno dove pagare.',
-                    style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-                  ),
-          ),
+                    if (club.iban != null && club.iban!.isNotEmpty) ...[
+                      const Eyebrow('IBAN'),
+                      const SizedBox(height: 2),
+                      SelectableText(club.iban!,
+                          style: TextStyle(
+                              fontSize: 13, letterSpacing: 0.4, fontFamily: 'monospace', color: textColor)),
+                      if (club.intestatarioIban != null && club.intestatarioIban!.isNotEmpty)
+                        Text(club.intestatarioIban!,
+                            style: GoogleFonts.spaceGrotesk(fontSize: 12, color: muteColor)),
+                      const SizedBox(height: 10),
+                    ],
+                    PaymentLinks(
+                      paypalLink: club.paypalLink,
+                      iban: club.iban,
+                      intestatario: club.intestatarioIban,
+                      compatto: true,
+                    ),
+                  ],
+                )
+              : Text(
+                  'Non hai ancora messo PayPal o IBAN: senza quelli i giocatori '
+                  'ricevono la notifica ma non sanno dove pagare.',
+                  style: GoogleFonts.spaceGrotesk(fontSize: 12, color: muteColor),
+                ),
         ),
       ],
     );
@@ -746,25 +711,23 @@ class _MembersFilters extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextField(
             onChanged: onSearch,
+            style: GoogleFonts.spaceGrotesk(fontSize: 14),
             decoration: InputDecoration(
               isDense: true,
               prefixIcon: const Icon(Icons.search, size: 20),
               hintText: 'Cerca tra $totale persone',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
             ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              FilterChip(
-                label: const Text('Solo condivisi tra squadre'),
-                selected: soloCondivisi,
-                onSelected: onToggleCondivisi,
-              ),
-            ],
+          const SizedBox(height: 10),
+          AppChoiceChips<bool>(
+            values: const [false, true],
+            selected: soloCondivisi,
+            label: (v) => v ? 'Solo condivisi tra squadre' : 'Tutti',
+            onChanged: (v) => onToggleCondivisi(v ?? false),
           ),
         ],
       ),
@@ -793,16 +756,12 @@ class _MemberCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-      child: Container(
-        decoration: BoxDecoration(
-          color: cs.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: cs.outlineVariant),
-        ),
+    return AppCard(
+        margin: const EdgeInsets.fromLTRB(20, 0, 20, 10),
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -821,7 +780,11 @@ class _MemberCard extends StatelessWidget {
                             child: Text(
                               member.displayName,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: textColor,
+                              ),
                             ),
                           ),
                           if (member.condiviso) ...[
@@ -833,9 +796,9 @@ class _MemberCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         member.email ?? 'senza account',
-                        style: TextStyle(
+                        style: GoogleFonts.spaceGrotesk(
                           fontSize: 11,
-                          color: member.haAccount ? cs.onSurfaceVariant : cs.error,
+                          color: member.haAccount ? muteColor : AppTokens.bad,
                         ),
                       ),
                     ],
@@ -868,7 +831,7 @@ class _MemberCard extends StatelessWidget {
             if (member.squadre.isEmpty)
               Text(
                 'Non iscritto a nessuna squadra',
-                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                style: GoogleFonts.spaceGrotesk(fontSize: 12, color: muteColor),
               )
             else
               Wrap(
@@ -885,7 +848,6 @@ class _MemberCard extends StatelessWidget {
               ),
           ],
         ),
-      ),
     );
   }
 }
@@ -905,7 +867,9 @@ class _TeamBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
     final dettagli = [
       squadra.formato.shortLabel,
       if (squadra.posizione != null) squadra.posizione!.shortLabel,
@@ -918,8 +882,9 @@ class _TeamBadge extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: Container(
         decoration: BoxDecoration(
-          color: cs.surfaceContainerHighest,
+          color: isDark ? AppTokens.ink3 : AppTokens.paperLow,
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: isDark ? AppTokens.darkLine : AppTokens.line),
         ),
         padding: EdgeInsets.fromLTRB(10, 6, canManage ? 4 : 10, 6),
         child: Row(
@@ -929,8 +894,9 @@ class _TeamBadge extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(squadra.teamNome,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                Text(dettagli, style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant)),
+                    style: GoogleFonts.spaceGrotesk(
+                        fontSize: 12, fontWeight: FontWeight.w600, color: textColor)),
+                Text(dettagli, style: GoogleFonts.spaceGrotesk(fontSize: 10, color: muteColor)),
               ],
             ),
             if (canManage)
@@ -1061,17 +1027,13 @@ class _TeamFormDialogState extends State<_TeamFormDialog> {
               decoration: const InputDecoration(labelText: 'Nome squadra'),
             ),
             const SizedBox(height: 16),
-            const Text('Formato', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 8,
-              children: TeamFormat.values
-                  .map((f) => ChoiceChip(
-                        label: Text(f.shortLabel),
-                        selected: _formato == f,
-                        onSelected: (_) => setState(() => _formato = f),
-                      ))
-                  .toList(),
+            const Eyebrow('FORMATO'),
+            const SizedBox(height: 8),
+            AppChoiceChips<TeamFormat>(
+              values: TeamFormat.values,
+              selected: _formato,
+              label: (f) => f.shortLabel,
+              onChanged: (f) => setState(() => _formato = f!),
             ),
             const SizedBox(height: 6),
             Text(
@@ -1099,7 +1061,7 @@ class _TeamFormDialogState extends State<_TeamFormDialog> {
                 decoration: const InputDecoration(labelText: 'Gettoni per giocatore'),
               ),
             const SizedBox(height: 16),
-            const Text('Costi (EUR)', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Eyebrow('COSTI (EUR)'),
             const SizedBox(height: 6),
             TextField(
               controller: _iscrizione,
@@ -1376,49 +1338,37 @@ class _EnrollSheetState extends State<_EnrollSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Iscrivi ${widget.member.displayName}',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const AppSheetHandle(),
+            DisplayText('ISCRIVI ${widget.member.displayName.toUpperCase()}', size: 26),
             const SizedBox(height: 4),
             Text(
               'Gettoni, quote e statistiche partono da zero per la nuova squadra.',
               style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
             ),
             const SizedBox(height: 16),
-            const Text('Squadra', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 8,
-              children: widget.squadre
-                  .map((t) => ChoiceChip(
-                        label: Text('${t.nome} (${t.formato.shortLabel})'),
-                        selected: t.id == _teamId,
-                        onSelected: (_) => setState(() {
-                          _teamId = t.id;
-                          // I ruoli dipendono dal formato: quello scelto prima puo' non valere piu'
-                          _posizione = null;
-                        }),
-                      ))
-                  .toList(),
+            const Eyebrow('SQUADRA'),
+            const SizedBox(height: 8),
+            AppChoiceChips<int>(
+              values: widget.squadre.map((t) => t.id).toList(),
+              selected: _teamId,
+              label: (id) {
+                final t = widget.squadre.firstWhere((t) => t.id == id);
+                return '${t.nome} (${t.formato.shortLabel})';
+              },
+              onChanged: (id) => setState(() {
+                _teamId = id!;
+                // I ruoli dipendono dal formato: quello scelto prima puo' non valere piu'
+                _posizione = null;
+              }),
             ),
             const SizedBox(height: 16),
-            Text('Ruolo in ${_squadra.formatoLabel}',
-                style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                ChoiceChip(
-                  label: const Text('Nessuno'),
-                  selected: _posizione == null,
-                  onSelected: (_) => setState(() => _posizione = null),
-                ),
-                ...posizioni.map((p) => ChoiceChip(
-                      label: Text(p.label),
-                      selected: _posizione == p,
-                      onSelected: (_) => setState(() => _posizione = p),
-                    )),
-              ],
+            Eyebrow('RUOLO IN ${_squadra.formatoLabel.toUpperCase()}'),
+            const SizedBox(height: 8),
+            AppChoiceChips<PlayerPosition?>(
+              values: [null, ...posizioni],
+              selected: _posizione,
+              label: (p) => p?.label ?? 'Nessuno',
+              onChanged: (p) => setState(() => _posizione = p),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -1427,18 +1377,13 @@ class _EnrollSheetState extends State<_EnrollSheet> {
               decoration: const InputDecoration(labelText: 'Numero di maglia (opzionale)'),
             ),
             const SizedBox(height: 12),
-            const Text('Ruolo nella squadra', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: Ruolo.values
-                  .map((r) => ChoiceChip(
-                        label: Text(r.label),
-                        selected: _ruolo == r,
-                        onSelected: (_) => setState(() => _ruolo = r),
-                      ))
-                  .toList(),
+            const Eyebrow('RUOLO NELLA SQUADRA'),
+            const SizedBox(height: 8),
+            AppChoiceChips<Ruolo>(
+              values: Ruolo.values,
+              selected: _ruolo,
+              label: (r) => r.label,
+              onChanged: (r) => setState(() => _ruolo = r!),
             ),
             const SizedBox(height: 4),
             Text(_ruolo.descrizione,
