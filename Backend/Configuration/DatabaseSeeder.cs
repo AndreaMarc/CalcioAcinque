@@ -53,7 +53,7 @@ public static class DatabaseSeeder
 
         var adminUser = new User
         {
-            Email = "admin@calcioacinque.it",
+            Email = "admin@incampo.it",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
             IsActive = true,
             CreatedAt = DateTime.UtcNow,

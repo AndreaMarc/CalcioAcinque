@@ -25,16 +25,16 @@ self.addEventListener('push', (event) => {
     payload = event.data ? event.data.json() : {};
   } catch (e) {
     // Payload non JSON: meglio una notifica generica che nessuna notifica
-    payload = { title: 'CalcioAcinque', body: event.data ? event.data.text() : '' };
+    payload = { title: 'InCampo', body: event.data ? event.data.text() : '' };
   }
 
-  const title = payload.title || 'CalcioAcinque';
+  const title = payload.title || 'InCampo';
   const options = {
     body: payload.body || '',
     icon: APP_ICON,
     badge: APP_ICON,
     // Stesso tag = la nuova notifica sostituisce la precedente invece di accumularsi
-    tag: payload.tag || 'calcioacinque',
+    tag: payload.tag || 'incampo',
     renotify: true,
     data: { url: payload.url || '/dashboard' },
   };

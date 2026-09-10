@@ -15,7 +15,7 @@ public class PushOptions
     public string? VapidPrivateKey { get; set; }
 
     /// <summary>Contatto richiesto da RFC 8292: "mailto:..." oppure un URL https.</summary>
-    public string Subject { get; set; } = "mailto:admin@calcioacinque.it";
+    public string Subject { get; set; } = "mailto:admin@incampo.studiorocket.it";
 
     /// <summary>Ogni quanto il dispatcher svuota la coda.</summary>
     public int PollingSeconds { get; set; } = 10;

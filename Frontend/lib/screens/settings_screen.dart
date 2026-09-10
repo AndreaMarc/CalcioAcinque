@@ -1248,7 +1248,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final auth = context.watch<AuthProvider>();
     final teams = auth.teams ?? [];
     final currentTeamId = auth.teamId;
-    final initials = teamInitials(theme.teamName, fallback: 'CA');
+    final initials = teamInitials(theme.teamName);
     final clubConfig = context.watch<ClubProvider>().teamConfig;
 
     return Scaffold(

@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/theme_provider.dart';
 
 /// Safe initials extractor: returns 1-2 uppercase chars, falls back to [fallback].
-String teamInitials(String name, {String fallback = 'CA'}) {
+String teamInitials(String name, {String fallback = 'IC'}) {
   final trimmed = name.trim();
   if (trimmed.isEmpty) return fallback;
   if (trimmed.length >= 2) return trimmed.substring(0, 2).toUpperCase();
@@ -29,7 +29,7 @@ class AppTopBar extends StatelessWidget {
 
   const AppTopBar({
     super.key,
-    this.teamInitials = 'CA',
+    this.teamInitials = 'IC',
     required this.title,
     this.subtitle,
     this.onBack,

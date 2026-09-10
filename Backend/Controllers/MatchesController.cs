@@ -92,7 +92,7 @@ public class MatchesController : ControllerBase
         var sb = new StringBuilder();
         sb.AppendLine("BEGIN:VCALENDAR");
         sb.AppendLine("VERSION:2.0");
-        sb.AppendLine($"PRODID:-//CalcioAcinque//{team.Nome}//IT");
+        sb.AppendLine($"PRODID:-//InCampo//{team.Nome}//IT");
         sb.AppendLine($"X-WR-CALNAME:{team.Nome} - Partite");
         sb.AppendLine("CALSCALE:GREGORIAN");
         sb.AppendLine("METHOD:PUBLISH");

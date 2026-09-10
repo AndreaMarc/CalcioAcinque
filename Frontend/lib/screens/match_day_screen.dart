@@ -36,7 +36,7 @@ class _MatchDayScreenState extends State<MatchDayScreen> {
     final auth = context.watch<AuthProvider>();
     final useGettoni = context.watch<DashboardProvider>().useGettoni;
     final theme = context.watch<ThemeProvider>();
-    final initials = teamInitials(theme.teamName, fallback: 'CA');
+    final initials = teamInitials(theme.teamName);
 
     return Scaffold(
       backgroundColor: paper,

@@ -47,7 +47,7 @@ class _TokensScreenState extends State<TokensScreen> {
     final useGettoni = context.watch<DashboardProvider>().useGettoni;
     final auth = context.watch<AuthProvider>();
     final theme = context.watch<ThemeProvider>();
-    final initials = teamInitials(theme.teamName, fallback: 'CA');
+    final initials = teamInitials(theme.teamName);
 
     if (!useGettoni) {
       return Column(

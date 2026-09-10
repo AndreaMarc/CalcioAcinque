@@ -187,7 +187,7 @@ class _LiveMatchScreenState extends State<LiveMatchScreen>
   @override
   Widget build(BuildContext context) {
     final theme = context.watch<ThemeProvider>();
-    final initials = teamInitials(theme.teamName, fallback: 'CA');
+    final initials = teamInitials(theme.teamName);
 
     return Consumer2<MatchesProvider, AttendanceProvider>(
       builder: (context, matchProv, attProv, _) {

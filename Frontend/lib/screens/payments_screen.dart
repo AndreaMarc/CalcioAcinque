@@ -107,7 +107,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final theme = context.watch<ThemeProvider>();
-    final initials = teamInitials(theme.teamName, fallback: 'CA');
+    final initials = teamInitials(theme.teamName);
     final filtered = _filteredPayments;
     final inVerifica = _payments.where((p) => p.inVerifica).length;
     final seasons = context.watch<ClubProvider>().seasons;

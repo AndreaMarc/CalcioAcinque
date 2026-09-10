@@ -5,23 +5,27 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Server=infra-mysql-1;Database=calcioacinque;User=root;Password=RocketStudio2026!;
+      # Origin ammessi dal CORS. Il vecchio dominio resta finche' le PWA
+      # installate prima del rebrand non vengono reinstallate (vedi README/piano):
+      # da togliere a fine transizione.
+      - Cors__AllowedOrigins=https://incampo.studiorocket.it,https://calcioacinque.studiorocket.it
       # Notifiche push. Generare le chiavi UNA volta con:
       #   dotnet run --project Backend -- --generate-vapid
       # e passarle dall'ambiente della shell (docker compose le legge da li'),
       # cosi' la chiave privata non finisce nel repo. Senza chiavi il push resta spento.
       - Push__VapidPublicKey=${PUSH_VAPID_PUBLIC_KEY:-}
       - Push__VapidPrivateKey=${PUSH_VAPID_PRIVATE_KEY:-}
-      - Push__Subject=${PUSH_SUBJECT:-mailto:admin@calcioacinque.it}
+      - Push__Subject=${PUSH_SUBJECT:-mailto:admin@incampo.studiorocket.it}
     networks:
       - web
     labels:
       - traefik.enable=true
-      - traefik.http.routers.calcioacinque-api.rule=Host(`calcioacinque-api.studiorocket.it`)
-      - traefik.http.routers.calcioacinque-api.entrypoints=websecure
-      - traefik.http.routers.calcioacinque-api.tls.certresolver=letsencrypt
-      - traefik.http.routers.calcioacinque-api-http.rule=Host(`calcioacinque-api.studiorocket.it`)
-      - traefik.http.routers.calcioacinque-api-http.entrypoints=web
-      - traefik.http.services.calcioacinque-api.loadbalancer.server.port=8080
+      # L'API risponde su ENTRAMBI gli host, senza redirect: un 301 romperebbe
+      # le preflight CORS e le fetch con Authorization dei frontend vecchi.
+      - traefik.http.routers.incampo-api.rule=Host(`incampo-api.studiorocket.it`) || Host(`calcioacinque-api.studiorocket.it`)
+      - traefik.http.routers.incampo-api.entrypoints=websecure
+      - traefik.http.routers.incampo-api.tls.certresolver=letsencrypt
+      - traefik.http.services.incampo-api.loadbalancer.server.port=8080
 
   frontend:
     build: ./Frontend
@@ -30,12 +34,19 @@ services:
       - web
     labels:
       - traefik.enable=true
-      - traefik.http.routers.calcioacinque.rule=Host(`calcioacinque.studiorocket.it`)
-      - traefik.http.routers.calcioacinque.entrypoints=websecure
-      - traefik.http.routers.calcioacinque.tls.certresolver=letsencrypt
-      - traefik.http.routers.calcioacinque-http.rule=Host(`calcioacinque.studiorocket.it`)
-      - traefik.http.routers.calcioacinque-http.entrypoints=web
-      - traefik.http.services.calcioacinque.loadbalancer.server.port=80
+      - traefik.http.routers.incampo.rule=Host(`incampo.studiorocket.it`)
+      - traefik.http.routers.incampo.entrypoints=websecure
+      - traefik.http.routers.incampo.tls.certresolver=letsencrypt
+      - traefik.http.services.incampo.loadbalancer.server.port=80
+      # Vecchio dominio: redirect permanente al nuovo (serve il suo certificato,
+      # altrimenti il browser si ferma prima del 301). Da rimuovere a fine transizione.
+      - traefik.http.routers.incampo-legacy.rule=Host(`calcioacinque.studiorocket.it`)
+      - traefik.http.routers.incampo-legacy.entrypoints=websecure
+      - traefik.http.routers.incampo-legacy.tls.certresolver=letsencrypt
+      - traefik.http.routers.incampo-legacy.middlewares=incampo-redirect
+      - traefik.http.middlewares.incampo-redirect.redirectregex.regex=^https://calcioacinque\.studiorocket\.it/(.*)
+      - traefik.http.middlewares.incampo-redirect.redirectregex.replacement=https://incampo.studiorocket.it/$${1}
+      - traefik.http.middlewares.incampo-redirect.redirectregex.permanent=true
 
 networks:
   web:

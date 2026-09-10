@@ -40,17 +40,17 @@ import 'screens/club_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('it_IT', null);
-  runApp(const CalcioAcinqueApp());
+  runApp(const InCampoApp());
 }
 
-class CalcioAcinqueApp extends StatefulWidget {
-  const CalcioAcinqueApp({super.key});
+class InCampoApp extends StatefulWidget {
+  const InCampoApp({super.key});
 
   @override
-  State<CalcioAcinqueApp> createState() => _CalcioAcinqueAppState();
+  State<InCampoApp> createState() => _InCampoAppState();
 }
 
-class _CalcioAcinqueAppState extends State<CalcioAcinqueApp> {
+class _InCampoAppState extends State<InCampoApp> {
   late final SecureStorageService _storage;
   late final ApiClient _apiClient;
   late final AuthProvider _authProvider;

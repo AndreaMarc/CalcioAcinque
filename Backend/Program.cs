@@ -92,9 +92,9 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "CalcioAcinque API",
+        Title = "InCampo API",
         Version = "v1",
-        Description = "API per gestione presenze e gettoni partita - Calcio a 5"
+        Description = "API InCampo - convocazioni, presenze, gettoni e quote per squadre di calcio a 5, 7, 8 e 11"
     });
 
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -139,7 +139,7 @@ builder.Services.AddCors(options =>
         {
             // In produzione consenti solo l'origin del frontend
             var allowedOrigins = (builder.Configuration["Cors:AllowedOrigins"]
-                                  ?? "https://calcioacinque.studiorocket.it")
+                                  ?? "https://incampo.studiorocket.it")
                 .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             policy.WithOrigins(allowedOrigins)
                   .AllowAnyHeader()
@@ -165,7 +165,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "CalcioAcinque API v1");
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "InCampo API v1");
         c.RoutePrefix = string.Empty;
     });
 }
@@ -194,7 +194,7 @@ app.MapGet("/health", () => Results.Ok(new
 {
     status = "healthy",
     timestamp = DateTime.UtcNow,
-    service = "CalcioAcinque API"
+    service = "InCampo API"
 }));
 
 app.Run();

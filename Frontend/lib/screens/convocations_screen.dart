@@ -62,7 +62,7 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
     final paper = isDark ? AppTokens.darkPaper : AppTokens.paper;
     final auth = context.watch<AuthProvider>();
     final theme = context.watch<ThemeProvider>();
-    final initials = teamInitials(theme.teamName, fallback: 'CA');
+    final initials = teamInitials(theme.teamName);
 
     return Scaffold(
       backgroundColor: paper,

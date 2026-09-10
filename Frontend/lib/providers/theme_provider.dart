@@ -91,7 +91,7 @@ class ThemeProvider extends ChangeNotifier {
   static const String _legacyKeyDarkMode = 'gimmy_dark_mode';
 
   int? _currentTeamId;
-  String _teamName = 'Calcio a 5';
+  String _teamName = 'InCampo';
   // Default brand = InCampo electric pitch green (was verde scuro 0xFF1B5E20)
   Color _primaryColor = AppTokens.brand;
   Color _accentColor = AppTokens.ink;
@@ -136,7 +136,7 @@ class ThemeProvider extends ChangeNotifier {
 
   Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
-    _teamName = prefs.getString(_keyTeamName()) ?? 'Calcio a 5';
+    _teamName = prefs.getString(_keyTeamName()) ?? 'InCampo';
     final primaryValue = prefs.getInt(_keyPrimaryColor());
     _primaryColor = primaryValue != null ? Color(primaryValue) : AppTokens.brand;
     final accentValue = prefs.getInt(_keyAccentColor());

@@ -92,7 +92,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final greeting = player != null
         ? 'Ciao, ${player.soprannome?.isNotEmpty == true ? player.soprannome : player.nome.split(' ').first}'
         : 'Benvenuto';
-    final initials = teamInitials(theme.teamName, fallback: 'CA');
+    final initials = teamInitials(theme.teamName);
 
     return Column(
       children: [

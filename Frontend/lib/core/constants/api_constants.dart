@@ -1,5 +1,5 @@
 class ApiConstants {
-  static const String baseUrl = 'https://calcioacinque-api.studiorocket.it';
+  static const String baseUrl = 'https://incampo-api.studiorocket.it';
   static const String login = '/api/auth/login';
   static const String signup = '/api/auth/signup';
   static const String register = '/api/auth/register';

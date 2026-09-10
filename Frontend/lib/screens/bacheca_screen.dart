@@ -33,7 +33,7 @@ class _BachecaScreenState extends State<BachecaScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final theme = context.watch<ThemeProvider>();
-    final initials = teamInitials(theme.teamName, fallback: 'CA');
+    final initials = teamInitials(theme.teamName);
 
     return Consumer<AnnouncementsProvider>(
       builder: (context, prov, _) {
