@@ -175,7 +175,7 @@ class _PlayersScreenState extends State<PlayersScreen> {
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 1.2,
-                                  color: const Color(0xFF9D6BFF),
+                                  color: AppTokens.guest,
                                 ),
                               ),
                             ),
@@ -796,7 +796,6 @@ class _PendingCard extends StatelessWidget {
   final bool isAdmin;
   final VoidCallback? onRemove;
 
-  static const Color _purple = Color(0xFF9D6BFF);
 
   const _PendingCard({
     required this.pending,
@@ -814,9 +813,9 @@ class _PendingCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: _purple.withOpacity(isDark ? 0.10 : 0.06),
+        color: AppTokens.guest.withOpacity(isDark ? 0.10 : 0.06),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _purple.withOpacity(0.3)),
+        border: Border.all(color: AppTokens.guest.withOpacity(0.3)),
       ),
       child: Row(
         children: [
@@ -824,11 +823,11 @@ class _PendingCard extends StatelessWidget {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: _purple.withOpacity(0.18),
+              color: AppTokens.guest.withOpacity(0.18),
               borderRadius: BorderRadius.circular(12),
             ),
             alignment: Alignment.center,
-            child: const Icon(Icons.hourglass_empty, color: _purple, size: 22),
+            child: const Icon(Icons.hourglass_empty, color: AppTokens.guest, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -859,13 +858,13 @@ class _PendingCard extends StatelessWidget {
                         (i) => Icon(
                           i < p.bravura ? Icons.star_rounded : Icons.star_outline_rounded,
                           size: 12,
-                          color: i < p.bravura ? _purple : muteColor.withOpacity(0.4),
+                          color: i < p.bravura ? AppTokens.guest : muteColor.withOpacity(0.4),
                         ),
                       ),
                     ),
                     if (p.tesserato) ...[
                       const SizedBox(width: 6),
-                      const Icon(Icons.verified, size: 13, color: _purple),
+                      const Icon(Icons.verified, size: 13, color: AppTokens.guest),
                     ],
                   ],
                 ),
@@ -875,7 +874,7 @@ class _PendingCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: _purple.withOpacity(0.15),
+              color: AppTokens.guest.withOpacity(0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -884,7 +883,7 @@ class _PendingCard extends StatelessWidget {
                 fontSize: 9,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.6,
-                color: _purple,
+                color: AppTokens.guest,
               ),
             ),
           ),

@@ -448,21 +448,15 @@ class _ConvTile extends StatelessWidget {
     Color fg;
     IconData icon;
     if (conv.isConfermato) {
-      bg = isDark
-          ? AppTokens.ok.withOpacity(0.15)
-          : const Color(0xFFDCF6E8);
+      bg = AppTokens.softOf(AppTokens.ok, isDark: isDark);
       fg = AppTokens.ok;
       icon = Icons.check;
     } else if (conv.isNonDisponibile) {
-      bg = isDark
-          ? AppTokens.bad.withOpacity(0.15)
-          : const Color(0xFFFCE0E0);
+      bg = AppTokens.softOf(AppTokens.bad, isDark: isDark);
       fg = AppTokens.bad;
       icon = Icons.close;
     } else {
-      bg = isDark
-          ? AppTokens.warn.withOpacity(0.15)
-          : const Color(0xFFFCEDD2);
+      bg = AppTokens.softOf(AppTokens.warn, isDark: isDark);
       fg = AppTokens.warn;
       icon = Icons.access_time;
     }

@@ -592,13 +592,10 @@ class _Transactions extends StatelessWidget {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: positive
-                            ? (isDark
-                                ? AppTokens.ok.withOpacity(0.15)
-                                : const Color(0xFFDCF6E8))
-                            : (isDark
-                                ? AppTokens.bad.withOpacity(0.15)
-                                : const Color(0xFFFCE0E0)),
+                        color: AppTokens.softOf(
+                          positive ? AppTokens.ok : AppTokens.bad,
+                          isDark: isDark,
+                        ),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       alignment: Alignment.center,

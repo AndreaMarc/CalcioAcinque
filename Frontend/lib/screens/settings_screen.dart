@@ -2468,9 +2468,7 @@ class _BrandCard extends StatelessWidget {
                       width: 64,
                       height: 64,
                       decoration: BoxDecoration(
-                        color: dark
-                            ? AppTokens.darkPaper
-                            : const Color(0xFFF2F0EA),
+                        color: dark ? AppTokens.darkPaper : AppTokens.paperLow,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: lineColor),
                       ),

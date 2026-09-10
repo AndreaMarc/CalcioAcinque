@@ -858,9 +858,7 @@ class _AvailabilityRow extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: disponibile
-                  ? (isDark ? AppTokens.ok.withOpacity(0.15) : const Color(0xFFDCF6E8))
-                  : (isDark ? AppTokens.bad.withOpacity(0.15) : const Color(0xFFFCE0E0)),
+              color: AppTokens.softOf(disponibile ? AppTokens.ok : AppTokens.bad, isDark: isDark),
               borderRadius: BorderRadius.circular(10),
             ),
             alignment: Alignment.center,
@@ -923,17 +921,17 @@ class _ConvocationRow extends StatelessWidget {
     IconData icon;
     switch (stato) {
       case 'Confermato':
-        bg = isDark ? AppTokens.ok.withOpacity(0.15) : const Color(0xFFDCF6E8);
+        bg = AppTokens.softOf(AppTokens.ok, isDark: isDark);
         fg = AppTokens.ok;
         icon = Icons.check;
         break;
       case 'NonDisponibile':
-        bg = isDark ? AppTokens.bad.withOpacity(0.15) : const Color(0xFFFCE0E0);
+        bg = AppTokens.softOf(AppTokens.bad, isDark: isDark);
         fg = AppTokens.bad;
         icon = Icons.close;
         break;
       default:
-        bg = isDark ? AppTokens.warn.withOpacity(0.15) : const Color(0xFFFCEDD2);
+        bg = AppTokens.softOf(AppTokens.warn, isDark: isDark);
         fg = AppTokens.warn;
         icon = Icons.access_time;
     }

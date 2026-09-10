@@ -1034,7 +1034,6 @@ AppChipVariant _chipVariantFor(DraftStatus s) {
   }
 }
 
-const Color _kFriendColor = Color(0xFF9D6BFF);
 
 class _CandidateTile extends StatelessWidget {
   final DraftCandidate candidate;
@@ -1052,12 +1051,12 @@ class _CandidateTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = candidate;
-    final accent = c.isFriend ? _kFriendColor : _colorFor(c.stato);
+    final accent = c.isFriend ? AppTokens.guest : _colorFor(c.stato);
     final bg = c.isFriend
-        ? _kFriendColor.withOpacity(0.06)
+        ? AppTokens.guest.withOpacity(0.06)
         : Colors.white.withOpacity(0.04);
     final border = c.isFriend
-        ? _kFriendColor.withOpacity(0.3)
+        ? AppTokens.guest.withOpacity(0.3)
         : Colors.white.withOpacity(0.08);
     return InkWell(
       onTap: onTap,
@@ -1109,7 +1108,7 @@ class _CandidateTile extends StatelessWidget {
                           'Amico (da identificare)',
                           style: GoogleFonts.spaceGrotesk(
                             fontSize: 11,
-                            color: _kFriendColor.withOpacity(0.85),
+                            color: AppTokens.guest.withOpacity(0.85),
                             fontWeight: FontWeight.w600,
                           ),
                         )
@@ -1154,21 +1153,21 @@ class _CandidateTile extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: _kFriendColor.withOpacity(0.15),
+                        color: AppTokens.guest.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: _kFriendColor.withOpacity(0.4)),
+                        border: Border.all(color: AppTokens.guest.withOpacity(0.4)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.group_add, size: 13, color: _kFriendColor),
+                          const Icon(Icons.group_add, size: 13, color: AppTokens.guest),
                           const SizedBox(width: 6),
                           Text(
                             '+ amici',
                             style: GoogleFonts.spaceGrotesk(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: _kFriendColor,
+                              color: AppTokens.guest,
                               letterSpacing: 0.02,
                             ),
                           ),

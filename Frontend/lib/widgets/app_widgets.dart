@@ -269,16 +269,16 @@ class AppChip extends StatelessWidget {
     late Color fg;
     switch (variant) {
       case AppChipVariant.ok:
-        bg = isDark ? AppTokens.ok.withOpacity(0.15) : const Color(0xFFDCF6E8);
-        fg = isDark ? AppTokens.ok : const Color(0xFF096B3A);
+        bg = AppTokens.softOf(AppTokens.ok, isDark: isDark);
+        fg = isDark ? AppTokens.ok : AppTokens.okInk;
         break;
       case AppChipVariant.warn:
-        bg = isDark ? AppTokens.warn.withOpacity(0.15) : const Color(0xFFFCEDD2);
-        fg = isDark ? AppTokens.warn : const Color(0xFF8A5510);
+        bg = AppTokens.softOf(AppTokens.warn, isDark: isDark);
+        fg = isDark ? AppTokens.warn : AppTokens.warnInk;
         break;
       case AppChipVariant.bad:
-        bg = isDark ? AppTokens.bad.withOpacity(0.15) : const Color(0xFFFCE0E0);
-        fg = isDark ? AppTokens.bad : const Color(0xFF9E2323);
+        bg = AppTokens.softOf(AppTokens.bad, isDark: isDark);
+        fg = isDark ? AppTokens.bad : AppTokens.badInk;
         break;
       case AppChipVariant.brand:
         bg = isDark ? AppTokens.brand.withOpacity(0.15) : AppTokens.brandSoft;
@@ -397,7 +397,7 @@ class CardInk extends StatelessWidget {
             )
           else
             const BoxShadow(
-              color: Color(0x1A0A0E0F),
+              color: AppTokens.inkShadow,
               blurRadius: 40,
               offset: Offset(0, 20),
             ),
@@ -569,7 +569,7 @@ class VsLayout extends StatelessWidget {
                 homeLabel,
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 10,
-                  color: const Color(0xFF9FA7A9),
+                  color: AppTokens.textOnInkMute,
                   letterSpacing: 0.8,
                 ),
               ),
@@ -604,7 +604,7 @@ class VsLayout extends StatelessWidget {
                 awayLabel,
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 10,
-                  color: const Color(0xFF9FA7A9),
+                  color: AppTokens.textOnInkMute,
                   letterSpacing: 0.8,
                 ),
               ),
@@ -752,7 +752,7 @@ class StoryAvatar extends StatelessWidget {
                     gradient: const SweepGradient(
                       colors: [
                         AppTokens.brand,
-                        Color(0xFF00FFA6),
+                        AppTokens.brandGlow,
                         AppTokens.brand,
                       ],
                     ),

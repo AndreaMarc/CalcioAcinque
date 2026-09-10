@@ -528,11 +528,11 @@ class _LiveHeader extends StatelessWidget {
                       height: 8,
                       margin: const EdgeInsets.only(right: 6),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFF3838),
+                        color: AppTokens.live,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFFF3838).withOpacity(
+                            color: AppTokens.live.withOpacity(
                               0.4 + 0.4 * pulse.value,
                             ),
                             blurRadius: 8,
@@ -862,7 +862,7 @@ class _QuickActions extends StatelessWidget {
       _QA('ASSIST', Icons.handshake_outlined, Colors.white, StatType.assist),
       _QA('AMM.', Icons.square, AppTokens.warn, StatType.ammonizione),
       _QA('ESP.', Icons.square_outlined, AppTokens.bad, StatType.espulsione),
-      _QA('AG', Icons.sports_soccer, Colors.orange, StatType.autogoal),
+      _QA('AG', Icons.sports_soccer, AppTokens.away, StatType.autogoal),
       _QA('SUBITO', Icons.shield_outlined, AppTokens.bad, StatType.goalSubiti),
     ];
 
@@ -1011,7 +1011,7 @@ class _TimelineEvent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = home ? AppTokens.brand : const Color(0xFFFF5252);
+    final color = home ? AppTokens.brand : AppTokens.away;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Container(

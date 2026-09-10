@@ -459,7 +459,7 @@ class _HeroMatchCard extends StatelessWidget {
           label,
           style: GoogleFonts.spaceGrotesk(
             fontSize: 10,
-            color: const Color(0xFF9FA7A9),
+            color: AppTokens.textOnInkMute,
             letterSpacing: 0.8,
           ),
         ),

@@ -38,6 +38,26 @@ class AppTokens {
   static const Color warn = Color(0xFFE89A2B);
   static const Color bad = Color(0xFFE84A4A);
   static const Color info = Color(0xFF3B7CF2);
+  // Semantic: tinta chiara di sfondo + inchiostro leggibile sopra (tema chiaro).
+  // In tema scuro si usa semantic.withOpacity(0.15): vedi softOf().
+  static const Color okSoft = Color(0xFFDCF6E8);
+  static const Color okInk = Color(0xFF096B3A);
+  static const Color warnSoft = Color(0xFFFCEDD2);
+  static const Color warnInk = Color(0xFF8A5510);
+  static const Color badSoft = Color(0xFFFCE0E0);
+  static const Color badInk = Color(0xFF9E2323);
+  // Accenti particolari
+  static const Color guest = Color(0xFF9D6BFF);     // ospite / amico / in attesa
+  static const Color live = Color(0xFFFF3838);      // pallino LIVE
+  static const Color away = Color(0xFFFF5252);      // eventi della squadra avversaria
+  static const Color brandGlow = Color(0xFF00FFA6); // anello luminoso StoryAvatar
+  static const Color inkShadow = Color(0x1A0A0E0F); // ombra delle card scure
+
+  // Surface tiers (chiaro) / (scuro)
+  static const Color paperLow = Color(0xFFF2F0EA);
+  static const Color paperHigh = Color(0xFFF6F4EE);
+  static const Color paperHighest = Color(0xFFEEECE4);
+  static const Color darkPaperLow = Color(0xFF0F1314);
 
   // Dark surfaces
   static const Color darkBrand = Color(0xFF00E88C);
@@ -53,6 +73,16 @@ class AppTokens {
   static const double rButton = 14;
   static const double rChip = 999;
   static const double rInput = 14;
+
+  /// Tinta di sfondo per uno stato semantico, coerente tra tema chiaro e scuro.
+  static Color softOf(Color semantic, {required bool isDark}) {
+    if (isDark) return semantic.withOpacity(0.15);
+    if (semantic == ok) return okSoft;
+    if (semantic == warn) return warnSoft;
+    if (semantic == bad) return badSoft;
+    if (semantic == brand) return brandSoft;
+    return semantic.withOpacity(0.12);
+  }
 
   // Typography — Space Grotesk (UI), Bebas Neue (display/numbers)
   static TextTheme buildTextTheme(Brightness b, Color textColor, Color muteColor) {
@@ -213,23 +243,19 @@ class ThemeProvider extends ChangeNotifier {
       onSecondaryContainer: Colors.white,
       tertiary: AppTokens.warn,
       onTertiary: Colors.white,
-      tertiaryContainer: isDark
-          ? AppTokens.warn.withOpacity(0.15)
-          : const Color(0xFFFCEDD2),
-      onTertiaryContainer: const Color(0xFF8A5510),
+      tertiaryContainer: AppTokens.softOf(AppTokens.warn, isDark: isDark),
+      onTertiaryContainer: AppTokens.warnInk,
       error: AppTokens.bad,
       onError: Colors.white,
-      errorContainer: isDark
-          ? AppTokens.bad.withOpacity(0.15)
-          : const Color(0xFFFCE0E0),
-      onErrorContainer: const Color(0xFF9E2323),
+      errorContainer: AppTokens.softOf(AppTokens.bad, isDark: isDark),
+      onErrorContainer: AppTokens.badInk,
       surface: paper,
       onSurface: text,
       surfaceContainerLowest: paper,
-      surfaceContainerLow: isDark ? const Color(0xFF0F1314) : const Color(0xFFF2F0EA),
+      surfaceContainerLow: isDark ? AppTokens.darkPaperLow : AppTokens.paperLow,
       surfaceContainer: card,
-      surfaceContainerHigh: isDark ? AppTokens.ink3 : const Color(0xFFF6F4EE),
-      surfaceContainerHighest: isDark ? AppTokens.ink3 : const Color(0xFFEEECE4),
+      surfaceContainerHigh: isDark ? AppTokens.ink3 : AppTokens.paperHigh,
+      surfaceContainerHighest: isDark ? AppTokens.ink3 : AppTokens.paperHighest,
       onSurfaceVariant: mute,
       outline: line,
       outlineVariant: line.withOpacity(0.5),
@@ -274,7 +300,7 @@ class ThemeProvider extends ChangeNotifier {
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark ? const Color(0xFF0F1314) : const Color(0xFFF2F0EA),
+        fillColor: isDark ? AppTokens.darkPaperLow : AppTokens.paperLow,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppTokens.rInput),
@@ -351,30 +377,6 @@ class ThemeProvider extends ChangeNotifier {
         backgroundColor: brand,
         foregroundColor: onBrand,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      ),
-
-      navigationBarTheme: NavigationBarThemeData(
-        elevation: 0,
-        height: 68,
-        indicatorColor: Colors.transparent,
-        backgroundColor: isDark ? Colors.black : AppTokens.ink,
-        surfaceTintColor: Colors.transparent,
-        iconTheme: WidgetStateProperty.resolveWith((states) {
-          final selected = states.contains(WidgetState.selected);
-          return IconThemeData(
-            color: selected ? brand : AppTokens.textOnInkMute,
-            size: 22,
-          );
-        }),
-        labelTextStyle: WidgetStateProperty.resolveWith((states) {
-          final selected = states.contains(WidgetState.selected);
-          return textTheme.labelSmall!.copyWith(
-            fontSize: 10,
-            letterSpacing: 0.02,
-            fontWeight: FontWeight.w500,
-            color: selected ? brand : AppTokens.textOnInkMute,
-          );
-        }),
       ),
 
       chipTheme: ChipThemeData(
