@@ -10,7 +10,7 @@ import '../providers/players_provider.dart';
 import '../providers/theme_provider.dart';
 import '../models/convocation_model.dart';
 import '../core/constants/api_constants.dart';
-import '../widgets/gimmy_widgets.dart';
+import '../widgets/app_widgets.dart';
 
 class ConvocationsScreen extends StatefulWidget {
   final int matchId;
@@ -59,7 +59,7 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final paper = isDark ? GimmyTokens.darkPaper : GimmyTokens.paper;
+    final paper = isDark ? AppTokens.darkPaper : AppTokens.paper;
     final auth = context.watch<AuthProvider>();
     final theme = context.watch<ThemeProvider>();
     final initials = teamInitials(theme.teamName, fallback: 'CA');
@@ -69,7 +69,7 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            GimmyTopBar(
+            AppTopBar(
               teamInitials: initials,
               title: 'Convocazioni',
               subtitle: () {
@@ -83,7 +83,7 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
               onBack: () => context.pop(),
               actions: [
                 if (auth.puoGestireCampo)
-                  GimmyTopBar.iconAction(
+                  AppTopBar.iconAction(
                     context,
                     Icons.person_add,
                     () => _showSendConvocationsDialog(context),
@@ -110,8 +110,8 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
                               style: GoogleFonts.spaceGrotesk(
                                 fontSize: 14,
                                 color: isDark
-                                    ? GimmyTokens.darkTextMute
-                                    : GimmyTokens.textMute,
+                                    ? AppTokens.darkTextMute
+                                    : AppTokens.textMute,
                               ),
                             ),
                           ),
@@ -166,7 +166,7 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
                           _Head(
                               label: 'DISPONIBILI',
                               count: disponibili.length,
-                              color: GimmyTokens.ok),
+                              color: AppTokens.ok),
                           ...disponibili.map((c) => Padding(
                                 padding:
                                     const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -182,7 +182,7 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
                           _Head(
                               label: 'NON HANNO VOTATO',
                               count: nonVotato.length,
-                              color: GimmyTokens.warn),
+                              color: AppTokens.warn),
                           ...nonVotato.map((c) => Padding(
                                 padding:
                                     const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -198,7 +198,7 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
                           _Head(
                               label: 'NON DISPONIBILI',
                               count: nonDisponibili.length,
-                              color: GimmyTokens.bad),
+                              color: AppTokens.bad),
                           ...nonDisponibili.map((c) => Padding(
                                 padding:
                                     const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -349,21 +349,21 @@ class _SummaryStrip extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-            child: _card(context, '$confermati', 'CONFERMATI', GimmyTokens.ok)),
+            child: _card(context, '$confermati', 'CONFERMATI', AppTokens.ok)),
         const SizedBox(width: 10),
         Expanded(
-            child: _card(context, '$inAttesa', 'ATTESA', GimmyTokens.warn)),
+            child: _card(context, '$inAttesa', 'ATTESA', AppTokens.warn)),
         const SizedBox(width: 10),
-        Expanded(child: _card(context, '$nonDisp', 'NO', GimmyTokens.bad)),
+        Expanded(child: _card(context, '$nonDisp', 'NO', AppTokens.bad)),
       ],
     );
   }
 
   Widget _card(BuildContext context, String v, String l, Color c) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final card = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
-    final line = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final mute = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final card = isDark ? AppTokens.darkCard : AppTokens.card;
+    final line = isDark ? AppTokens.darkLine : AppTokens.line;
+    final mute = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
@@ -412,8 +412,8 @@ class _Head extends StatelessWidget {
             style: GoogleFonts.bebasNeue(
               fontSize: 20,
               color: Theme.of(context).brightness == Brightness.dark
-                  ? GimmyTokens.darkText
-                  : GimmyTokens.text,
+                  ? AppTokens.darkText
+                  : AppTokens.text,
               letterSpacing: 0.02 * 20,
             ),
           ),
@@ -439,31 +439,31 @@ class _ConvTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
 
     Color bg;
     Color fg;
     IconData icon;
     if (conv.isConfermato) {
       bg = isDark
-          ? GimmyTokens.ok.withOpacity(0.15)
+          ? AppTokens.ok.withOpacity(0.15)
           : const Color(0xFFDCF6E8);
-      fg = GimmyTokens.ok;
+      fg = AppTokens.ok;
       icon = Icons.check;
     } else if (conv.isNonDisponibile) {
       bg = isDark
-          ? GimmyTokens.bad.withOpacity(0.15)
+          ? AppTokens.bad.withOpacity(0.15)
           : const Color(0xFFFCE0E0);
-      fg = GimmyTokens.bad;
+      fg = AppTokens.bad;
       icon = Icons.close;
     } else {
       bg = isDark
-          ? GimmyTokens.warn.withOpacity(0.15)
+          ? AppTokens.warn.withOpacity(0.15)
           : const Color(0xFFFCEDD2);
-      fg = GimmyTokens.warn;
+      fg = AppTokens.warn;
       icon = Icons.access_time;
     }
 
@@ -503,7 +503,7 @@ class _ConvTile extends StatelessWidget {
           ),
           if (conv.isInAttesa) ...[
             IconButton(
-              icon: const Icon(Icons.check_circle, size: 26, color: GimmyTokens.ok),
+              icon: const Icon(Icons.check_circle, size: 26, color: AppTokens.ok),
               onPressed: () async {
                 await context
                     .read<ConvocationsProvider>()
@@ -512,7 +512,7 @@ class _ConvTile extends StatelessWidget {
               },
             ),
             IconButton(
-              icon: const Icon(Icons.cancel, size: 26, color: GimmyTokens.bad),
+              icon: const Icon(Icons.cancel, size: 26, color: AppTokens.bad),
               onPressed: () async {
                 await context
                     .read<ConvocationsProvider>()

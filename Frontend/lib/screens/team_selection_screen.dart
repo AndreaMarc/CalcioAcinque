@@ -7,7 +7,7 @@ import '../providers/team_draft_provider.dart';
 import '../providers/theme_provider.dart';
 import '../models/team_draft.dart';
 import '../models/team_membership_info.dart';
-import '../widgets/gimmy_widgets.dart';
+import '../widgets/app_widgets.dart';
 
 class TeamSelectionScreen extends StatefulWidget {
   const TeamSelectionScreen({super.key});
@@ -60,7 +60,7 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
     final teams = auth.teams ?? [];
 
     return Scaffold(
-      backgroundColor: GimmyTokens.ink,
+      backgroundColor: AppTokens.ink,
       body: Stack(
         children: [
           Positioned(
@@ -73,7 +73,7 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    GimmyTokens.brand.withOpacity(0.22),
+                    AppTokens.brand.withOpacity(0.22),
                     Colors.transparent,
                   ],
                 ),
@@ -94,7 +94,7 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 1.54,
-                          color: GimmyTokens.brand,
+                          color: AppTokens.brand,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -154,7 +154,7 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
                                       letterSpacing: 1.4,
-                                      color: GimmyTokens.brand,
+                                      color: AppTokens.brand,
                                     ),
                                   ),
                                   if (draftProvider.isLoading)
@@ -163,7 +163,7 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
                                       height: 12,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 1.5,
-                                        color: GimmyTokens.brand,
+                                        color: AppTokens.brand,
                                       ),
                                     ),
                                 ],
@@ -222,8 +222,8 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
                       height: 54,
                       decoration: BoxDecoration(
                         color: _selectedTeamId != null
-                            ? GimmyTokens.brand
-                            : GimmyTokens.brand.withOpacity(0.3),
+                            ? AppTokens.brand
+                            : AppTokens.brand.withOpacity(0.3),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       alignment: Alignment.center,
@@ -233,7 +233,7 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
                               height: 22,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
-                                color: GimmyTokens.brandInk,
+                                color: AppTokens.brandInk,
                               ),
                             )
                           : Row(
@@ -245,13 +245,13 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
                                   style: GoogleFonts.spaceGrotesk(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
-                                    color: GimmyTokens.brandInk,
+                                    color: AppTokens.brandInk,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 const Icon(
                                   Icons.arrow_forward,
-                                  color: GimmyTokens.brandInk,
+                                  color: AppTokens.brandInk,
                                   size: 18,
                                 ),
                               ],
@@ -270,7 +270,7 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
   void _showCreateOrJoin() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: GimmyTokens.ink2,
+      backgroundColor: AppTokens.ink2,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -289,7 +289,7 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.tune, color: GimmyTokens.brand),
+              leading: const Icon(Icons.tune, color: AppTokens.brand),
               title: const Text('Pianifica con il configuratore',
                   style: TextStyle(color: Colors.white)),
               subtitle: Text(
@@ -303,7 +303,7 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.add_circle_outline,
-                  color: GimmyTokens.brand),
+                  color: AppTokens.brand),
               title: const Text('Crea nuovo team',
                   style: TextStyle(color: Colors.white)),
               onTap: () {
@@ -312,7 +312,7 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.link, color: GimmyTokens.brand),
+              leading: const Icon(Icons.link, color: AppTokens.brand),
               title: const Text('Unisciti con codice',
                   style: TextStyle(color: Colors.white)),
               onTap: () {
@@ -584,12 +584,12 @@ class _TeamTile extends StatelessWidget {
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: selected
-              ? GimmyTokens.brand.withOpacity(0.08)
+              ? AppTokens.brand.withOpacity(0.08)
               : Colors.white.withOpacity(0.04),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected
-                ? GimmyTokens.brand
+                ? AppTokens.brand
                 : Colors.white.withOpacity(0.08),
             width: selected ? 1.5 : 1,
           ),
@@ -600,7 +600,7 @@ class _TeamTile extends StatelessWidget {
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: selected ? GimmyTokens.brand : Colors.white.withOpacity(0.1),
+                color: selected ? AppTokens.brand : Colors.white.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(14),
               ),
               alignment: Alignment.center,
@@ -608,7 +608,7 @@ class _TeamTile extends StatelessWidget {
                 team.formatoShortLabel.isNotEmpty ? team.formatoShortLabel : initials,
                 style: GoogleFonts.bebasNeue(
                   fontSize: 20,
-                  color: selected ? GimmyTokens.brandInk : Colors.white,
+                  color: selected ? AppTokens.brandInk : Colors.white,
                 ),
               ),
             ),
@@ -640,7 +640,7 @@ class _TeamTile extends StatelessWidget {
               ),
             ),
             selected
-                ? const Icon(Icons.check_circle, color: GimmyTokens.brand, size: 22)
+                ? const Icon(Icons.check_circle, color: AppTokens.brand, size: 22)
                 : Icon(Icons.chevron_right,
                     color: Colors.white.withOpacity(0.4), size: 18),
           ],
@@ -666,9 +666,9 @@ class _DraftTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: GimmyTokens.brand.withOpacity(0.06),
+          color: AppTokens.brand.withOpacity(0.06),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: GimmyTokens.brand.withOpacity(0.25)),
+          border: Border.all(color: AppTokens.brand.withOpacity(0.25)),
         ),
         child: Row(
           children: [
@@ -676,7 +676,7 @@ class _DraftTile extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: GimmyTokens.brand,
+                color: AppTokens.brand,
                 borderRadius: BorderRadius.circular(12),
               ),
               alignment: Alignment.center,
@@ -686,7 +686,7 @@ class _DraftTile extends StatelessWidget {
                 children: [
                   Text(
                     initials,
-                    style: GoogleFonts.bebasNeue(fontSize: 22, color: GimmyTokens.brandInk),
+                    style: GoogleFonts.bebasNeue(fontSize: 22, color: AppTokens.brandInk),
                   ),
                   Positioned(
                     bottom: -4,
@@ -695,11 +695,11 @@ class _DraftTile extends StatelessWidget {
                       width: 18,
                       height: 18,
                       decoration: BoxDecoration(
-                        color: GimmyTokens.ink,
+                        color: AppTokens.ink,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       alignment: Alignment.center,
-                      child: const Icon(Icons.tune, size: 11, color: GimmyTokens.brand),
+                      child: const Icon(Icons.tune, size: 11, color: AppTokens.brand),
                     ),
                   ),
                 ],
@@ -728,7 +728,7 @@ class _DraftTile extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                         decoration: BoxDecoration(
                           color: draft.isOwner
-                              ? GimmyTokens.brand.withOpacity(0.25)
+                              ? AppTokens.brand.withOpacity(0.25)
                               : Colors.white.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(6),
                         ),
@@ -738,7 +738,7 @@ class _DraftTile extends StatelessWidget {
                             fontSize: 9,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.8,
-                            color: draft.isOwner ? GimmyTokens.brand : Colors.white70,
+                            color: draft.isOwner ? AppTokens.brand : Colors.white70,
                           ),
                         ),
                       ),

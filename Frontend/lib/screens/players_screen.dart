@@ -12,7 +12,7 @@ import '../models/payment_model.dart';
 import '../models/ruoli.dart';
 import '../models/team_format.dart';
 import '../providers/club_provider.dart';
-import '../widgets/gimmy_widgets.dart';
+import '../widgets/app_widgets.dart';
 
 class PlayersScreen extends StatefulWidget {
   const PlayersScreen({super.key});
@@ -80,7 +80,7 @@ class _PlayersScreenState extends State<PlayersScreen> {
 
         return Column(
           children: [
-            GimmyTopBar(
+            AppTopBar(
               teamInitials: initials,
               title: 'Rosa',
               subtitle: [
@@ -89,7 +89,7 @@ class _PlayersScreenState extends State<PlayersScreen> {
               ].whereType<String>().join(' · '),
               actions: [
                 if (auth.puoGestireSquadra)
-                  GimmyTopBar.iconAction(
+                  AppTopBar.iconAction(
                     context,
                     Icons.add,
                     () => _showAddPlayerDialog(context),
@@ -209,7 +209,7 @@ class _PlayersScreenState extends State<PlayersScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: GimmyTokens.bad),
+            style: FilledButton.styleFrom(backgroundColor: AppTokens.bad),
             onPressed: () async {
               Navigator.pop(ctx);
               final auth = context.read<AuthProvider>();
@@ -247,9 +247,9 @@ class _PlayersScreenState extends State<PlayersScreen> {
             ),
             const Divider(),
             ListTile(
-              leading: const Icon(Icons.delete, color: GimmyTokens.bad),
+              leading: const Icon(Icons.delete, color: AppTokens.bad),
               title: const Text('Elimina',
-                  style: TextStyle(color: GimmyTokens.bad)),
+                  style: TextStyle(color: AppTokens.bad)),
               onTap: () {
                 Navigator.pop(ctx);
                 _showDeleteConfirmDialog(context, player);
@@ -546,7 +546,7 @@ class _PlayersScreenState extends State<PlayersScreen> {
                 ));
               }
             },
-            style: FilledButton.styleFrom(backgroundColor: GimmyTokens.bad),
+            style: FilledButton.styleFrom(backgroundColor: AppTokens.bad),
             child: const Text('Elimina'),
           ),
         ],
@@ -711,10 +711,10 @@ class _SearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? GimmyTokens.darkCard : Colors.white;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final cardColor = isDark ? AppTokens.darkCard : Colors.white;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
 
     return Container(
       decoration: BoxDecoration(
@@ -759,14 +759,14 @@ class _FilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = active
-        ? (isDark ? GimmyTokens.ink3 : GimmyTokens.ink)
-        : (isDark ? GimmyTokens.darkCard : GimmyTokens.card);
+        ? (isDark ? AppTokens.ink3 : AppTokens.ink)
+        : (isDark ? AppTokens.darkCard : AppTokens.card);
     final fg = active
         ? Colors.white
-        : (isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute);
+        : (isDark ? AppTokens.darkTextMute : AppTokens.textMute);
     final border = active
         ? Colors.transparent
-        : (isDark ? GimmyTokens.darkLine : GimmyTokens.line);
+        : (isDark ? AppTokens.darkLine : AppTokens.line);
 
     return InkWell(
       onTap: onTap,
@@ -807,8 +807,8 @@ class _PendingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
     final p = pending;
 
     return Container(
@@ -918,10 +918,10 @@ class _PlayerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
     final pct = player.gettoniTotali > 0
         ? player.gettoniRimanenti / player.gettoniTotali
         : 0.0;
@@ -950,10 +950,10 @@ class _PlayerCard extends StatelessWidget {
                     size: 50,
                     radius: 12,
                     fontSize: 24,
-                    bg: GimmyTokens.ink,
+                    bg: AppTokens.ink,
                     fg: player.gettoniEsauriti
-                        ? GimmyTokens.bad
-                        : GimmyTokens.brand,
+                        ? AppTokens.bad
+                        : AppTokens.brand,
                   ),
                   if (player.ruoloBadge != null)
                     Positioned(
@@ -963,7 +963,7 @@ class _PlayerCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 5, vertical: 2),
                         decoration: BoxDecoration(
-                          color: GimmyTokens.brand,
+                          color: AppTokens.brand,
                           borderRadius: BorderRadius.circular(5),
                           border: Border.all(color: cardColor, width: 2),
                         ),
@@ -972,7 +972,7 @@ class _PlayerCard extends StatelessWidget {
                           style: GoogleFonts.spaceGrotesk(
                             fontSize: 8,
                             fontWeight: FontWeight.w700,
-                            color: GimmyTokens.brandInk,
+                            color: AppTokens.brandInk,
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -1010,12 +1010,12 @@ class _PlayerCard extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: GimmyBar(
+                          child: AppProgressBar(
                             value: pct,
                             height: 4,
                             fillColor: warn
-                                ? GimmyTokens.bad
-                                : (isDark ? Colors.white : GimmyTokens.ink),
+                                ? AppTokens.bad
+                                : (isDark ? Colors.white : AppTokens.ink),
                           ),
                         ),
                         const SizedBox(width: 8),

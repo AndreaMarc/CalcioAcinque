@@ -8,7 +8,7 @@ import '../providers/attendance_provider.dart';
 import '../providers/dashboard_provider.dart';
 import '../providers/theme_provider.dart';
 import '../models/attendance_model.dart';
-import '../widgets/gimmy_widgets.dart';
+import '../widgets/app_widgets.dart';
 
 class MatchDayScreen extends StatefulWidget {
   final int matchId;
@@ -32,7 +32,7 @@ class _MatchDayScreenState extends State<MatchDayScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final paper = isDark ? GimmyTokens.darkPaper : GimmyTokens.paper;
+    final paper = isDark ? AppTokens.darkPaper : AppTokens.paper;
     final auth = context.watch<AuthProvider>();
     final useGettoni = context.watch<DashboardProvider>().useGettoni;
     final theme = context.watch<ThemeProvider>();
@@ -43,7 +43,7 @@ class _MatchDayScreenState extends State<MatchDayScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            GimmyTopBar(
+            AppTopBar(
               teamInitials: initials,
               title: 'Match Day',
               subtitle: 'Presenze e statistiche',
@@ -69,8 +69,8 @@ class _MatchDayScreenState extends State<MatchDayScreen> {
                               style: GoogleFonts.spaceGrotesk(
                                 fontSize: 14,
                                 color: isDark
-                                    ? GimmyTokens.darkTextMute
-                                    : GimmyTokens.textMute,
+                                    ? AppTokens.darkTextMute
+                                    : AppTokens.textMute,
                               ),
                             ),
                           ),
@@ -158,7 +158,7 @@ class _MatchDayHero extends StatelessWidget {
               fontSize: 11,
               fontWeight: FontWeight.w600,
               letterSpacing: 1.54,
-              color: GimmyTokens.brand,
+              color: AppTokens.brand,
             ),
           ),
           const SizedBox(height: 6),
@@ -197,7 +197,7 @@ class _MatchDayHero extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: _mini('$presenti', 'PRESENTI', GimmyTokens.brand),
+                  child: _mini('$presenti', 'PRESENTI', AppTokens.brand),
                 ),
                 _divider(),
                 Expanded(
@@ -227,7 +227,7 @@ class _MatchDayHero extends StatelessWidget {
           style: GoogleFonts.spaceGrotesk(
             fontSize: 10,
             fontWeight: FontWeight.w600,
-            color: GimmyTokens.textOnInkMute,
+            color: AppTokens.textOnInkMute,
             letterSpacing: 0.8,
           ),
         ),
@@ -254,10 +254,10 @@ class _AttRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
     final name = attendance.soprannome ?? attendance.nomeGiocatore;
 
     return InkWell(
@@ -272,7 +272,7 @@ class _AttRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: attendance.haGiocato
-                ? (isDark ? GimmyTokens.darkBrand : GimmyTokens.brand)
+                ? (isDark ? AppTokens.darkBrand : AppTokens.brand)
                     .withOpacity(0.3)
                 : lineColor,
           ),
@@ -285,11 +285,11 @@ class _AttRow extends StatelessWidget {
                   size: 44,
                   fontSize: 20,
                   bg: attendance.haGiocato
-                      ? (isDark ? GimmyTokens.darkBrand : GimmyTokens.brand)
-                      : GimmyTokens.ink,
+                      ? (isDark ? AppTokens.darkBrand : AppTokens.brand)
+                      : AppTokens.ink,
                   fg: attendance.haGiocato
-                      ? GimmyTokens.brandInk
-                      : (isDark ? GimmyTokens.darkBrand : GimmyTokens.brand),
+                      ? AppTokens.brandInk
+                      : (isDark ? AppTokens.darkBrand : AppTokens.brand),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -323,7 +323,7 @@ class _AttRow extends StatelessWidget {
                     context,
                     'PRES',
                     attendance.presente,
-                    GimmyTokens.ok,
+                    AppTokens.ok,
                     onTap: () async {
                       await context
                           .read<AttendanceProvider>()
@@ -337,7 +337,7 @@ class _AttRow extends StatelessWidget {
                     context,
                     'CAMPO',
                     attendance.haGiocato,
-                    isDark ? GimmyTokens.darkBrand : GimmyTokens.brand,
+                    isDark ? AppTokens.darkBrand : AppTokens.brand,
                     onTap: attendance.presente
                         ? () async {
                             await context
@@ -351,16 +351,16 @@ class _AttRow extends StatelessWidget {
                   ),
                 ] else ...[
                   if (attendance.presente)
-                    const GimmyChip(
+                    const AppChip(
                       text: 'PRESENTE',
-                      variant: GimmyChipVariant.ok,
+                      variant: AppChipVariant.ok,
                       fontSize: 9,
                     ),
                   if (attendance.haGiocato) ...[
                     const SizedBox(width: 4),
-                    const GimmyChip(
+                    const AppChip(
                       text: 'CAMPO',
-                      variant: GimmyChipVariant.brand,
+                      variant: AppChipVariant.brand,
                       fontSize: 9,
                     ),
                   ],
@@ -379,22 +379,22 @@ class _AttRow extends StatelessWidget {
                       _stat(
                           Icons.timer_outlined,
                           '${attendance.minutiGiocati}\'',
-                          isDark ? Colors.white : GimmyTokens.ink),
+                          isDark ? Colors.white : AppTokens.ink),
                     if ((attendance.goal ?? 0) > 0)
                       _stat(Icons.sports_soccer, '${attendance.goal}',
-                          GimmyTokens.ok),
+                          AppTokens.ok),
                     if ((attendance.assist ?? 0) > 0)
                       _stat(Icons.handshake_outlined, '${attendance.assist}',
-                          GimmyTokens.info),
+                          AppTokens.info),
                     if ((attendance.ammonizioni ?? 0) > 0)
                       _stat(Icons.square, '${attendance.ammonizioni}',
-                          GimmyTokens.warn),
+                          AppTokens.warn),
                     if ((attendance.espulsioni ?? 0) > 0)
                       _stat(Icons.square_outlined,
-                          '${attendance.espulsioni}', GimmyTokens.bad),
+                          '${attendance.espulsioni}', AppTokens.bad),
                     if ((attendance.goalSubiti ?? 0) > 0)
                       _stat(Icons.shield_outlined,
-                          '${attendance.goalSubiti} GS', GimmyTokens.bad),
+                          '${attendance.goalSubiti} GS', AppTokens.bad),
                   ],
                 ),
               ),
@@ -408,7 +408,7 @@ class _AttRow extends StatelessWidget {
   Widget _toggle(BuildContext context, String label, bool active, Color color,
       {VoidCallback? onTap}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
@@ -434,7 +434,7 @@ class _AttRow extends StatelessWidget {
                 ? lineColor
                 : active
                     ? color
-                    : (isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute),
+                    : (isDark ? AppTokens.darkTextMute : AppTokens.textMute),
             letterSpacing: 0.5,
           ),
         ),

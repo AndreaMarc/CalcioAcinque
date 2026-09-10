@@ -10,7 +10,7 @@ import '../providers/theme_provider.dart';
 import '../core/constants/api_constants.dart';
 import '../models/payment_model.dart';
 import '../models/team_format.dart';
-import '../widgets/gimmy_widgets.dart';
+import '../widgets/app_widgets.dart';
 import '../widgets/payment_links.dart';
 import '../widgets/season_picker.dart';
 
@@ -117,7 +117,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 
     return Column(
       children: [
-        GimmyTopBar(
+        AppTopBar(
           teamInitials: initials,
           title: 'Pagamenti',
           subtitle: seasons.length > 1
@@ -125,19 +125,19 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
               : (auth.puoGestireSoldi ? 'Quote e partite' : 'I tuoi pagamenti'),
           actions: [
             if (auth.puoGestireSoldi && !archivio)
-              GimmyTopBar.iconAction(
+              AppTopBar.iconAction(
                 context,
                 Icons.notifications_active_outlined,
                 _confermaSollecito,
               ),
             if (auth.puoGestireSoldi && !archivio)
-              GimmyTopBar.iconAction(
+              AppTopBar.iconAction(
                 context,
                 Icons.add,
                 () => _showCreatePaymentDialog(context),
               ),
             if (seasons.length > 1)
-              GimmyTopBar.iconAction(context, Icons.event_repeat, _pickSeason),
+              AppTopBar.iconAction(context, Icons.event_repeat, _pickSeason),
           ],
         ),
         if (archivio)
@@ -257,12 +257,12 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final active = _filter == value;
     final bg = active
-        ? (isDark ? GimmyTokens.ink3 : GimmyTokens.ink)
-        : (isDark ? GimmyTokens.darkCard : GimmyTokens.card);
+        ? (isDark ? AppTokens.ink3 : AppTokens.ink)
+        : (isDark ? AppTokens.darkCard : AppTokens.card);
     final fg = active
         ? Colors.white
-        : (isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute);
-    final line = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+        : (isDark ? AppTokens.darkTextMute : AppTokens.textMute);
+    final line = isDark ? AppTokens.darkLine : AppTokens.line;
     return InkWell(
       onTap: () => setState(() => _filter = value),
       borderRadius: BorderRadius.circular(999),
@@ -498,7 +498,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
             ListTile(
               leading: Icon(
                 payment.pagato ? Icons.cancel : Icons.check_circle,
-                color: payment.pagato ? GimmyTokens.warn : GimmyTokens.ok,
+                color: payment.pagato ? AppTokens.warn : AppTokens.ok,
               ),
               title: Text(payment.pagato
                   ? 'Segna come NON pagato'
@@ -544,7 +544,7 @@ class _PaymentsHero extends StatelessWidget {
               fontSize: 11,
               fontWeight: FontWeight.w600,
               letterSpacing: 1.54,
-              color: GimmyTokens.brand,
+              color: AppTokens.brand,
             ),
           ),
           const SizedBox(height: 6),
@@ -573,7 +573,7 @@ class _PaymentsHero extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          GimmyBar(value: ratio, height: 6),
+          AppProgressBar(value: ratio, height: 6),
           const SizedBox(height: 14),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
@@ -586,14 +586,14 @@ class _PaymentsHero extends StatelessWidget {
               children: [
                 Expanded(
                     child: _mini('€${pagato.toStringAsFixed(0)}', 'PAGATI',
-                        GimmyTokens.brand)),
+                        AppTokens.brand)),
                 Container(
                     width: 1,
                     height: 32,
                     color: Colors.white.withOpacity(0.08)),
                 Expanded(
                     child: _mini('€${mancante.toStringAsFixed(0)}',
-                        'MANCANTI', GimmyTokens.bad)),
+                        'MANCANTI', AppTokens.bad)),
               ],
             ),
           ),
@@ -611,7 +611,7 @@ class _PaymentsHero extends StatelessWidget {
           style: GoogleFonts.spaceGrotesk(
             fontSize: 10,
             fontWeight: FontWeight.w600,
-            color: GimmyTokens.textOnInkMute,
+            color: AppTokens.textOnInkMute,
             letterSpacing: 0.8,
           ),
         ),
@@ -640,17 +640,17 @@ class _PaymentRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
 
     // Tre stati e non due: in verifica sta fra "da pagare" e "pagato"
     final statusColor = p.pagato
-        ? GimmyTokens.ok
+        ? AppTokens.ok
         : p.inVerifica
-            ? GimmyTokens.brand
-            : GimmyTokens.warn;
+            ? AppTokens.brand
+            : AppTokens.warn;
     final statusBg = statusColor.withOpacity(isDark ? 0.15 : 0.12);
     final statusIcon = p.pagato
         ? Icons.check
@@ -706,7 +706,7 @@ class _PaymentRow extends StatelessWidget {
                         ].join(' · '),
                         style: GoogleFonts.spaceGrotesk(
                           fontSize: 11,
-                          color: p.inVerifica ? GimmyTokens.brand : muteColor,
+                          color: p.inVerifica ? AppTokens.brand : muteColor,
                         ),
                       ),
                     ],

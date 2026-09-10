@@ -10,7 +10,7 @@ import '../models/team_format.dart';
 import '../providers/auth_provider.dart';
 import '../providers/club_provider.dart';
 import '../providers/theme_provider.dart';
-import '../widgets/gimmy_widgets.dart';
+import '../widgets/app_widgets.dart';
 import '../widgets/payment_links.dart';
 import '../widgets/team_utils.dart';
 
@@ -67,7 +67,7 @@ class _ClubScreenState extends State<ClubScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            GimmyTopBar(
+            AppTopBar(
               teamInitials: teamInitials(selected?.nome ?? theme.teamName, fallback: 'SC'),
               title: 'Societa',
               subtitle: selected?.nome ?? 'Nessuna societa',
@@ -638,9 +638,9 @@ class _TeamsSection extends StatelessWidget {
                               ],
                             ),
                           ),
-                          GimmyChip(
+                          AppChip(
                             text: t.formato.shortLabel,
-                            variant: GimmyChipVariant.brand,
+                            variant: AppChipVariant.brand,
                           ),
                           if (t.mioPlayerId != null)
                             const Padding(
@@ -828,7 +828,7 @@ class _MemberCard extends StatelessWidget {
                           ),
                           if (member.condiviso) ...[
                             const SizedBox(width: 6),
-                            const GimmyChip(text: 'condiviso', variant: GimmyChipVariant.ok),
+                            const AppChip(text: 'condiviso', variant: AppChipVariant.ok),
                           ],
                         ],
                       ),

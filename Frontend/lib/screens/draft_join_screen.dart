@@ -66,7 +66,7 @@ class _DraftJoinScreenState extends State<DraftJoinScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: GimmyTokens.ink,
+      backgroundColor: AppTokens.ink,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(28),
@@ -83,7 +83,7 @@ class _DraftJoinScreenState extends State<DraftJoinScreen> {
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.5,
-                      color: GimmyTokens.brand,
+                      color: AppTokens.brand,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -116,7 +116,7 @@ class _DraftJoinScreenState extends State<DraftJoinScreen> {
                           height: 18,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: GimmyTokens.brand,
+                            color: AppTokens.brand,
                           ),
                         ),
                         SizedBox(width: 12),
@@ -127,19 +127,19 @@ class _DraftJoinScreenState extends State<DraftJoinScreen> {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: GimmyTokens.bad.withOpacity(0.12),
+                        color: AppTokens.bad.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: GimmyTokens.bad.withOpacity(0.3)),
+                        border: Border.all(color: AppTokens.bad.withOpacity(0.3)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline, color: GimmyTokens.bad, size: 18),
+                          const Icon(Icons.error_outline, color: AppTokens.bad, size: 18),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               _error!,
                               style: GoogleFonts.spaceGrotesk(
-                                color: GimmyTokens.bad,
+                                color: AppTokens.bad,
                                 fontSize: 13,
                               ),
                             ),
@@ -151,7 +151,7 @@ class _DraftJoinScreenState extends State<DraftJoinScreen> {
                     TextButton(
                       onPressed: () => context.go('/login'),
                       child: const Text('Torna al login',
-                          style: TextStyle(color: GimmyTokens.brand)),
+                          style: TextStyle(color: AppTokens.brand)),
                     ),
                   ],
                 ],

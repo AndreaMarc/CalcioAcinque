@@ -9,7 +9,7 @@ import '../providers/convocations_provider.dart';
 import '../providers/theme_provider.dart';
 import '../models/match_model.dart';
 import '../core/constants/api_constants.dart';
-import '../widgets/gimmy_widgets.dart';
+import '../widgets/app_widgets.dart';
 import '../widgets/match_incasso_sheet.dart';
 
 class MatchDetailScreen extends StatefulWidget {
@@ -53,7 +53,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final paper = isDark ? GimmyTokens.darkPaper : GimmyTokens.paper;
+    final paper = isDark ? AppTokens.darkPaper : AppTokens.paper;
 
     if (_match == null) {
       return Scaffold(
@@ -72,7 +72,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            GimmyTopBar(
+            AppTopBar(
               teamInitials: initials,
               title: 'Giornata ${match.numeroGiornata}',
               subtitle: '${DateFormat('EEE d MMM', 'it_IT').format(match.data)} · ${match.ora}',
@@ -80,7 +80,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
               actions: [
                 // Anche il cassiere: dentro il menu c'e' l'incasso, che e' suo
                 if (auth.puoGestireCampo || auth.puoGestireSoldi)
-                  GimmyTopBar.iconAction(
+                  AppTopBar.iconAction(
                     context,
                     Icons.more_vert,
                     () => _showAdminMenu(context, match),
@@ -224,7 +224,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
               ),
             if (campo && match.stato == 'InCorso')
               ListTile(
-                leading: const Icon(Icons.stop, color: GimmyTokens.bad),
+                leading: const Icon(Icons.stop, color: AppTokens.bad),
                 title: const Text('Concludi Partita'),
                 onTap: () async {
                   Navigator.pop(ctx);
@@ -236,7 +236,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
             // dopo, quando le presenze sono state sistemate
             if (soldi && match.stato == 'Conclusa')
               ListTile(
-                leading: const Icon(Icons.euro, color: GimmyTokens.brand),
+                leading: const Icon(Icons.euro, color: AppTokens.brand),
                 title: const Text('Incasso partita'),
                 subtitle: const Text('Chi deve pagare questa partita'),
                 onTap: () {
@@ -246,9 +246,9 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
               ),
             if (campo)
               ListTile(
-                leading: const Icon(Icons.delete_outline, color: GimmyTokens.bad),
+                leading: const Icon(Icons.delete_outline, color: AppTokens.bad),
                 title: const Text('Elimina',
-                    style: TextStyle(color: GimmyTokens.bad)),
+                    style: TextStyle(color: AppTokens.bad)),
                 onTap: () {
                   Navigator.pop(ctx);
                   _confirmDelete(context, match);
@@ -401,7 +401,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
               if (ctx.mounted) Navigator.pop(ctx);
               if (success && mounted) context.go('/calendar');
             },
-            style: FilledButton.styleFrom(backgroundColor: GimmyTokens.bad),
+            style: FilledButton.styleFrom(backgroundColor: AppTokens.bad),
             child: const Text('Elimina'),
           ),
         ],
@@ -451,7 +451,7 @@ class _TicketCard extends StatelessWidget {
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             child: Container(
-              color: GimmyTokens.ink,
+              color: AppTokens.ink,
               padding: const EdgeInsets.all(20),
               child: Stack(
                 children: [
@@ -463,7 +463,7 @@ class _TicketCard extends StatelessWidget {
                             center: Alignment.bottomCenter,
                             radius: 1.2,
                             colors: [
-                              GimmyTokens.brand.withOpacity(0.18),
+                              AppTokens.brand.withOpacity(0.18),
                               Colors.transparent,
                             ],
                           ),
@@ -486,7 +486,7 @@ class _TicketCard extends StatelessWidget {
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
                                     letterSpacing: 1.54,
-                                    color: GimmyTokens.brand,
+                                    color: AppTokens.brand,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -509,7 +509,7 @@ class _TicketCard extends StatelessWidget {
                                 style: GoogleFonts.bebasNeue(
                                   fontSize: 38,
                                   height: 0.9,
-                                  color: GimmyTokens.brand,
+                                  color: AppTokens.brand,
                                 ),
                               ),
                               Text(
@@ -517,7 +517,7 @@ class _TicketCard extends StatelessWidget {
                                 style: GoogleFonts.spaceGrotesk(
                                   fontSize: 10,
                                   letterSpacing: 1.2,
-                                  color: GimmyTokens.textOnInkMute,
+                                  color: AppTokens.textOnInkMute,
                                 ),
                               ),
                             ],
@@ -544,14 +544,14 @@ class _TicketCard extends StatelessWidget {
             ),
           ),
           // Perforation
-          _Perforation(bgColor: bgColor, topColor: GimmyTokens.ink),
+          _Perforation(bgColor: bgColor, topColor: AppTokens.ink),
           // White bottom
           ClipRRect(
             borderRadius:
                 const BorderRadius.vertical(bottom: Radius.circular(20)),
             child: Container(
               color: Theme.of(context).brightness == Brightness.dark
-                  ? GimmyTokens.darkCard
+                  ? AppTokens.darkCard
                   : Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
               child: Column(
@@ -576,8 +576,8 @@ class _TicketCard extends StatelessWidget {
                         border: Border(
                           top: BorderSide(
                             color: Theme.of(context).brightness == Brightness.dark
-                                ? GimmyTokens.darkLine
-                                : GimmyTokens.line2,
+                                ? AppTokens.darkLine
+                                : AppTokens.line2,
                             style: BorderStyle.solid,
                           ),
                         ),
@@ -588,8 +588,8 @@ class _TicketCard extends StatelessWidget {
                             Icons.place_outlined,
                             size: 14,
                             color: Theme.of(context).brightness == Brightness.dark
-                                ? GimmyTokens.darkTextMute
-                                : GimmyTokens.textMute,
+                                ? AppTokens.darkTextMute
+                                : AppTokens.textMute,
                           ),
                           const SizedBox(width: 6),
                           Expanded(
@@ -600,8 +600,8 @@ class _TicketCard extends StatelessWidget {
                               style: GoogleFonts.spaceGrotesk(
                                 fontSize: 12,
                                 color: Theme.of(context).brightness == Brightness.dark
-                                    ? GimmyTokens.darkTextMute
-                                    : GimmyTokens.textMute,
+                                    ? AppTokens.darkTextMute
+                                    : AppTokens.textMute,
                               ),
                             ),
                           ),
@@ -621,8 +621,8 @@ class _TicketCard extends StatelessWidget {
   Widget _ticketStat(BuildContext context, String label, String value,
       {bool small = false}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -703,7 +703,7 @@ class _Perforation extends StatelessWidget {
             child: Container(
               height: 11,
               color: Theme.of(context).brightness == Brightness.dark
-                  ? GimmyTokens.darkCard
+                  ? AppTokens.darkCard
                   : Colors.white,
             ),
           ),
@@ -714,7 +714,7 @@ class _Perforation extends StatelessWidget {
             child: _DashedLine(
               color: Theme.of(context).brightness == Brightness.dark
                   ? Colors.white.withOpacity(0.2)
-                  : GimmyTokens.line2,
+                  : AppTokens.line2,
             ),
           ),
         ],
@@ -768,7 +768,7 @@ class _AvailabilitySummary extends StatelessWidget {
             context,
             '$disp',
             'CONFERMATI',
-            GimmyTokens.ok,
+            AppTokens.ok,
           ),
         ),
         const SizedBox(width: 10),
@@ -777,7 +777,7 @@ class _AvailabilitySummary extends StatelessWidget {
             context,
             '$inAttesa',
             'IN ATTESA',
-            GimmyTokens.warn,
+            AppTokens.warn,
           ),
         ),
         const SizedBox(width: 10),
@@ -786,7 +786,7 @@ class _AvailabilitySummary extends StatelessWidget {
             context,
             '$nonDisp',
             'NON DISP.',
-            GimmyTokens.bad,
+            AppTokens.bad,
           ),
         ),
       ],
@@ -795,9 +795,9 @@ class _AvailabilitySummary extends StatelessWidget {
 
   Widget _statCard(BuildContext context, String value, String label, Color color) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
@@ -840,10 +840,10 @@ class _AvailabilityRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -859,15 +859,15 @@ class _AvailabilityRow extends StatelessWidget {
             height: 36,
             decoration: BoxDecoration(
               color: disponibile
-                  ? (isDark ? GimmyTokens.ok.withOpacity(0.15) : const Color(0xFFDCF6E8))
-                  : (isDark ? GimmyTokens.bad.withOpacity(0.15) : const Color(0xFFFCE0E0)),
+                  ? (isDark ? AppTokens.ok.withOpacity(0.15) : const Color(0xFFDCF6E8))
+                  : (isDark ? AppTokens.bad.withOpacity(0.15) : const Color(0xFFFCE0E0)),
               borderRadius: BorderRadius.circular(10),
             ),
             alignment: Alignment.center,
             child: Icon(
               disponibile ? Icons.check : Icons.close,
               size: 18,
-              color: disponibile ? GimmyTokens.ok : GimmyTokens.bad,
+              color: disponibile ? AppTokens.ok : AppTokens.bad,
             ),
           ),
           const SizedBox(width: 12),
@@ -909,10 +909,10 @@ class _ConvocationRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
 
     final name = conv.soprannome ?? conv.nomeGiocatore;
     final fullName = conv.nomeGiocatore;
@@ -923,18 +923,18 @@ class _ConvocationRow extends StatelessWidget {
     IconData icon;
     switch (stato) {
       case 'Confermato':
-        bg = isDark ? GimmyTokens.ok.withOpacity(0.15) : const Color(0xFFDCF6E8);
-        fg = GimmyTokens.ok;
+        bg = isDark ? AppTokens.ok.withOpacity(0.15) : const Color(0xFFDCF6E8);
+        fg = AppTokens.ok;
         icon = Icons.check;
         break;
       case 'NonDisponibile':
-        bg = isDark ? GimmyTokens.bad.withOpacity(0.15) : const Color(0xFFFCE0E0);
-        fg = GimmyTokens.bad;
+        bg = isDark ? AppTokens.bad.withOpacity(0.15) : const Color(0xFFFCE0E0);
+        fg = AppTokens.bad;
         icon = Icons.close;
         break;
       default:
-        bg = isDark ? GimmyTokens.warn.withOpacity(0.15) : const Color(0xFFFCEDD2);
-        fg = GimmyTokens.warn;
+        bg = isDark ? AppTokens.warn.withOpacity(0.15) : const Color(0xFFFCEDD2);
+        fg = AppTokens.warn;
         icon = Icons.access_time;
     }
 
@@ -947,7 +947,7 @@ class _ConvocationRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const JerseyNumber(number: null, bg: GimmyTokens.ink),
+          const JerseyNumber(number: null, bg: AppTokens.ink),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

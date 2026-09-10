@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../core/constants/api_constants.dart';
-import '../widgets/gimmy_widgets.dart';
+import '../widgets/app_widgets.dart';
 
 class StatsScreen extends StatefulWidget {
   const StatsScreen({super.key});
@@ -45,7 +45,7 @@ class _StatsScreenState extends State<StatsScreen> {
     if (_isLoading) {
       return Column(
         children: [
-          GimmyTopBar(teamInitials: initials, title: 'Statistiche'),
+          AppTopBar(teamInitials: initials, title: 'Statistiche'),
           const Expanded(child: Center(child: CircularProgressIndicator())),
         ],
       );
@@ -69,7 +69,7 @@ class _StatsScreenState extends State<StatsScreen> {
 
     return Column(
       children: [
-        GimmyTopBar(
+        AppTopBar(
           teamInitials: initials,
           title: 'Statistiche',
           subtitle: 'Stagione in corso',
@@ -141,10 +141,10 @@ class _TabSwitcher extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final trackColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final activeBg = isDark ? GimmyTokens.darkCard : Colors.white;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final trackColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final activeBg = isDark ? AppTokens.darkCard : Colors.white;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
 
     return Container(
       padding: const EdgeInsets.all(4),
@@ -214,10 +214,10 @@ class _SeasonHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -250,7 +250,7 @@ class _SeasonHero extends StatelessWidget {
                     style: GoogleFonts.spaceGrotesk(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      color: GimmyTokens.ok,
+                      color: AppTokens.ok,
                       letterSpacing: 1,
                     ),
                   ),
@@ -289,7 +289,7 @@ class _SeasonHero extends StatelessWidget {
                         '$sconfitte',
                         style: GoogleFonts.bebasNeue(
                           fontSize: 28,
-                          color: GimmyTokens.bad,
+                          color: AppTokens.bad,
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -325,7 +325,7 @@ class _SeasonHero extends StatelessWidget {
                 diff >= 0 ? '+$diff' : '$diff',
                 style: GoogleFonts.bebasNeue(
                   fontSize: 24,
-                  color: diff >= 0 ? GimmyTokens.ok : GimmyTokens.bad,
+                  color: diff >= 0 ? AppTokens.ok : AppTokens.bad,
                 ),
               ),
             ],
@@ -349,10 +349,10 @@ class _GoalsSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -408,7 +408,7 @@ class _GoalsSummaryCard extends StatelessWidget {
                   '$totGoalSubiti',
                   style: GoogleFonts.bebasNeue(
                     fontSize: 30,
-                    color: GimmyTokens.bad,
+                    color: AppTokens.bad,
                   ),
                 ),
               ],
@@ -436,18 +436,18 @@ class _ScorerRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
 
     final rankBg = rank == 1
-        ? GimmyTokens.brand
+        ? AppTokens.brand
         : rank < 4
-            ? GimmyTokens.ink
-            : (isDark ? GimmyTokens.darkLine : GimmyTokens.line);
+            ? AppTokens.ink
+            : (isDark ? AppTokens.darkLine : AppTokens.line);
     final rankFg = rank == 1
-        ? GimmyTokens.brandInk
+        ? AppTokens.brandInk
         : rank < 4
             ? Colors.white
             : muteColor;
@@ -491,10 +491,10 @@ class _ScorerRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 5),
-                GimmyBar(
+                AppProgressBar(
                   value: maxGoals > 0 ? goals / maxGoals : 0,
                   height: 3,
-                  fillColor: isDark ? Colors.white : GimmyTokens.ink,
+                  fillColor: isDark ? Colors.white : AppTokens.ink,
                 ),
               ],
             ),

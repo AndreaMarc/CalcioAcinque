@@ -6,7 +6,7 @@ import '../providers/dashboard_provider.dart';
 import '../providers/theme_provider.dart';
 import '../core/constants/api_constants.dart';
 import '../models/dashboard_model.dart';
-import '../widgets/gimmy_widgets.dart';
+import '../widgets/app_widgets.dart';
 
 class TokensScreen extends StatefulWidget {
   const TokensScreen({super.key});
@@ -52,7 +52,7 @@ class _TokensScreenState extends State<TokensScreen> {
     if (!useGettoni) {
       return Column(
         children: [
-          GimmyTopBar(
+          AppTopBar(
             teamInitials: initials,
             title: 'Gettoni',
             subtitle: 'Sistema disabilitato',
@@ -62,7 +62,7 @@ class _TokensScreenState extends State<TokensScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.toll, size: 48, color: GimmyTokens.textMute),
+                  Icon(Icons.toll, size: 48, color: AppTokens.textMute),
                   const SizedBox(height: 12),
                   Text('Sistema gettoni disabilitato',
                       style: GoogleFonts.spaceGrotesk(
@@ -78,7 +78,7 @@ class _TokensScreenState extends State<TokensScreen> {
     if (_isLoading) {
       return Column(
         children: [
-          GimmyTopBar(
+          AppTopBar(
             teamInitials: initials,
             title: 'Gettoni',
           ),
@@ -99,7 +99,7 @@ class _TokensScreenState extends State<TokensScreen> {
 
     return Column(
       children: [
-        GimmyTopBar(
+        AppTopBar(
           teamInitials: initials,
           title: 'Gettoni',
           subtitle: 'Classifica squadra',
@@ -168,7 +168,7 @@ class _TokensHero extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: GimmyTokens.brand.withOpacity(0.2),
+                  color: AppTokens.brand.withOpacity(0.2),
                   width: 2,
                 ),
               ),
@@ -183,7 +183,7 @@ class _TokensHero extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: GimmyTokens.brand.withOpacity(0.3),
+                  color: AppTokens.brand.withOpacity(0.3),
                   width: 2,
                 ),
               ),
@@ -198,7 +198,7 @@ class _TokensHero extends StatelessWidget {
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.54,
-                  color: GimmyTokens.brand,
+                  color: AppTokens.brand,
                 ),
               ),
               const SizedBox(height: 8),
@@ -238,7 +238,7 @@ class _TokensHero extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               if (total > 0) ...[
-                GimmyTokensBar(filled: tokens, total: total, cellHeight: 6),
+                GettoniBar(filled: tokens, total: total, cellHeight: 6),
                 const SizedBox(height: 8),
               ],
             ],
@@ -262,22 +262,22 @@ class _RankRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
 
     final bg = isMe
-        ? (isDark ? GimmyTokens.brand.withOpacity(0.12) : GimmyTokens.brandSoft)
+        ? (isDark ? AppTokens.brand.withOpacity(0.12) : AppTokens.brandSoft)
         : cardColor;
     final border =
-        isMe ? GimmyTokens.brand : lineColor;
+        isMe ? AppTokens.brand : lineColor;
     final warn = player.gettoniRimanenti <= 2 && player.gettoniRimanenti > 0;
     final out = player.gettoniRimanenti == 0;
     final valueColor = out
-        ? GimmyTokens.bad
+        ? AppTokens.bad
         : warn
-            ? GimmyTokens.warn
+            ? AppTokens.warn
             : textColor;
 
     return Opacity(
@@ -308,10 +308,10 @@ class _RankRow extends StatelessWidget {
               number: rank,
               size: 40,
               fontSize: 19,
-              bg: GimmyTokens.ink,
+              bg: AppTokens.ink,
               fg: out
-                  ? GimmyTokens.bad
-                  : (isDark ? GimmyTokens.darkBrand : GimmyTokens.brand),
+                  ? AppTokens.bad
+                  : (isDark ? AppTokens.darkBrand : AppTokens.brand),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -328,15 +328,15 @@ class _RankRow extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 3),
-                  GimmyTokensBar(
+                  GettoniBar(
                     filled: player.gettoniRimanenti,
                     total: player.gettoniTotali.clamp(1, 999),
                     cellHeight: 4,
                     filledColor: out
-                        ? GimmyTokens.bad
+                        ? AppTokens.bad
                         : warn
-                            ? GimmyTokens.warn
-                            : (isDark ? Colors.white : GimmyTokens.ink),
+                            ? AppTokens.warn
+                            : (isDark ? Colors.white : AppTokens.ink),
                   ),
                 ],
               ),

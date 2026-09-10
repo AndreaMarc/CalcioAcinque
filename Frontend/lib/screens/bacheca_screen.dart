@@ -6,7 +6,7 @@ import '../providers/auth_provider.dart';
 import '../providers/announcements_provider.dart';
 import '../providers/theme_provider.dart';
 import '../models/announcement_model.dart';
-import '../widgets/gimmy_widgets.dart';
+import '../widgets/app_widgets.dart';
 
 class BachecaScreen extends StatefulWidget {
   const BachecaScreen({super.key});
@@ -39,13 +39,13 @@ class _BachecaScreenState extends State<BachecaScreen> {
       builder: (context, prov, _) {
         return Column(
           children: [
-            GimmyTopBar(
+            AppTopBar(
               teamInitials: initials,
               title: 'Bacheca',
               subtitle: '${prov.announcements.length} aggiornamenti',
               actions: [
                 if (auth.puoGestireCampo)
-                  GimmyTopBar.iconAction(
+                  AppTopBar.iconAction(
                     context,
                     Icons.add,
                     () => _showCreateDialog(context),
@@ -111,7 +111,7 @@ class _BachecaScreenState extends State<BachecaScreen> {
               child: const Text('Annulla')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: GimmyTokens.bad),
+            style: FilledButton.styleFrom(backgroundColor: AppTokens.bad),
             child: const Text('Elimina'),
           ),
         ],
@@ -142,8 +142,8 @@ class _BachecaScreenState extends State<BachecaScreen> {
         expand: false,
         builder: (ctx, scrollController) {
           final isDark = Theme.of(ctx).brightness == Brightness.dark;
-          final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-          final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+          final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+          final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
 
           return ListView(
             controller: scrollController,
@@ -163,9 +163,9 @@ class _BachecaScreenState extends State<BachecaScreen> {
               if (detail.importante)
                 const Padding(
                   padding: EdgeInsets.only(bottom: 8),
-                  child: GimmyChip(
+                  child: AppChip(
                     text: 'IMPORTANTE',
-                    variant: GimmyChipVariant.brand,
+                    variant: AppChipVariant.brand,
                   ),
                 ),
               Text(
@@ -293,14 +293,14 @@ class _BoardCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final line2Color = isDark ? GimmyTokens.darkLine : GimmyTokens.line2;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final line2Color = isDark ? AppTokens.darkLine : AppTokens.line2;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
     final faintColor = isDark
-        ? GimmyTokens.darkTextMute.withOpacity(0.5)
-        : GimmyTokens.textFaint;
+        ? AppTokens.darkTextMute.withOpacity(0.5)
+        : AppTokens.textFaint;
 
     return InkWell(
       onTap: onTap,
@@ -311,7 +311,7 @@ class _BoardCard extends StatelessWidget {
           color: cardColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: ann.importante ? GimmyTokens.brand : lineColor,
+            color: ann.importante ? AppTokens.brand : lineColor,
             width: ann.importante ? 1.5 : 1,
           ),
         ),
@@ -326,7 +326,7 @@ class _BoardCard extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: const BoxDecoration(
-                    color: GimmyTokens.brand,
+                    color: AppTokens.brand,
                     borderRadius: BorderRadius.vertical(
                       bottom: Radius.circular(8),
                     ),
@@ -334,14 +334,14 @@ class _BoardCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.push_pin, size: 10, color: GimmyTokens.brandInk),
+                      const Icon(Icons.push_pin, size: 10, color: AppTokens.brandInk),
                       const SizedBox(width: 4),
                       Text(
                         'FISSATO',
                         style: GoogleFonts.spaceGrotesk(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color: GimmyTokens.brandInk,
+                          color: AppTokens.brandInk,
                           letterSpacing: 0.8,
                         ),
                       ),
@@ -355,11 +355,11 @@ class _BoardCard extends StatelessWidget {
                 if (ann.importante) const SizedBox(height: 10),
                 Row(
                   children: [
-                    GimmyChip(
+                    AppChip(
                       text: ann.importante ? 'IMPORTANTE' : 'AVVISO',
                       variant: ann.importante
-                          ? GimmyChipVariant.brand
-                          : GimmyChipVariant.dark,
+                          ? AppChipVariant.brand
+                          : AppChipVariant.dark,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
                       fontSize: 9,
@@ -379,7 +379,7 @@ class _BoardCard extends StatelessWidget {
                         height: 8,
                         decoration: const BoxDecoration(
                           shape: BoxShape.circle,
-                          color: GimmyTokens.brand,
+                          color: AppTokens.brand,
                         ),
                       ),
                   ],
@@ -415,10 +415,10 @@ class _BoardCard extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      GimmyChip(
+                      AppChip(
                         text:
                             '${ann.totalePresaVisione}/${ann.totaleGiocatori} letti',
-                        variant: GimmyChipVariant.neutral,
+                        variant: AppChipVariant.neutral,
                         leadingIcon: Icons.visibility_outlined,
                         fontSize: 11,
                       ),
@@ -432,8 +432,8 @@ class _BoardCard extends StatelessWidget {
                                 horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
                               color: isDark
-                                  ? GimmyTokens.brand.withOpacity(0.15)
-                                  : GimmyTokens.brandSoft,
+                                  ? AppTokens.brand.withOpacity(0.15)
+                                  : AppTokens.brandSoft,
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Row(
@@ -442,8 +442,8 @@ class _BoardCard extends StatelessWidget {
                                 Icon(Icons.check,
                                     size: 13,
                                     color: isDark
-                                        ? GimmyTokens.darkBrand
-                                        : GimmyTokens.brandInk),
+                                        ? AppTokens.darkBrand
+                                        : AppTokens.brandInk),
                                 const SizedBox(width: 4),
                                 Text(
                                   'Letto',
@@ -451,8 +451,8 @@ class _BoardCard extends StatelessWidget {
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
                                     color: isDark
-                                        ? GimmyTokens.darkBrand
-                                        : GimmyTokens.brandInk,
+                                        ? AppTokens.darkBrand
+                                        : AppTokens.brandInk,
                                   ),
                                 ),
                               ],
@@ -469,7 +469,7 @@ class _BoardCard extends StatelessWidget {
                             child: Icon(
                               Icons.delete_outline,
                               size: 16,
-                              color: GimmyTokens.bad.withOpacity(0.8),
+                              color: AppTokens.bad.withOpacity(0.8),
                             ),
                           ),
                         ),

@@ -1,23 +1,7 @@
-// ─────────────────────────────────────────────────────────────
-// Gimmy theme — Material 3 mapping of the restyle design tokens
-// Drop-in replacement for lib/providers/theme_provider.dart
-// ─────────────────────────────────────────────────────────────
-//
-// Requires:
-//   google_fonts: ^6.2.1
-//
-// Add to pubspec.yaml:
-//   google_fonts: ^6.2.1
-//
-// Usage:
-//   The existing ThemeProvider API is preserved: teamName, primaryColor,
-//   accentColor, logoBase64, setPrimaryColor(), etc. — nothing on the
-//   screens needs to change. Internally buildTheme() now returns the
-//   Gimmy design system.
-//
-//   Dark mode: buildTheme(dark: true) returns the dark variant. Wire it
-//   by listening to MediaQuery.platformBrightnessOf(context) or exposing
-//   a user toggle on the Settings screen and storing it in SharedPrefs.
+// Tema InCampo: token di design (AppTokens), ThemeProvider e buildTheme().
+// I colori vivono SOLO qui: fuori da questo file niente Color(0x...).
+// Font: Space Grotesk (UI) + Bebas Neue (display) via google_fonts.
+// Le preferenze (nome, colori, logo, dark mode) sono per squadra in SharedPreferences.
 
 import 'dart:convert';
 import 'dart:typed_data';
@@ -26,8 +10,8 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// ─── Gimmy design tokens (1:1 with styles.css) ───
-class GimmyTokens {
+// ─── Design tokens ───
+class AppTokens {
   // Brand
   static const Color brand = Color(0xFF00D27F);
   static const Color brandInk = Color(0xFF003D24);
@@ -102,13 +86,15 @@ class ThemeProvider extends ChangeNotifier {
   static const String _legacyKeyPrimaryColor = 'primary_color';
   static const String _legacyKeyAccentColor = 'accent_color';
   static const String _legacyKeyLogoBase64 = 'team_logo_base64';
-  static const String _keyDarkMode = 'gimmy_dark_mode';
+  static const String _keyDarkMode = 'dark_mode';
+  // Chiave usata dalle versioni precedenti: letta solo come fallback.
+  static const String _legacyKeyDarkMode = 'gimmy_dark_mode';
 
   int? _currentTeamId;
   String _teamName = 'Calcio a 5';
-  // Default brand = Gimmy electric pitch green (was verde scuro 0xFF1B5E20)
-  Color _primaryColor = GimmyTokens.brand;
-  Color _accentColor = GimmyTokens.ink;
+  // Default brand = InCampo electric pitch green (was verde scuro 0xFF1B5E20)
+  Color _primaryColor = AppTokens.brand;
+  Color _accentColor = AppTokens.ink;
   String? _logoBase64;
   bool _dark = false;
 
@@ -152,11 +138,11 @@ class ThemeProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _teamName = prefs.getString(_keyTeamName()) ?? 'Calcio a 5';
     final primaryValue = prefs.getInt(_keyPrimaryColor());
-    _primaryColor = primaryValue != null ? Color(primaryValue) : GimmyTokens.brand;
+    _primaryColor = primaryValue != null ? Color(primaryValue) : AppTokens.brand;
     final accentValue = prefs.getInt(_keyAccentColor());
-    _accentColor = accentValue != null ? Color(accentValue) : GimmyTokens.ink;
+    _accentColor = accentValue != null ? Color(accentValue) : AppTokens.ink;
     _logoBase64 = prefs.getString(_keyLogoBase64());
-    _dark = prefs.getBool(_keyDarkMode) ?? false;
+    _dark = prefs.getBool(_keyDarkMode) ?? prefs.getBool(_legacyKeyDarkMode) ?? false;
     notifyListeners();
   }
 
@@ -202,39 +188,39 @@ class ThemeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ─── Build the actual Gimmy theme ───
+  // ─── Build the actual InCampo theme ───
   ThemeData buildTheme({bool? dark}) {
     final isDark = dark ?? _dark;
     final brightness = isDark ? Brightness.dark : Brightness.light;
 
-    final Color brand = isDark ? GimmyTokens.darkBrand : _primaryColor;
-    final Color paper = isDark ? GimmyTokens.darkPaper : GimmyTokens.paper;
-    final Color card  = isDark ? GimmyTokens.darkCard  : GimmyTokens.card;
-    final Color line  = isDark ? GimmyTokens.darkLine  : GimmyTokens.line;
-    final Color text  = isDark ? GimmyTokens.darkText  : GimmyTokens.text;
-    final Color mute  = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
-    final Color onBrand = isDark ? GimmyTokens.brandInk : GimmyTokens.brandInk;
+    final Color brand = isDark ? AppTokens.darkBrand : _primaryColor;
+    final Color paper = isDark ? AppTokens.darkPaper : AppTokens.paper;
+    final Color card  = isDark ? AppTokens.darkCard  : AppTokens.card;
+    final Color line  = isDark ? AppTokens.darkLine  : AppTokens.line;
+    final Color text  = isDark ? AppTokens.darkText  : AppTokens.text;
+    final Color mute  = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
+    final Color onBrand = isDark ? AppTokens.brandInk : AppTokens.brandInk;
 
     final colorScheme = ColorScheme(
       brightness: brightness,
       primary: brand,
       onPrimary: onBrand,
-      primaryContainer: isDark ? GimmyTokens.darkBrand.withOpacity(0.18) : GimmyTokens.brandSoft,
-      onPrimaryContainer: isDark ? GimmyTokens.darkBrand : GimmyTokens.brandInk,
-      secondary: isDark ? Colors.white : GimmyTokens.ink,
-      onSecondary: isDark ? GimmyTokens.ink : Colors.white,
-      secondaryContainer: isDark ? GimmyTokens.ink3 : GimmyTokens.ink,
+      primaryContainer: isDark ? AppTokens.darkBrand.withOpacity(0.18) : AppTokens.brandSoft,
+      onPrimaryContainer: isDark ? AppTokens.darkBrand : AppTokens.brandInk,
+      secondary: isDark ? Colors.white : AppTokens.ink,
+      onSecondary: isDark ? AppTokens.ink : Colors.white,
+      secondaryContainer: isDark ? AppTokens.ink3 : AppTokens.ink,
       onSecondaryContainer: Colors.white,
-      tertiary: GimmyTokens.warn,
+      tertiary: AppTokens.warn,
       onTertiary: Colors.white,
       tertiaryContainer: isDark
-          ? GimmyTokens.warn.withOpacity(0.15)
+          ? AppTokens.warn.withOpacity(0.15)
           : const Color(0xFFFCEDD2),
       onTertiaryContainer: const Color(0xFF8A5510),
-      error: GimmyTokens.bad,
+      error: AppTokens.bad,
       onError: Colors.white,
       errorContainer: isDark
-          ? GimmyTokens.bad.withOpacity(0.15)
+          ? AppTokens.bad.withOpacity(0.15)
           : const Color(0xFFFCE0E0),
       onErrorContainer: const Color(0xFF9E2323),
       surface: paper,
@@ -242,19 +228,19 @@ class ThemeProvider extends ChangeNotifier {
       surfaceContainerLowest: paper,
       surfaceContainerLow: isDark ? const Color(0xFF0F1314) : const Color(0xFFF2F0EA),
       surfaceContainer: card,
-      surfaceContainerHigh: isDark ? GimmyTokens.ink3 : const Color(0xFFF6F4EE),
-      surfaceContainerHighest: isDark ? GimmyTokens.ink3 : const Color(0xFFEEECE4),
+      surfaceContainerHigh: isDark ? AppTokens.ink3 : const Color(0xFFF6F4EE),
+      surfaceContainerHighest: isDark ? AppTokens.ink3 : const Color(0xFFEEECE4),
       onSurfaceVariant: mute,
       outline: line,
       outlineVariant: line.withOpacity(0.5),
       shadow: Colors.black,
       scrim: Colors.black.withOpacity(0.5),
-      inverseSurface: isDark ? paper : GimmyTokens.ink,
+      inverseSurface: isDark ? paper : AppTokens.ink,
       onInverseSurface: isDark ? text : Colors.white,
       inversePrimary: brand,
     );
 
-    final textTheme = GimmyTokens.buildTextTheme(brightness, text, mute);
+    final textTheme = AppTokens.buildTextTheme(brightness, text, mute);
 
     return ThemeData(
       useMaterial3: true,
@@ -279,7 +265,7 @@ class ThemeProvider extends ChangeNotifier {
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(GimmyTokens.rCard),
+          borderRadius: BorderRadius.circular(AppTokens.rCard),
           side: BorderSide(color: line),
         ),
         color: card,
@@ -291,20 +277,20 @@ class ThemeProvider extends ChangeNotifier {
         fillColor: isDark ? const Color(0xFF0F1314) : const Color(0xFFF2F0EA),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(GimmyTokens.rInput),
+          borderRadius: BorderRadius.circular(AppTokens.rInput),
           borderSide: BorderSide(color: line),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(GimmyTokens.rInput),
+          borderRadius: BorderRadius.circular(AppTokens.rInput),
           borderSide: BorderSide(color: line),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(GimmyTokens.rInput),
+          borderRadius: BorderRadius.circular(AppTokens.rInput),
           borderSide: BorderSide(color: brand, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(GimmyTokens.rInput),
-          borderSide: BorderSide(color: GimmyTokens.bad),
+          borderRadius: BorderRadius.circular(AppTokens.rInput),
+          borderSide: BorderSide(color: AppTokens.bad),
         ),
         labelStyle: TextStyle(color: mute),
         hintStyle: TextStyle(color: mute.withOpacity(0.7)),
@@ -317,12 +303,12 @@ class ThemeProvider extends ChangeNotifier {
           minimumSize: const Size(double.infinity, 52),
           padding: const EdgeInsets.symmetric(horizontal: 20),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(GimmyTokens.rButton),
+            borderRadius: BorderRadius.circular(AppTokens.rButton),
           ),
           elevation: 0,
-          backgroundColor: isDark ? Colors.white : GimmyTokens.ink,
-          foregroundColor: isDark ? GimmyTokens.ink : Colors.white,
-          disabledBackgroundColor: (isDark ? Colors.white : GimmyTokens.ink).withOpacity(0.3),
+          backgroundColor: isDark ? Colors.white : AppTokens.ink,
+          foregroundColor: isDark ? AppTokens.ink : Colors.white,
+          disabledBackgroundColor: (isDark ? Colors.white : AppTokens.ink).withOpacity(0.3),
           textStyle: textTheme.labelLarge?.copyWith(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),
@@ -332,7 +318,7 @@ class ThemeProvider extends ChangeNotifier {
           minimumSize: const Size(0, 48),
           padding: const EdgeInsets.symmetric(horizontal: 20),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(GimmyTokens.rButton),
+            borderRadius: BorderRadius.circular(AppTokens.rButton),
           ),
           backgroundColor: brand,
           foregroundColor: onBrand,
@@ -346,7 +332,7 @@ class ThemeProvider extends ChangeNotifier {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           side: BorderSide(color: line, width: 1),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(GimmyTokens.rButton),
+            borderRadius: BorderRadius.circular(AppTokens.rButton),
           ),
           foregroundColor: text,
           textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
@@ -371,12 +357,12 @@ class ThemeProvider extends ChangeNotifier {
         elevation: 0,
         height: 68,
         indicatorColor: Colors.transparent,
-        backgroundColor: isDark ? Colors.black : GimmyTokens.ink,
+        backgroundColor: isDark ? Colors.black : AppTokens.ink,
         surfaceTintColor: Colors.transparent,
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
-            color: selected ? brand : GimmyTokens.textOnInkMute,
+            color: selected ? brand : AppTokens.textOnInkMute,
             size: 22,
           );
         }),
@@ -386,18 +372,18 @@ class ThemeProvider extends ChangeNotifier {
             fontSize: 10,
             letterSpacing: 0.02,
             fontWeight: FontWeight.w500,
-            color: selected ? brand : GimmyTokens.textOnInkMute,
+            color: selected ? brand : AppTokens.textOnInkMute,
           );
         }),
       ),
 
       chipTheme: ChipThemeData(
-        backgroundColor: isDark ? GimmyTokens.ink3 : card,
+        backgroundColor: isDark ? AppTokens.ink3 : card,
         side: BorderSide(color: line),
         labelStyle: textTheme.labelMedium?.copyWith(fontSize: 11, letterSpacing: 0.02, color: mute),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(GimmyTokens.rChip),
+          borderRadius: BorderRadius.circular(AppTokens.rChip),
         ),
       ),
 
@@ -409,7 +395,7 @@ class ThemeProvider extends ChangeNotifier {
 
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: isDark ? card : GimmyTokens.ink,
+        backgroundColor: isDark ? card : AppTokens.ink,
         contentTextStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         elevation: 4,
@@ -418,7 +404,7 @@ class ThemeProvider extends ChangeNotifier {
       dialogTheme: DialogTheme(
         backgroundColor: card,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(GimmyTokens.rCardLg)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTokens.rCardLg)),
         titleTextStyle: textTheme.headlineSmall,
         contentTextStyle: textTheme.bodyMedium,
       ),
@@ -456,9 +442,9 @@ class ThemeProvider extends ChangeNotifier {
     );
   }
 
-  // Preset palettes — Gimmy curated (restyle defaults)
+  // Preset palettes — InCampo curated (restyle defaults)
   static const List<Color> availableColors = [
-    Color(0xFF00D27F), // Gimmy brand — electric pitch green (default)
+    Color(0xFF00D27F), // InCampo brand — electric pitch green (default)
     Color(0xFF0A0E0F), // Near-black
     Color(0xFF3B7CF2), // Electric blue
     Color(0xFFE84A4A), // Signal red

@@ -21,7 +21,7 @@ import '../models/payment_model.dart';
 import '../models/ruoli.dart';
 import '../models/season_model.dart';
 import '../models/team_format.dart';
-import '../widgets/gimmy_widgets.dart';
+import '../widgets/app_widgets.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -1199,7 +1199,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding:
                   const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               decoration: BoxDecoration(
-                color: GimmyTokens.brandSoft,
+                color: AppTokens.brandSoft,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -1210,7 +1210,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: GoogleFonts.bebasNeue(
                       fontSize: 28,
                       letterSpacing: 4,
-                      color: GimmyTokens.brandInk,
+                      color: AppTokens.brandInk,
                     ),
                   ),
                   if (code != null) ...[
@@ -1243,7 +1243,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final paper = isDark ? GimmyTokens.darkPaper : GimmyTokens.paper;
+    final paper = isDark ? AppTokens.darkPaper : AppTokens.paper;
     final theme = context.watch<ThemeProvider>();
     final auth = context.watch<AuthProvider>();
     final teams = auth.teams ?? [];
@@ -1256,7 +1256,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            GimmyTopBar(
+            AppTopBar(
               teamInitials: initials,
               title: 'Impostazioni',
               subtitle: 'Team + account',
@@ -1311,7 +1311,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
                       child: _CardShell(
                         child: ListTile(
-                          leading: const Icon(Icons.shield_outlined, color: GimmyTokens.brand),
+                          leading: const Icon(Icons.shield_outlined, color: AppTokens.brand),
                           title: Text(
                             clubConfig!.clubNome ?? 'Societa',
                             style: GoogleFonts.spaceGrotesk(
@@ -1365,7 +1365,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: _CardShell(
                       child: ListTile(
                         leading: const Icon(Icons.account_balance_wallet_outlined,
-                            color: GimmyTokens.brand),
+                            color: AppTokens.brand),
                         title: Text(
                           auth.puoGestireSoldi ? 'Cassa' : 'I miei pagamenti',
                           style: GoogleFonts.spaceGrotesk(
@@ -1453,7 +1453,7 @@ class _Head extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final color = isDark ? GimmyTokens.darkText : GimmyTokens.text;
+    final color = isDark ? AppTokens.darkText : AppTokens.text;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Text(
@@ -1489,9 +1489,9 @@ class _NotificationsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
     final env = provider.environment;
 
     if (provider.isLoading) {
@@ -1536,7 +1536,7 @@ class _NotificationsCard extends StatelessWidget {
           SwitchListTile(
             secondary: Icon(
               provider.attiveQui ? Icons.notifications_active : Icons.notifications_none,
-              color: GimmyTokens.brand,
+              color: AppTokens.brand,
             ),
             title: Text(
               'Notifiche su questo dispositivo',
@@ -1621,20 +1621,20 @@ class _NotificationsCard extends StatelessWidget {
   Widget _info(BuildContext context, IconData icon, String titolo, String testo) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return ListTile(
-      leading: Icon(icon, color: isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute),
+      leading: Icon(icon, color: isDark ? AppTokens.darkTextMute : AppTokens.textMute),
       title: Text(
         titolo,
         style: GoogleFonts.spaceGrotesk(
           fontWeight: FontWeight.w600,
           fontSize: 14,
-          color: isDark ? GimmyTokens.darkText : GimmyTokens.text,
+          color: isDark ? AppTokens.darkText : AppTokens.text,
         ),
       ),
       subtitle: Text(
         testo,
         style: GoogleFonts.spaceGrotesk(
           fontSize: 12,
-          color: isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute,
+          color: isDark ? AppTokens.darkTextMute : AppTokens.textMute,
         ),
       ),
     );
@@ -1657,7 +1657,7 @@ class _IosInstallHint extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.ios_share, color: GimmyTokens.brand),
+              const Icon(Icons.ios_share, color: AppTokens.brand),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -1696,7 +1696,7 @@ class _IosInstallHint extends StatelessWidget {
             width: 20,
             height: 20,
             decoration: BoxDecoration(
-              color: GimmyTokens.brand,
+              color: AppTokens.brand,
               borderRadius: BorderRadius.circular(6),
             ),
             alignment: Alignment.center,
@@ -1705,7 +1705,7 @@ class _IosInstallHint extends StatelessWidget {
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: GimmyTokens.brandInk,
+                color: AppTokens.brandInk,
               ),
             ),
           ),
@@ -1774,9 +1774,9 @@ class _PaymentInfoSettingsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
     final cfg = config;
 
     // Dire da dove arriva il dato evita la domanda "perche non riesco a cambiarlo qui"
@@ -1790,7 +1790,7 @@ class _PaymentInfoSettingsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ListTile(
-            leading: const Icon(Icons.account_balance_outlined, color: GimmyTokens.brand),
+            leading: const Icon(Icons.account_balance_outlined, color: AppTokens.brand),
             title: Text(
               'Come farsi pagare',
               style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w600, fontSize: 14),
@@ -1835,8 +1835,8 @@ class _CardShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
     return Container(
       padding: padding,
       decoration: BoxDecoration(
@@ -1857,8 +1857,8 @@ class _ProfileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
     final auth = context.watch<AuthProvider>();
     final player = auth.currentPlayer;
 
@@ -1872,8 +1872,8 @@ class _ProfileCard extends StatelessWidget {
                 size: 56,
                 fontSize: 24,
                 radius: 14,
-                bg: GimmyTokens.ink,
-                fg: GimmyTokens.brand,
+                bg: AppTokens.ink,
+                fg: AppTokens.brand,
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -1901,15 +1901,15 @@ class _ProfileCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        GimmyChip(
+                        AppChip(
                           text: (player?.ruolo ?? 'User') == 'User'
                               ? 'GIOCATORE'
                               : labelRuolo(player?.ruolo).toUpperCase(),
                           variant: auth.isAdmin
-                              ? GimmyChipVariant.brand
+                              ? AppChipVariant.brand
                               : (auth.puoGestireCampo || auth.puoGestireSoldi)
-                                  ? GimmyChipVariant.ok
-                                  : GimmyChipVariant.dark,
+                                  ? AppChipVariant.ok
+                                  : AppChipVariant.dark,
                           fontSize: 9,
                         ),
                         if ((player?.telefono ?? '').isNotEmpty) ...[
@@ -1963,12 +1963,12 @@ class _TeamsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
     final faintColor = isDark
-        ? GimmyTokens.darkTextMute.withOpacity(0.5)
-        : GimmyTokens.textFaint;
+        ? AppTokens.darkTextMute.withOpacity(0.5)
+        : AppTokens.textFaint;
 
     return _CardShell(
       child: Column(
@@ -2000,7 +2000,7 @@ class _TeamsCard extends StatelessWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: isActive ? GimmyTokens.brand : GimmyTokens.ink,
+                      color: isActive ? AppTokens.brand : AppTokens.ink,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     alignment: Alignment.center,
@@ -2009,8 +2009,8 @@ class _TeamsCard extends StatelessWidget {
                       style: GoogleFonts.bebasNeue(
                         fontSize: 18,
                         color: isActive
-                            ? GimmyTokens.brandInk
-                            : GimmyTokens.brand,
+                            ? AppTokens.brandInk
+                            : AppTokens.brand,
                       ),
                     ),
                   ),
@@ -2029,9 +2029,9 @@ class _TeamsCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       // Con due squadre nella stessa societa il nome non basta a distinguerle
-                      GimmyChip(
+                      AppChip(
                         text: team.formatoShortLabel,
-                        variant: GimmyChipVariant.neutral,
+                        variant: AppChipVariant.neutral,
                         fontSize: 9,
                       ),
                     ],
@@ -2048,9 +2048,9 @@ class _TeamsCard extends StatelessWidget {
                     ),
                   ),
                   trailing: isActive
-                      ? const GimmyChip(
+                      ? const AppChip(
                           text: 'ATTIVO',
-                          variant: GimmyChipVariant.brand,
+                          variant: AppChipVariant.brand,
                           fontSize: 9,
                         )
                       : InkWell(
@@ -2060,7 +2060,7 @@ class _TeamsCard extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 5),
                             decoration: BoxDecoration(
-                              color: GimmyTokens.ink,
+                              color: AppTokens.ink,
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(
@@ -2068,7 +2068,7 @@ class _TeamsCard extends StatelessWidget {
                               style: GoogleFonts.spaceGrotesk(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: GimmyTokens.brand,
+                                color: AppTokens.brand,
                               ),
                             ),
                           ),
@@ -2082,7 +2082,7 @@ class _TeamsCard extends StatelessWidget {
                   BoxDecoration(border: Border(top: BorderSide(color: lineColor))),
               child: ListTile(
                 leading: Icon(Icons.vpn_key_outlined,
-                    color: GimmyTokens.brand),
+                    color: AppTokens.brand),
                 title: Text('Codice invito',
                     style: GoogleFonts.spaceGrotesk(
                         fontSize: 14,
@@ -2097,7 +2097,7 @@ class _TeamsCard extends StatelessWidget {
                 BoxDecoration(border: Border(top: BorderSide(color: lineColor))),
             child: ListTile(
               leading:
-                  const Icon(Icons.add_circle_outline, color: GimmyTokens.brand),
+                  const Icon(Icons.add_circle_outline, color: AppTokens.brand),
               title: Text('Crea nuovo team',
                   style: GoogleFonts.spaceGrotesk(
                       fontSize: 14,
@@ -2111,7 +2111,7 @@ class _TeamsCard extends StatelessWidget {
             decoration:
                 BoxDecoration(border: Border(top: BorderSide(color: lineColor))),
             child: ListTile(
-              leading: const Icon(Icons.link, color: GimmyTokens.brand),
+              leading: const Icon(Icons.link, color: AppTokens.brand),
               title: Text('Unisciti con codice',
                   style: GoogleFonts.spaceGrotesk(
                       fontSize: 14,
@@ -2125,7 +2125,7 @@ class _TeamsCard extends StatelessWidget {
             decoration:
                 BoxDecoration(border: Border(top: BorderSide(color: lineColor))),
             child: ListTile(
-              leading: const Icon(Icons.tune, color: GimmyTokens.brand),
+              leading: const Icon(Icons.tune, color: AppTokens.brand),
               title: Text('Configuratore squadra',
                   style: GoogleFonts.spaceGrotesk(
                       fontSize: 14,
@@ -2181,14 +2181,14 @@ class _SeasonCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
 
     if (seasons.isEmpty) {
       return _CardShell(
         child: ListTile(
-          leading: const Icon(Icons.event_repeat, color: GimmyTokens.brand),
+          leading: const Icon(Icons.event_repeat, color: AppTokens.brand),
           title: Text('Stagione',
               style: GoogleFonts.spaceGrotesk(
                   fontWeight: FontWeight.w600, fontSize: 14, color: textColor)),
@@ -2206,7 +2206,7 @@ class _SeasonCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ListTile(
-            leading: const Icon(Icons.event_repeat, color: GimmyTokens.brand),
+            leading: const Icon(Icons.event_repeat, color: AppTokens.brand),
             title: Text(
               corrente.chiusa ? '${corrente.nome} (chiusa)' : corrente.nome,
               style: GoogleFonts.spaceGrotesk(
@@ -2297,9 +2297,9 @@ class _ConfigCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
     final cfg = config;
 
     return _CardShell(
@@ -2307,7 +2307,7 @@ class _ConfigCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ListTile(
-            leading: const Icon(Icons.sports_soccer, color: GimmyTokens.brand),
+            leading: const Icon(Icons.sports_soccer, color: AppTokens.brand),
             title: Text(
               cfg?.formatoLabel ?? 'Formato squadra',
               style: GoogleFonts.spaceGrotesk(
@@ -2328,7 +2328,7 @@ class _ConfigCard extends StatelessWidget {
           ),
           Divider(height: 1, color: lineColor),
           SwitchListTile(
-            secondary: const Icon(Icons.toll, color: GimmyTokens.brand),
+            secondary: const Icon(Icons.toll, color: AppTokens.brand),
             title: Text(
               'Sistema gettoni',
               style: GoogleFonts.spaceGrotesk(
@@ -2346,7 +2346,7 @@ class _ConfigCard extends StatelessWidget {
           ),
           Divider(height: 1, color: lineColor),
           ListTile(
-            leading: const Icon(Icons.euro, color: GimmyTokens.brand),
+            leading: const Icon(Icons.euro, color: AppTokens.brand),
             title: Text(
               'Costi',
               style: GoogleFonts.spaceGrotesk(
@@ -2417,9 +2417,9 @@ class _BrandCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final lineColor = dark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final textColor = dark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = dark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final lineColor = dark ? AppTokens.darkLine : AppTokens.line;
+    final textColor = dark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = dark ? AppTokens.darkTextMute : AppTokens.textMute;
 
     return _CardShell(
       child: Column(
@@ -2428,7 +2428,7 @@ class _BrandCard extends StatelessWidget {
           SwitchListTile(
             secondary: Icon(
               isDark ? Icons.dark_mode : Icons.light_mode,
-              color: GimmyTokens.brand,
+              color: AppTokens.brand,
             ),
             title: Text(
               'Tema scuro',
@@ -2469,7 +2469,7 @@ class _BrandCard extends StatelessWidget {
                       height: 64,
                       decoration: BoxDecoration(
                         color: dark
-                            ? GimmyTokens.darkPaper
+                            ? AppTokens.darkPaper
                             : const Color(0xFFF2F0EA),
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: lineColor),
@@ -2500,7 +2500,7 @@ class _BrandCard extends StatelessWidget {
                               child: const Text(
                                 'Rimuovi',
                                 style: TextStyle(
-                                  color: GimmyTokens.bad,
+                                  color: AppTokens.bad,
                                   fontSize: 12,
                                 ),
                               ),
@@ -2633,9 +2633,9 @@ class _AccountCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
     return _CardShell(
       child: Column(
         children: [
@@ -2656,13 +2656,13 @@ class _AccountCard extends StatelessWidget {
           ),
           Divider(color: lineColor, height: 1),
           ListTile(
-            leading: const Icon(Icons.logout, color: GimmyTokens.bad),
+            leading: const Icon(Icons.logout, color: AppTokens.bad),
             title: Text(
               'Esci',
               style: GoogleFonts.spaceGrotesk(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
-                color: GimmyTokens.bad,
+                color: AppTokens.bad,
               ),
             ),
             onTap: onLogout,

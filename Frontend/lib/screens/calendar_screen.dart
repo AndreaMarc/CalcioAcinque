@@ -9,7 +9,7 @@ import '../providers/matches_provider.dart';
 import '../providers/theme_provider.dart';
 import '../models/match_model.dart';
 import '../core/constants/api_constants.dart';
-import '../widgets/gimmy_widgets.dart';
+import '../widgets/app_widgets.dart';
 import '../widgets/season_picker.dart';
 import '../providers/club_provider.dart';
 
@@ -80,7 +80,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         if (!matchProv.hasLoaded) {
           return Column(
             children: [
-              GimmyTopBar(
+              AppTopBar(
                 teamInitials: initials,
                 title: 'Partite',
                 subtitle: 'Caricamento',
@@ -108,20 +108,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
         return Column(
           children: [
-            GimmyTopBar(
+            AppTopBar(
               teamInitials: initials,
               title: 'Partite',
               subtitle: '${seasonLabel(seasons, matchProv.seasonId)} · ${matches.length}',
               actions: [
                 if (auth.puoGestireCampo && !archivio)
-                  GimmyTopBar.iconAction(
+                  AppTopBar.iconAction(
                     context,
                     Icons.add,
                     () => _showMatchDialog(context),
                   ),
                 if (seasons.length > 1)
-                  GimmyTopBar.iconAction(context, Icons.event_repeat, _pickSeason),
-                GimmyTopBar.iconAction(
+                  AppTopBar.iconAction(context, Icons.event_repeat, _pickSeason),
+                AppTopBar.iconAction(
                   context,
                   Icons.download_outlined,
                   () => _exportCalendar(context),
@@ -341,7 +341,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     content: Text('Partita eliminata')));
               }
             },
-            style: FilledButton.styleFrom(backgroundColor: GimmyTokens.bad),
+            style: FilledButton.styleFrom(backgroundColor: AppTokens.bad),
             child: const Text('Elimina'),
           ),
         ],
@@ -366,10 +366,10 @@ class _MonthHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
       child: Row(
@@ -443,12 +443,12 @@ class _MonthGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
     final faintColor = isDark
-        ? GimmyTokens.darkTextMute.withOpacity(0.5)
-        : GimmyTokens.textFaint;
+        ? AppTokens.darkTextMute.withOpacity(0.5)
+        : AppTokens.textFaint;
 
     final first = DateTime(focusedMonth.year, focusedMonth.month, 1);
     // dayOfWeek: Mon=1..Sun=7 → we want Mon=0 offset
@@ -531,13 +531,13 @@ class _MonthGrid extends StatelessWidget {
               Color bg;
               Color fg;
               if (isNext) {
-                bg = GimmyTokens.ink;
+                bg = AppTokens.ink;
                 fg = Colors.white;
               } else if (isToday) {
                 bg = isDark
-                    ? GimmyTokens.brand.withOpacity(0.2)
-                    : GimmyTokens.brandSoft;
-                fg = isDark ? GimmyTokens.darkBrand : GimmyTokens.brandInk;
+                    ? AppTokens.brand.withOpacity(0.2)
+                    : AppTokens.brandSoft;
+                fg = isDark ? AppTokens.darkBrand : AppTokens.brandInk;
               } else {
                 bg = Colors.transparent;
                 fg = inMonth ? textColor : faintColor;
@@ -576,8 +576,8 @@ class _MonthGrid extends StatelessWidget {
                               color: isPast
                                   ? faintColor
                                   : (isDark
-                                      ? GimmyTokens.darkBrand
-                                      : GimmyTokens.brand),
+                                      ? AppTokens.darkBrand
+                                      : AppTokens.brand),
                             ),
                           ),
                         ),
@@ -613,13 +613,13 @@ class _FixtureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
     final stripBg = isNext
-        ? GimmyTokens.ink
-        : (isDark ? GimmyTokens.ink2 : GimmyTokens.paper);
+        ? AppTokens.ink
+        : (isDark ? AppTokens.ink2 : AppTokens.paper);
     final stripFg = isNext ? Colors.white : textColor;
 
     final dayLabel =
@@ -651,9 +651,9 @@ class _FixtureCard extends StatelessWidget {
                         },
                       ),
                       ListTile(
-                        leading: const Icon(Icons.delete, color: GimmyTokens.bad),
+                        leading: const Icon(Icons.delete, color: AppTokens.bad),
                         title: const Text('Elimina',
-                            style: TextStyle(color: GimmyTokens.bad)),
+                            style: TextStyle(color: AppTokens.bad)),
                         onTap: () {
                           Navigator.pop(ctx);
                           onDelete?.call();
@@ -687,7 +687,7 @@ class _FixtureCard extends StatelessWidget {
                       style: GoogleFonts.spaceGrotesk(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
-                        color: isNext ? GimmyTokens.brand : muteColor,
+                        color: isNext ? AppTokens.brand : muteColor,
                         letterSpacing: 1,
                       ),
                     ),
@@ -705,7 +705,7 @@ class _FixtureCard extends StatelessWidget {
                       '$monthLabel · ${match.ora}',
                       style: GoogleFonts.spaceGrotesk(
                         fontSize: 10,
-                        color: isNext ? GimmyTokens.textOnInkMute : muteColor,
+                        color: isNext ? AppTokens.textOnInkMute : muteColor,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -732,9 +732,9 @@ class _FixtureCard extends StatelessWidget {
                           ),
                           if (isNext) ...[
                             const SizedBox(width: 6),
-                            const GimmyChip(
+                            const AppChip(
                               text: 'NEXT',
-                              variant: GimmyChipVariant.brand,
+                              variant: AppChipVariant.brand,
                               padding: EdgeInsets.symmetric(
                                   horizontal: 7, vertical: 1),
                               fontSize: 9,
@@ -795,10 +795,10 @@ class _PastCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
     return Opacity(
       opacity: 0.75,
       child: InkWell(
@@ -844,9 +844,9 @@ class _PastCard extends StatelessWidget {
                 ),
               ),
               if (match.isConclusa)
-                const GimmyChip(
+                const AppChip(
                   text: 'Conclusa',
-                  variant: GimmyChipVariant.neutral,
+                  variant: AppChipVariant.neutral,
                   fontSize: 10,
                 ),
             ],

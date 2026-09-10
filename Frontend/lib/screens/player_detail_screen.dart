@@ -10,7 +10,7 @@ import '../providers/tokens_provider.dart';
 import '../providers/dashboard_provider.dart';
 import '../providers/theme_provider.dart';
 import '../models/player_model.dart';
-import '../widgets/gimmy_widgets.dart';
+import '../widgets/app_widgets.dart';
 
 class PlayerDetailScreen extends StatefulWidget {
   final int playerId;
@@ -64,7 +64,7 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final paper = isDark ? GimmyTokens.darkPaper : GimmyTokens.paper;
+    final paper = isDark ? AppTokens.darkPaper : AppTokens.paper;
 
     if (_player == null) {
       return Scaffold(
@@ -85,14 +85,14 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            GimmyTopBar(
+            AppTopBar(
               teamInitials: initials,
               title: 'Giocatore',
               subtitle: 'Scheda atleta',
               onBack: () => context.go('/players'),
               actions: [
                 if (auth.puoGestireSquadra)
-                  GimmyTopBar.iconAction(
+                  AppTopBar.iconAction(
                     context,
                     Icons.edit,
                     () {},
@@ -121,13 +121,13 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
                           runSpacing: 8,
                           children: _altreSquadre.map((t) {
                             final ruolo = t['posizione'] as String?;
-                            return GimmyChip(
+                            return AppChip(
                               text: [
                                 t['teamNome'] as String? ?? '',
                                 t['formatoShortLabel'] as String? ?? '',
                                 if (ruolo != null) ruolo,
                               ].where((e) => e.isNotEmpty).join(' · '),
-                              variant: GimmyChipVariant.neutral,
+                              variant: AppChipVariant.neutral,
                             );
                           }).toList(),
                         ),
@@ -264,7 +264,7 @@ class _PlayerHero extends StatelessWidget {
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 1.54,
-                        color: GimmyTokens.brand,
+                        color: AppTokens.brand,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -291,7 +291,7 @@ class _PlayerHero extends StatelessWidget {
                         '"${player.soprannome}"',
                         style: GoogleFonts.spaceGrotesk(
                           fontSize: 13,
-                          color: GimmyTokens.textOnInkMute,
+                          color: AppTokens.textOnInkMute,
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -304,7 +304,7 @@ class _PlayerHero extends StatelessWidget {
                 style: GoogleFonts.bebasNeue(
                   fontSize: 120,
                   height: 0.8,
-                  color: GimmyTokens.brand.withOpacity(0.9),
+                  color: AppTokens.brand.withOpacity(0.9),
                 ),
               ),
             ],
@@ -360,7 +360,7 @@ class _PlayerHero extends StatelessWidget {
           value,
           style: GoogleFonts.bebasNeue(
             fontSize: small ? 18 : 26,
-            color: brand ? GimmyTokens.brand : Colors.white,
+            color: brand ? AppTokens.brand : Colors.white,
           ),
         ),
         Text(
@@ -368,7 +368,7 @@ class _PlayerHero extends StatelessWidget {
           style: GoogleFonts.spaceGrotesk(
             fontSize: 10,
             fontWeight: FontWeight.w600,
-            color: GimmyTokens.textOnInkMute,
+            color: AppTokens.textOnInkMute,
             letterSpacing: 0.8,
           ),
         ),
@@ -384,10 +384,10 @@ class _TokenBreakdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
 
     final pct = player.gettoniTotali > 0
         ? player.gettoniRimanenti / player.gettoniTotali
@@ -418,7 +418,7 @@ class _TokenBreakdown extends StatelessWidget {
                 child: _stat(
                   '${player.gettoniConsumati}',
                   'CONSUMATI',
-                  GimmyTokens.warn,
+                  AppTokens.warn,
                   muteColor,
                 ),
               ),
@@ -427,8 +427,8 @@ class _TokenBreakdown extends StatelessWidget {
                   '${player.gettoniRimanenti}',
                   'RIMANENTI',
                   warn
-                      ? GimmyTokens.bad
-                      : (isDark ? GimmyTokens.darkBrand : GimmyTokens.brand),
+                      ? AppTokens.bad
+                      : (isDark ? AppTokens.darkBrand : AppTokens.brand),
                   muteColor,
                 ),
               ),
@@ -436,12 +436,12 @@ class _TokenBreakdown extends StatelessWidget {
           ),
           if (player.gettoniTotali > 0) ...[
             const SizedBox(height: 14),
-            GimmyBar(
+            AppProgressBar(
               value: pct,
               height: 6,
               fillColor: warn
-                  ? GimmyTokens.bad
-                  : (isDark ? Colors.white : GimmyTokens.ink),
+                  ? AppTokens.bad
+                  : (isDark ? Colors.white : AppTokens.ink),
             ),
           ],
         ],
@@ -475,10 +475,10 @@ class _ContactCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
 
     final rows = <_ContactRowData>[
       _ContactRowData(Icons.person_outline, player.nome),
@@ -540,10 +540,10 @@ class _Transactions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
 
     return Consumer<TokensProvider>(
       builder: (context, prov, _) {
@@ -594,10 +594,10 @@ class _Transactions extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: positive
                             ? (isDark
-                                ? GimmyTokens.ok.withOpacity(0.15)
+                                ? AppTokens.ok.withOpacity(0.15)
                                 : const Color(0xFFDCF6E8))
                             : (isDark
-                                ? GimmyTokens.bad.withOpacity(0.15)
+                                ? AppTokens.bad.withOpacity(0.15)
                                 : const Color(0xFFFCE0E0)),
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -607,7 +607,7 @@ class _Transactions extends StatelessWidget {
                         style: GoogleFonts.bebasNeue(
                           fontSize: 16,
                           color:
-                              positive ? GimmyTokens.ok : GimmyTokens.bad,
+                              positive ? AppTokens.ok : AppTokens.bad,
                         ),
                       ),
                     ),

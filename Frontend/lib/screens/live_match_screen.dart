@@ -12,7 +12,7 @@ import '../widgets/match_incasso_sheet.dart';
 import '../providers/theme_provider.dart';
 import '../models/match_model.dart';
 import '../models/attendance_model.dart';
-import '../widgets/gimmy_widgets.dart';
+import '../widgets/app_widgets.dart';
 
 enum StatType { goal, assist, ammonizione, espulsione, autogoal, goalSubiti }
 
@@ -130,7 +130,7 @@ class _LiveMatchScreenState extends State<LiveMatchScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: GimmyTokens.ink2,
+      backgroundColor: AppTokens.ink2,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -196,9 +196,9 @@ class _LiveMatchScreenState extends State<LiveMatchScreen>
                 _match;
         if (match == null || !attProv.hasLoaded) {
           return const Scaffold(
-            backgroundColor: GimmyTokens.ink,
+            backgroundColor: AppTokens.ink,
             body: Center(
-              child: CircularProgressIndicator(color: GimmyTokens.brand),
+              child: CircularProgressIndicator(color: AppTokens.brand),
             ),
           );
         }
@@ -219,7 +219,7 @@ class _LiveMatchScreenState extends State<LiveMatchScreen>
             : opponent;
 
         return Scaffold(
-          backgroundColor: GimmyTokens.ink,
+          backgroundColor: AppTokens.ink,
           body: SafeArea(
             child: Stack(
               children: [
@@ -233,7 +233,7 @@ class _LiveMatchScreenState extends State<LiveMatchScreen>
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          GimmyTokens.brand.withOpacity(0.2),
+                          AppTokens.brand.withOpacity(0.2),
                           Colors.transparent,
                         ],
                       ),
@@ -373,7 +373,7 @@ class _LiveMatchScreenState extends State<LiveMatchScreen>
                               icon: const Icon(Icons.stop, size: 18),
                               label: const Text('Concludi Partita'),
                               style: FilledButton.styleFrom(
-                                backgroundColor: GimmyTokens.bad,
+                                backgroundColor: AppTokens.bad,
                                 foregroundColor: Colors.white,
                                 minimumSize: const Size(double.infinity, 50),
                               ),
@@ -394,7 +394,7 @@ class _LiveMatchScreenState extends State<LiveMatchScreen>
   void _showMenu(BuildContext context, bool isLive, int matchId) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: GimmyTokens.ink2,
+      backgroundColor: AppTokens.ink2,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -410,9 +410,9 @@ class _LiveMatchScreenState extends State<LiveMatchScreen>
             ),
             if (isLive)
               ListTile(
-                leading: const Icon(Icons.stop, color: GimmyTokens.bad),
+                leading: const Icon(Icons.stop, color: AppTokens.bad),
                 title: const Text('Concludi Partita',
-                    style: TextStyle(color: GimmyTokens.bad)),
+                    style: TextStyle(color: AppTokens.bad)),
                 onTap: () {
                   Navigator.pop(ctx);
                   _concludeMatch();
@@ -509,12 +509,12 @@ class _LiveHeader extends StatelessWidget {
             decoration: BoxDecoration(
               color: isConclusa
                   ? Colors.white.withOpacity(0.08)
-                  : GimmyTokens.bad.withOpacity(0.15),
+                  : AppTokens.bad.withOpacity(0.15),
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
                 color: isConclusa
                     ? Colors.white.withOpacity(0.2)
-                    : GimmyTokens.bad.withOpacity(0.4),
+                    : AppTokens.bad.withOpacity(0.4),
               ),
             ),
             child: Row(
@@ -609,10 +609,10 @@ class _Scoreboard extends StatelessWidget {
           padding:
               const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(
-            color: GimmyTokens.brand.withOpacity(0.14),
+            color: AppTokens.brand.withOpacity(0.14),
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color: GimmyTokens.brand.withOpacity(0.3),
+              color: AppTokens.brand.withOpacity(0.3),
             ),
           ),
           child: Row(
@@ -625,7 +625,7 @@ class _Scoreboard extends StatelessWidget {
                   height: 6,
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
-                    color: GimmyTokens.brand
+                    color: AppTokens.brand
                         .withOpacity(0.5 + 0.5 * pulse.value),
                     shape: BoxShape.circle,
                   ),
@@ -636,7 +636,7 @@ class _Scoreboard extends StatelessWidget {
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: GimmyTokens.brand,
+                  color: AppTokens.brand,
                   letterSpacing: 1,
                 ),
               ),
@@ -772,7 +772,7 @@ class _TimerControls extends StatelessWidget {
                   style: GoogleFonts.spaceGrotesk(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: GimmyTokens.textOnInkMute,
+                    color: AppTokens.textOnInkMute,
                     letterSpacing: 1,
                   ),
                 ),
@@ -783,9 +783,9 @@ class _TimerControls extends StatelessWidget {
                     fontSize: 44,
                     height: 0.9,
                     color: remainingSeconds <= 60
-                        ? GimmyTokens.bad
+                        ? AppTokens.bad
                         : remainingSeconds <= 300
-                            ? GimmyTokens.warn
+                            ? AppTokens.warn
                             : Colors.white,
                   ),
                 ),
@@ -799,11 +799,11 @@ class _TimerControls extends StatelessWidget {
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: GimmyTokens.brand,
+                color: AppTokens.brand,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: GimmyTokens.brand.withOpacity(0.4),
+                    color: AppTokens.brand.withOpacity(0.4),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -811,7 +811,7 @@ class _TimerControls extends StatelessWidget {
               ),
               child: Icon(
                 isRunning ? Icons.pause : Icons.play_arrow,
-                color: GimmyTokens.brandInk,
+                color: AppTokens.brandInk,
                 size: 24,
               ),
             ),
@@ -857,13 +857,13 @@ class _QuickActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      _QA('GOL', Icons.sports_soccer, GimmyTokens.brand, StatType.goal,
+      _QA('GOL', Icons.sports_soccer, AppTokens.brand, StatType.goal,
           brand: true),
       _QA('ASSIST', Icons.handshake_outlined, Colors.white, StatType.assist),
-      _QA('AMM.', Icons.square, GimmyTokens.warn, StatType.ammonizione),
-      _QA('ESP.', Icons.square_outlined, GimmyTokens.bad, StatType.espulsione),
+      _QA('AMM.', Icons.square, AppTokens.warn, StatType.ammonizione),
+      _QA('ESP.', Icons.square_outlined, AppTokens.bad, StatType.espulsione),
       _QA('AG', Icons.sports_soccer, Colors.orange, StatType.autogoal),
-      _QA('SUBITO', Icons.shield_outlined, GimmyTokens.bad, StatType.goalSubiti),
+      _QA('SUBITO', Icons.shield_outlined, AppTokens.bad, StatType.goalSubiti),
     ];
 
     return Wrap(
@@ -879,7 +879,7 @@ class _QuickActions extends StatelessWidget {
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
               color: brand
-                  ? GimmyTokens.brand
+                  ? AppTokens.brand
                   : Colors.white.withOpacity(0.06),
               borderRadius: BorderRadius.circular(14),
               border: brand
@@ -891,14 +891,14 @@ class _QuickActions extends StatelessWidget {
               children: [
                 Icon(q.icon,
                     size: 16,
-                    color: brand ? GimmyTokens.brandInk : q.color),
+                    color: brand ? AppTokens.brandInk : q.color),
                 const SizedBox(width: 6),
                 Text(
                   q.label,
                   style: GoogleFonts.spaceGrotesk(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: brand ? GimmyTokens.brandInk : Colors.white,
+                    color: brand ? AppTokens.brandInk : Colors.white,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -942,7 +942,7 @@ class _OnFieldTile extends StatelessWidget {
         width: 72,
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: GimmyTokens.brand,
+          color: AppTokens.brand,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
@@ -954,7 +954,7 @@ class _OnFieldTile extends StatelessWidget {
                   '$number',
                   style: GoogleFonts.bebasNeue(
                     fontSize: 28,
-                    color: GimmyTokens.brandInk,
+                    color: AppTokens.brandInk,
                     height: 0.9,
                   ),
                 ),
@@ -966,7 +966,7 @@ class _OnFieldTile extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 5, vertical: 2),
                       decoration: BoxDecoration(
-                        color: GimmyTokens.ink,
+                        color: AppTokens.ink,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -974,7 +974,7 @@ class _OnFieldTile extends StatelessWidget {
                         style: GoogleFonts.spaceGrotesk(
                           fontSize: 9,
                           fontWeight: FontWeight.w700,
-                          color: GimmyTokens.brand,
+                          color: AppTokens.brand,
                         ),
                       ),
                     ),
@@ -989,7 +989,7 @@ class _OnFieldTile extends StatelessWidget {
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 9,
                 fontWeight: FontWeight.w600,
-                color: GimmyTokens.brandInk,
+                color: AppTokens.brandInk,
               ),
             ),
           ],
@@ -1011,7 +1011,7 @@ class _TimelineEvent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = home ? GimmyTokens.brand : const Color(0xFFFF5252);
+    final color = home ? AppTokens.brand : const Color(0xFFFF5252);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Container(
@@ -1161,7 +1161,7 @@ class _PlayerSelectorSheet extends StatelessWidget {
               'ASSEGNA $_actionLabel',
               style: GoogleFonts.bebasNeue(
                 fontSize: 22,
-                color: GimmyTokens.brand,
+                color: AppTokens.brand,
                 letterSpacing: 0.04 * 22,
               ),
             ),
@@ -1213,14 +1213,14 @@ class _PlayerSelectorSheet extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: GimmyTokens.brand.withOpacity(0.15),
+                                color: AppTokens.brand.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(999),
                               ),
                               child: Text(
                                 '×$current',
                                 style: GoogleFonts.bebasNeue(
                                   fontSize: 16,
-                                  color: GimmyTokens.brand,
+                                  color: AppTokens.brand,
                                 ),
                               ),
                             ),

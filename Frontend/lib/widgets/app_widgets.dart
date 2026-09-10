@@ -19,7 +19,7 @@ TextStyle _display(double size, {double height = 1, Color? color, double letter 
   );
 }
 
-class GimmyTopBar extends StatelessWidget {
+class AppTopBar extends StatelessWidget {
   final String teamInitials;
   final String title;
   final String? subtitle;
@@ -27,7 +27,7 @@ class GimmyTopBar extends StatelessWidget {
   final List<Widget> actions;
   final Color? crestColor;
 
-  const GimmyTopBar({
+  const AppTopBar({
     super.key,
     this.teamInitials = 'CA',
     required this.title,
@@ -40,10 +40,10 @@ class GimmyTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
@@ -62,7 +62,7 @@ class GimmyTopBar extends StatelessWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: crestColor ?? (isDark ? Colors.white : GimmyTokens.ink),
+                color: crestColor ?? (isDark ? Colors.white : AppTokens.ink),
                 borderRadius: BorderRadius.circular(9),
               ),
               alignment: Alignment.center,
@@ -70,7 +70,7 @@ class GimmyTopBar extends StatelessWidget {
                 teamInitials,
                 style: _display(
                   18,
-                  color: isDark ? GimmyTokens.ink : GimmyTokens.brand,
+                  color: isDark ? AppTokens.ink : AppTokens.brand,
                   letter: 0.04,
                 ),
               ),
@@ -119,9 +119,9 @@ class GimmyTopBar extends StatelessWidget {
     Widget? badge,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final lineColor = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final cardColor = isDark ? GimmyTokens.darkCard : GimmyTokens.card;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final cardColor = isDark ? AppTokens.darkCard : AppTokens.card;
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -163,7 +163,7 @@ class Eyebrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final c = color ?? (isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute);
+    final c = color ?? (isDark ? AppTokens.darkTextMute : AppTokens.textMute);
     return Text(
       text,
       style: GoogleFonts.spaceGrotesk(
@@ -214,8 +214,8 @@ class SectionHead extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? GimmyTokens.darkText : GimmyTokens.text;
-    final muteColor = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
     return Padding(
       padding: padding,
       child: Row(
@@ -242,20 +242,20 @@ class SectionHead extends StatelessWidget {
   }
 }
 
-enum GimmyChipVariant { neutral, ok, warn, bad, brand, dark }
+enum AppChipVariant { neutral, ok, warn, bad, brand, dark }
 
-class GimmyChip extends StatelessWidget {
+class AppChip extends StatelessWidget {
   final String text;
-  final GimmyChipVariant variant;
+  final AppChipVariant variant;
   final IconData? leadingIcon;
   final Widget? leading;
   final EdgeInsets padding;
   final double fontSize;
 
-  const GimmyChip({
+  const AppChip({
     super.key,
     required this.text,
-    this.variant = GimmyChipVariant.neutral,
+    this.variant = AppChipVariant.neutral,
     this.leadingIcon,
     this.leading,
     this.padding = const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -268,34 +268,34 @@ class GimmyChip extends StatelessWidget {
     late Color bg;
     late Color fg;
     switch (variant) {
-      case GimmyChipVariant.ok:
-        bg = isDark ? GimmyTokens.ok.withOpacity(0.15) : const Color(0xFFDCF6E8);
-        fg = isDark ? GimmyTokens.ok : const Color(0xFF096B3A);
+      case AppChipVariant.ok:
+        bg = isDark ? AppTokens.ok.withOpacity(0.15) : const Color(0xFFDCF6E8);
+        fg = isDark ? AppTokens.ok : const Color(0xFF096B3A);
         break;
-      case GimmyChipVariant.warn:
-        bg = isDark ? GimmyTokens.warn.withOpacity(0.15) : const Color(0xFFFCEDD2);
-        fg = isDark ? GimmyTokens.warn : const Color(0xFF8A5510);
+      case AppChipVariant.warn:
+        bg = isDark ? AppTokens.warn.withOpacity(0.15) : const Color(0xFFFCEDD2);
+        fg = isDark ? AppTokens.warn : const Color(0xFF8A5510);
         break;
-      case GimmyChipVariant.bad:
-        bg = isDark ? GimmyTokens.bad.withOpacity(0.15) : const Color(0xFFFCE0E0);
-        fg = isDark ? GimmyTokens.bad : const Color(0xFF9E2323);
+      case AppChipVariant.bad:
+        bg = isDark ? AppTokens.bad.withOpacity(0.15) : const Color(0xFFFCE0E0);
+        fg = isDark ? AppTokens.bad : const Color(0xFF9E2323);
         break;
-      case GimmyChipVariant.brand:
-        bg = isDark ? GimmyTokens.brand.withOpacity(0.15) : GimmyTokens.brandSoft;
-        fg = isDark ? GimmyTokens.darkBrand : GimmyTokens.brandInk;
+      case AppChipVariant.brand:
+        bg = isDark ? AppTokens.brand.withOpacity(0.15) : AppTokens.brandSoft;
+        fg = isDark ? AppTokens.darkBrand : AppTokens.brandInk;
         break;
-      case GimmyChipVariant.dark:
-        bg = isDark ? GimmyTokens.ink3 : GimmyTokens.ink3;
+      case AppChipVariant.dark:
+        bg = isDark ? AppTokens.ink3 : AppTokens.ink3;
         fg = Colors.white;
         break;
-      case GimmyChipVariant.neutral:
-        bg = isDark ? GimmyTokens.ink3 : GimmyTokens.card;
-        fg = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
+      case AppChipVariant.neutral:
+        bg = isDark ? AppTokens.ink3 : AppTokens.card;
+        fg = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
         break;
     }
 
-    final borderColor = variant == GimmyChipVariant.neutral
-        ? (isDark ? GimmyTokens.darkLine : GimmyTokens.line)
+    final borderColor = variant == AppChipVariant.neutral
+        ? (isDark ? AppTokens.darkLine : AppTokens.line)
         : Colors.transparent;
 
     return Container(
@@ -352,13 +352,13 @@ class JerseyNumber extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: bg ?? GimmyTokens.ink,
+        color: bg ?? AppTokens.ink,
         borderRadius: BorderRadius.circular(radius),
       ),
       alignment: Alignment.center,
       child: Text(
         number?.toString() ?? '?',
-        style: _display(fontSize, color: fg ?? GimmyTokens.brand),
+        style: _display(fontSize, color: fg ?? AppTokens.brand),
       ),
     );
   }
@@ -383,15 +383,15 @@ class CardInk extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: GimmyTokens.ink,
+        color: AppTokens.ink,
         borderRadius: BorderRadius.circular(radius),
         border: isDark
-            ? Border.all(color: GimmyTokens.brand.withOpacity(0.12))
+            ? Border.all(color: AppTokens.brand.withOpacity(0.12))
             : null,
         boxShadow: [
           if (isDark)
             BoxShadow(
-              color: GimmyTokens.brand.withOpacity(0.06),
+              color: AppTokens.brand.withOpacity(0.06),
               blurRadius: 60,
               offset: const Offset(0, 20),
             )
@@ -428,7 +428,7 @@ class _PitchPainter extends CustomPainter {
     final glow = Paint()
       ..shader = RadialGradient(
         colors: [
-          GimmyTokens.brand.withOpacity(0.22),
+          AppTokens.brand.withOpacity(0.22),
           Colors.transparent,
         ],
       ).createShader(Rect.fromCenter(
@@ -459,12 +459,12 @@ class _PitchPainter extends CustomPainter {
   bool shouldRepaint(_) => false;
 }
 
-class GimmyBar extends StatelessWidget {
+class AppProgressBar extends StatelessWidget {
   final double value; // 0..1
   final double height;
   final Color? fillColor;
 
-  const GimmyBar({
+  const AppProgressBar({
     super.key,
     required this.value,
     this.height = 6,
@@ -474,8 +474,8 @@ class GimmyBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? GimmyTokens.darkLine : GimmyTokens.line;
-    final fill = fillColor ?? (isDark ? GimmyTokens.darkBrand : GimmyTokens.brand);
+    final bg = isDark ? AppTokens.darkLine : AppTokens.line;
+    final fill = fillColor ?? (isDark ? AppTokens.darkBrand : AppTokens.brand);
     return ClipRRect(
       borderRadius: BorderRadius.circular(99),
       child: Stack(
@@ -491,12 +491,12 @@ class GimmyBar extends StatelessWidget {
   }
 }
 
-class GimmyTokensBar extends StatelessWidget {
+class GettoniBar extends StatelessWidget {
   final int filled;
   final int total;
   final Color? filledColor;
   final double cellHeight;
-  const GimmyTokensBar({
+  const GettoniBar({
     super.key,
     required this.filled,
     required this.total,
@@ -507,8 +507,8 @@ class GimmyTokensBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? Colors.white.withOpacity(0.12) : GimmyTokens.line;
-    final fill = filledColor ?? (isDark ? GimmyTokens.darkBrand : GimmyTokens.brand);
+    final bg = isDark ? Colors.white.withOpacity(0.12) : AppTokens.line;
+    final fill = filledColor ?? (isDark ? AppTokens.darkBrand : AppTokens.brand);
     return Row(
       children: List.generate(total, (i) {
         return Expanded(
@@ -642,7 +642,7 @@ class CrestBox extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: filled ? (bg ?? GimmyTokens.brand) : Colors.white.withOpacity(0.08),
+        color: filled ? (bg ?? AppTokens.brand) : Colors.white.withOpacity(0.08),
         borderRadius: BorderRadius.circular(radius),
         border: filled
             ? null
@@ -658,7 +658,7 @@ class CrestBox extends StatelessWidget {
         style: _display(
           fontSize,
           color: filled
-              ? (fg ?? GimmyTokens.brandInk)
+              ? (fg ?? AppTokens.brandInk)
               : Colors.white.withOpacity(0.7),
         ),
       ),
@@ -681,7 +681,7 @@ class StatusDotBadge extends StatelessWidget {
         color: color,
         shape: BoxShape.circle,
         border: Border.all(
-          color: isDark ? GimmyTokens.darkPaper : GimmyTokens.paper,
+          color: isDark ? AppTokens.darkPaper : AppTokens.paper,
           width: 2,
         ),
       ),
@@ -708,8 +708,8 @@ class StoryAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final muteText = isDark ? GimmyTokens.darkTextMute : GimmyTokens.textMute;
-    final faintText = isDark ? GimmyTokens.darkTextMute.withOpacity(0.5) : GimmyTokens.textFaint;
+    final muteText = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
+    final faintText = isDark ? AppTokens.darkTextMute.withOpacity(0.5) : AppTokens.textFaint;
 
     final hue = name.codeUnits.fold<int>(0, (a, c) => a + c) % 360;
     final ringBrand = status == 'me';
@@ -720,11 +720,11 @@ class StoryAvatar extends StatelessWidget {
     switch (status) {
       case 'ok':
       case 'me':
-        dotColor = GimmyTokens.ok;
+        dotColor = AppTokens.ok;
         dotChild = const Icon(Icons.check, size: 10, color: Colors.white);
         break;
       case 'warn':
-        dotColor = GimmyTokens.warn;
+        dotColor = AppTokens.warn;
         dotChild = Text(
           '?',
           style: GoogleFonts.spaceGrotesk(
@@ -735,7 +735,7 @@ class StoryAvatar extends StatelessWidget {
         );
         break;
       default:
-        dotColor = GimmyTokens.bad;
+        dotColor = AppTokens.bad;
         dotChild = const Icon(Icons.close, size: 10, color: Colors.white);
     }
 
@@ -751,9 +751,9 @@ class StoryAvatar extends StatelessWidget {
                     shape: BoxShape.circle,
                     gradient: const SweepGradient(
                       colors: [
-                        GimmyTokens.brand,
+                        AppTokens.brand,
                         Color(0xFF00FFA6),
-                        GimmyTokens.brand,
+                        AppTokens.brand,
                       ],
                     ),
                   )
@@ -783,7 +783,7 @@ class StoryAvatar extends StatelessWidget {
                       shape: BoxShape.circle,
                       border: ringBrand
                           ? Border.all(
-                              color: isDark ? GimmyTokens.darkPaper : GimmyTokens.paper,
+                              color: isDark ? AppTokens.darkPaper : AppTokens.paper,
                               width: 2,
                             )
                           : null,
@@ -826,14 +826,14 @@ class StoryAvatar extends StatelessWidget {
   }
 }
 
-class GimmyScaffold extends StatelessWidget {
+class AppShell extends StatelessWidget {
   final Widget? topBar;
   final Widget body;
   final Widget? tabbar;
   final bool dark;
   final Widget? floating;
 
-  const GimmyScaffold({
+  const AppShell({
     super.key,
     this.topBar,
     required this.body,
@@ -844,7 +844,7 @@ class GimmyScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final paper = dark ? GimmyTokens.darkPaper : GimmyTokens.paper;
+    final paper = dark ? AppTokens.darkPaper : AppTokens.paper;
     return Container(
       color: paper,
       child: SafeArea(
@@ -867,12 +867,12 @@ class GimmyScaffold extends StatelessWidget {
   }
 }
 
-class GimmyTabBar extends StatelessWidget {
+class AppTabBar extends StatelessWidget {
   final int activeIndex;
   final ValueChanged<int> onTap;
-  final List<GimmyTab> tabs;
+  final List<AppTab> tabs;
 
-  const GimmyTabBar({
+  const AppTabBar({
     super.key,
     required this.activeIndex,
     required this.onTap,
@@ -882,16 +882,16 @@ class GimmyTabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? Colors.black : GimmyTokens.ink;
-    final active = isDark ? GimmyTokens.darkBrand : GimmyTokens.brand;
-    const inactive = GimmyTokens.textOnInkMute;
+    final bg = isDark ? Colors.black : AppTokens.ink;
+    final active = isDark ? AppTokens.darkBrand : AppTokens.brand;
+    const inactive = AppTokens.textOnInkMute;
 
     return Container(
       height: 64,
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(22),
-        border: isDark ? Border.all(color: GimmyTokens.darkLine) : null,
+        border: isDark ? Border.all(color: AppTokens.darkLine) : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(isDark ? 0.6 : 0.25),
@@ -939,11 +939,11 @@ class GimmyTabBar extends StatelessWidget {
   }
 }
 
-class GimmyTab {
+class AppTab {
   final IconData icon;
   final String label;
   final Widget? badge;
-  const GimmyTab(this.icon, this.label, {this.badge});
+  const AppTab(this.icon, this.label, {this.badge});
 }
 
 class PitchGlow extends StatelessWidget {
@@ -967,7 +967,7 @@ class PitchGlow extends StatelessWidget {
                   center: alignment,
                   radius: 0.8,
                   colors: [
-                    GimmyTokens.brand.withOpacity(0.22),
+                    AppTokens.brand.withOpacity(0.22),
                     Colors.transparent,
                   ],
                 ),

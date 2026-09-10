@@ -91,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen>
         builder: (ctx, setLocal) {
           final auth = context.watch<AuthProvider>();
           return AlertDialog(
-            backgroundColor: GimmyTokens.ink2,
+            backgroundColor: AppTokens.ink2,
             title: Text(
               'Crea account',
               style: GoogleFonts.bebasNeue(fontSize: 26, color: Colors.white),
@@ -152,7 +152,7 @@ class _LoginScreenState extends State<LoginScreen>
                       const SizedBox(height: 12),
                       Text(
                         auth.error!,
-                        style: const TextStyle(color: GimmyTokens.bad, fontSize: 12),
+                        style: const TextStyle(color: AppTokens.bad, fontSize: 12),
                       ),
                     ],
                   ],
@@ -166,8 +166,8 @@ class _LoginScreenState extends State<LoginScreen>
               ),
               FilledButton(
                 style: FilledButton.styleFrom(
-                  backgroundColor: GimmyTokens.brand,
-                  foregroundColor: GimmyTokens.brandInk,
+                  backgroundColor: AppTokens.brand,
+                  foregroundColor: AppTokens.brandInk,
                 ),
                 onPressed: auth.isLoading
                     ? null
@@ -185,7 +185,7 @@ class _LoginScreenState extends State<LoginScreen>
                         width: 18,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: GimmyTokens.brandInk,
+                          color: AppTokens.brandInk,
                         ),
                       )
                     : const Text('Crea'),
@@ -213,15 +213,15 @@ class _LoginScreenState extends State<LoginScreen>
   Widget build(BuildContext context) {
     if (_tryingAutoLogin) {
       return const Scaffold(
-        backgroundColor: GimmyTokens.ink,
+        backgroundColor: AppTokens.ink,
         body: Center(
-          child: CircularProgressIndicator(color: GimmyTokens.brand),
+          child: CircularProgressIndicator(color: AppTokens.brand),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: GimmyTokens.ink,
+      backgroundColor: AppTokens.ink,
       body: Stack(
         children: [
           // Pitch glow top-left
@@ -235,7 +235,7 @@ class _LoginScreenState extends State<LoginScreen>
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    GimmyTokens.brand.withOpacity(0.28),
+                    AppTokens.brand.withOpacity(0.28),
                     Colors.transparent,
                   ],
                 ),
@@ -253,7 +253,7 @@ class _LoginScreenState extends State<LoginScreen>
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    GimmyTokens.brand.withOpacity(0.14),
+                    AppTokens.brand.withOpacity(0.14),
                     Colors.transparent,
                   ],
                 ),
@@ -281,7 +281,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   width: 36,
                                   height: 36,
                                   decoration: BoxDecoration(
-                                    color: GimmyTokens.brand,
+                                    color: AppTokens.brand,
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   alignment: Alignment.center,
@@ -294,7 +294,7 @@ class _LoginScreenState extends State<LoginScreen>
                                         initial,
                                         style: GoogleFonts.bebasNeue(
                                           fontSize: 20,
-                                          color: GimmyTokens.brandInk,
+                                          color: AppTokens.brandInk,
                                         ),
                                       );
                                     },
@@ -302,7 +302,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                                 const SizedBox(width: 10),
                                 Text(
-                                  'GIMMY',
+                                  'INCAMPO',
                                   style: GoogleFonts.bebasNeue(
                                     fontSize: 22,
                                     color: Colors.white,
@@ -319,7 +319,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 1.54,
-                                color: GimmyTokens.brand,
+                                color: AppTokens.brand,
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -335,7 +335,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   TextSpan(text: "CHI C'È\nSTASERA\n"),
                                   TextSpan(
                                     text: 'IN CAMPO?',
-                                    style: TextStyle(color: GimmyTokens.brand),
+                                    style: TextStyle(color: AppTokens.brand),
                                   ),
                                 ],
                               ),
@@ -346,7 +346,7 @@ class _LoginScreenState extends State<LoginScreen>
                               style: GoogleFonts.spaceGrotesk(
                                 fontSize: 14,
                                 height: 1.5,
-                                color: GimmyTokens.textOnInkMute,
+                                color: AppTokens.textOnInkMute,
                               ),
                             ),
                             const SizedBox(height: 40),
@@ -364,17 +364,17 @@ class _LoginScreenState extends State<LoginScreen>
                                       vertical: 12,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: GimmyTokens.bad.withOpacity(0.12),
+                                      color: AppTokens.bad.withOpacity(0.12),
                                       borderRadius: BorderRadius.circular(14),
                                       border: Border.all(
-                                        color: GimmyTokens.bad.withOpacity(0.3),
+                                        color: AppTokens.bad.withOpacity(0.3),
                                       ),
                                     ),
                                     child: Row(
                                       children: [
                                         const Icon(
                                           Icons.error_outline,
-                                          color: GimmyTokens.bad,
+                                          color: AppTokens.bad,
                                           size: 18,
                                         ),
                                         const SizedBox(width: 10),
@@ -382,7 +382,7 @@ class _LoginScreenState extends State<LoginScreen>
                                           child: Text(
                                             auth.error!,
                                             style: GoogleFonts.spaceGrotesk(
-                                              color: GimmyTokens.bad,
+                                              color: AppTokens.bad,
                                               fontSize: 13,
                                             ),
                                           ),
@@ -452,14 +452,14 @@ class _LoginScreenState extends State<LoginScreen>
                                     text: TextSpan(
                                       style: GoogleFonts.spaceGrotesk(
                                         fontSize: 13,
-                                        color: GimmyTokens.textOnInkMute,
+                                        color: AppTokens.textOnInkMute,
                                       ),
                                       children: const [
                                         TextSpan(text: 'Non hai un account? '),
                                         TextSpan(
                                           text: 'Registrati',
                                           style: TextStyle(
-                                            color: GimmyTokens.brand,
+                                            color: AppTokens.brand,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -524,7 +524,7 @@ class _DarkInput extends StatelessWidget {
           fontSize: 15,
           letterSpacing: obscure ? 0.1 : 0,
         ),
-        cursorColor: GimmyTokens.brand,
+        cursorColor: AppTokens.brand,
         decoration: InputDecoration(
           filled: false,
           isDense: false,
@@ -545,7 +545,7 @@ class _DarkInput extends StatelessWidget {
           errorBorder: InputBorder.none,
           focusedErrorBorder: InputBorder.none,
           errorStyle: GoogleFonts.spaceGrotesk(
-            color: GimmyTokens.bad,
+            color: AppTokens.bad,
             fontSize: 12,
           ),
         ),
@@ -573,8 +573,8 @@ class _BrandBtn extends StatelessWidget {
         height: 54,
         decoration: BoxDecoration(
           color: onTap == null
-              ? GimmyTokens.brand.withOpacity(0.4)
-              : GimmyTokens.brand,
+              ? AppTokens.brand.withOpacity(0.4)
+              : AppTokens.brand,
           borderRadius: BorderRadius.circular(16),
         ),
         alignment: Alignment.center,
@@ -584,7 +584,7 @@ class _BrandBtn extends StatelessWidget {
                 width: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
-                  color: GimmyTokens.brandInk,
+                  color: AppTokens.brandInk,
                 ),
               )
             : Row(
@@ -596,13 +596,13 @@ class _BrandBtn extends StatelessWidget {
                     style: GoogleFonts.spaceGrotesk(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: GimmyTokens.brandInk,
+                      color: AppTokens.brandInk,
                     ),
                   ),
                   const SizedBox(width: 8),
                   const Icon(
                     Icons.arrow_forward,
-                    color: GimmyTokens.brandInk,
+                    color: AppTokens.brandInk,
                     size: 18,
                   ),
                 ],

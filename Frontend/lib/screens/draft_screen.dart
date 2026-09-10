@@ -10,7 +10,7 @@ import '../models/team_format.dart';
 import '../providers/auth_provider.dart';
 import '../providers/team_draft_provider.dart';
 import '../providers/theme_provider.dart';
-import '../widgets/gimmy_widgets.dart';
+import '../widgets/app_widgets.dart';
 
 class DraftScreen extends StatefulWidget {
   final int? initialDraftId;
@@ -85,10 +85,10 @@ class _DraftScreenState extends State<DraftScreen> with WidgetsBindingObserver {
     final loading = provider.isLoading && !provider.hasLoaded;
 
     return Scaffold(
-      backgroundColor: GimmyTokens.ink,
+      backgroundColor: AppTokens.ink,
       body: SafeArea(
         child: loading
-            ? const Center(child: CircularProgressIndicator(color: GimmyTokens.brand))
+            ? const Center(child: CircularProgressIndicator(color: AppTokens.brand))
             : Column(
                 children: [
                   _Header(
@@ -254,7 +254,7 @@ class _DraftScreenState extends State<DraftScreen> with WidgetsBindingObserver {
     final draft = context.read<TeamDraftProvider>().currentDraft;
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: GimmyTokens.ink2,
+      backgroundColor: AppTokens.ink2,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -350,7 +350,7 @@ class _DraftScreenState extends State<DraftScreen> with WidgetsBindingObserver {
 
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: GimmyTokens.ink2,
+      backgroundColor: AppTokens.ink2,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -414,7 +414,7 @@ class _DraftScreenState extends State<DraftScreen> with WidgetsBindingObserver {
                           const SnackBar(content: Text('Link copiato'), duration: Duration(seconds: 2)),
                         );
                       },
-                      icon: const Icon(Icons.copy, color: GimmyTokens.brand),
+                      icon: const Icon(Icons.copy, color: AppTokens.brand),
                     ),
                   ],
                 ),
@@ -435,7 +435,7 @@ class _DraftScreenState extends State<DraftScreen> with WidgetsBindingObserver {
                 style: GoogleFonts.firaCode(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
-                  color: GimmyTokens.brand,
+                  color: AppTokens.brand,
                   letterSpacing: 4,
                 ),
               ),
@@ -460,7 +460,7 @@ class _DraftScreenState extends State<DraftScreen> with WidgetsBindingObserver {
                         height: 28,
                         decoration: BoxDecoration(
                           color: c.isOwner
-                              ? GimmyTokens.brand.withOpacity(0.2)
+                              ? AppTokens.brand.withOpacity(0.2)
                               : Colors.white.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -468,7 +468,7 @@ class _DraftScreenState extends State<DraftScreen> with WidgetsBindingObserver {
                         child: Icon(
                           c.isOwner ? Icons.star_rounded : Icons.person_outline,
                           size: 16,
-                          color: c.isOwner ? GimmyTokens.brand : Colors.white70,
+                          color: c.isOwner ? AppTokens.brand : Colors.white70,
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -488,7 +488,7 @@ class _DraftScreenState extends State<DraftScreen> with WidgetsBindingObserver {
                           style: GoogleFonts.spaceGrotesk(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: GimmyTokens.brand,
+                            color: AppTokens.brand,
                           ),
                         ),
                     ],
@@ -628,7 +628,7 @@ class _Header extends StatelessWidget {
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.5,
-                    color: GimmyTokens.brand,
+                    color: AppTokens.brand,
                   ),
                 ),
                 if (drafts.length <= 1)
@@ -655,10 +655,10 @@ class _Header extends StatelessWidget {
                 width: 40,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: GimmyTokens.brand.withOpacity(0.15),
+                  color: AppTokens.brand.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.share, color: GimmyTokens.brand, size: 18),
+                child: const Icon(Icons.share, color: AppTokens.brand, size: 18),
               ),
             ),
         ],
@@ -677,7 +677,7 @@ class _DraftSwitcher extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopupMenuButton<int>(
       onSelected: onSwitch,
-      color: GimmyTokens.ink2,
+      color: AppTokens.ink2,
       offset: const Offset(0, 36),
       itemBuilder: (ctx) => drafts
           .map((d) => PopupMenuItem<int>(
@@ -687,7 +687,7 @@ class _DraftSwitcher extends StatelessWidget {
                     if (d.isOwner)
                       const Padding(
                         padding: EdgeInsets.only(right: 8),
-                        child: Icon(Icons.star_rounded, size: 14, color: GimmyTokens.brand),
+                        child: Icon(Icons.star_rounded, size: 14, color: AppTokens.brand),
                       ),
                     Text(d.nomeTeam,
                         style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 13)),
@@ -730,10 +730,10 @@ class _EmptyDraft extends StatelessWidget {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: GimmyTokens.brand.withOpacity(0.15),
+                color: AppTokens.brand.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(24),
               ),
-              child: const Icon(Icons.groups, color: GimmyTokens.brand, size: 38),
+              child: const Icon(Icons.groups, color: AppTokens.brand, size: 38),
             ),
             const SizedBox(height: 20),
             Text(
@@ -755,8 +755,8 @@ class _EmptyDraft extends StatelessWidget {
             FilledButton.icon(
               onPressed: onCreate,
               style: FilledButton.styleFrom(
-                backgroundColor: GimmyTokens.brand,
-                foregroundColor: GimmyTokens.brandInk,
+                backgroundColor: AppTokens.brand,
+                foregroundColor: AppTokens.brandInk,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               ),
               icon: const Icon(Icons.add),
@@ -800,7 +800,7 @@ class _DraftBody extends StatelessWidget {
 
     return RefreshIndicator(
       onRefresh: onRefresh,
-      color: GimmyTokens.brand,
+      color: AppTokens.brand,
       child: ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -827,13 +827,13 @@ class _DraftBody extends StatelessWidget {
             ),
             TextButton.icon(
               onPressed: onAddCandidate,
-              icon: const Icon(Icons.add, color: GimmyTokens.brand),
+              icon: const Icon(Icons.add, color: AppTokens.brand),
               label: Text(
                 'Aggiungi',
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: GimmyTokens.brand,
+                  color: AppTokens.brand,
                 ),
               ),
             ),
@@ -888,13 +888,13 @@ class _SetupCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: GimmyTokens.brand,
+                color: AppTokens.brand,
                 borderRadius: BorderRadius.circular(12),
               ),
               alignment: Alignment.center,
               child: Text(
                 teamInitials(draft.nomeTeam, fallback: '?'),
-                style: GoogleFonts.bebasNeue(fontSize: 22, color: GimmyTokens.brandInk),
+                style: GoogleFonts.bebasNeue(fontSize: 22, color: AppTokens.brandInk),
               ),
             ),
             const SizedBox(width: 14),
@@ -1011,26 +1011,26 @@ class _SummaryRow extends StatelessWidget {
 Color _colorFor(DraftStatus s) {
   switch (s) {
     case DraftStatus.confermato:
-      return GimmyTokens.ok;
+      return AppTokens.ok;
     case DraftStatus.inForse:
-      return GimmyTokens.warn;
+      return AppTokens.warn;
     case DraftStatus.daSentire:
-      return GimmyTokens.info;
+      return AppTokens.info;
     case DraftStatus.rifiutato:
-      return GimmyTokens.bad;
+      return AppTokens.bad;
   }
 }
 
-GimmyChipVariant _chipVariantFor(DraftStatus s) {
+AppChipVariant _chipVariantFor(DraftStatus s) {
   switch (s) {
     case DraftStatus.confermato:
-      return GimmyChipVariant.ok;
+      return AppChipVariant.ok;
     case DraftStatus.inForse:
-      return GimmyChipVariant.warn;
+      return AppChipVariant.warn;
     case DraftStatus.daSentire:
-      return GimmyChipVariant.brand;
+      return AppChipVariant.brand;
     case DraftStatus.rifiutato:
-      return GimmyChipVariant.bad;
+      return AppChipVariant.bad;
   }
 }
 
@@ -1124,7 +1124,7 @@ class _CandidateTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                GimmyChip(text: c.stato.label, variant: _chipVariantFor(c.stato)),
+                AppChip(text: c.stato.label, variant: _chipVariantFor(c.stato)),
                 IconButton(
                   onPressed: onRemove,
                   icon: Icon(Icons.delete_outline,
@@ -1141,10 +1141,10 @@ class _CandidateTile extends StatelessWidget {
                 _StarRow(label: 'Affidabilità', value: c.affidabilita),
                 const Spacer(),
                 if (c.tesserato)
-                  GimmyChip(
+                  AppChip(
                     text: 'Tesserato',
                     leadingIcon: Icons.verified,
-                    variant: GimmyChipVariant.brand,
+                    variant: AppChipVariant.brand,
                   ),
                 if (onAddFriends != null) ...[
                   const SizedBox(width: 6),
@@ -1223,7 +1223,7 @@ class _StarRow extends StatelessWidget {
             (i) => Icon(
               i < value ? Icons.star_rounded : Icons.star_outline_rounded,
               size: 14,
-              color: i < value ? GimmyTokens.brand : Colors.white.withOpacity(0.25),
+              color: i < value ? AppTokens.brand : Colors.white.withOpacity(0.25),
             ),
           ),
         ),
@@ -1249,7 +1249,7 @@ class _LaunchBar extends StatelessWidget {
         child: Container(
           height: 54,
           decoration: BoxDecoration(
-            color: canLaunch ? GimmyTokens.brand : GimmyTokens.brand.withOpacity(0.3),
+            color: canLaunch ? AppTokens.brand : AppTokens.brand.withOpacity(0.3),
             borderRadius: BorderRadius.circular(16),
           ),
           alignment: Alignment.center,
@@ -1264,12 +1264,12 @@ class _LaunchBar extends StatelessWidget {
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: GimmyTokens.brandInk,
+                  color: AppTokens.brandInk,
                 ),
               ),
               if (draft.isOwner) ...[
                 const SizedBox(width: 8),
-                const Icon(Icons.rocket_launch, color: GimmyTokens.brandInk, size: 18),
+                const Icon(Icons.rocket_launch, color: AppTokens.brandInk, size: 18),
               ],
             ],
           ),
@@ -1458,7 +1458,7 @@ class _CandidateEditorState extends State<_CandidateEditor> {
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 value: _tesserato,
-                activeColor: GimmyTokens.brand,
+                activeColor: AppTokens.brand,
                 onChanged: (v) => setState(() => _tesserato = v),
                 title: Text('Tesserato', style: GoogleFonts.spaceGrotesk(color: Colors.white)),
               ),
@@ -1482,8 +1482,8 @@ class _CandidateEditorState extends State<_CandidateEditor> {
                     child: FilledButton(
                       onPressed: _saving ? null : _save,
                       style: FilledButton.styleFrom(
-                        backgroundColor: GimmyTokens.brand,
-                        foregroundColor: GimmyTokens.brandInk,
+                        backgroundColor: AppTokens.brand,
+                        foregroundColor: AppTokens.brandInk,
                       ),
                       child: _saving
                           ? const SizedBox(
@@ -1491,7 +1491,7 @@ class _CandidateEditorState extends State<_CandidateEditor> {
                               width: 18,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: GimmyTokens.brandInk,
+                                color: AppTokens.brandInk,
                               ),
                             )
                           : const Text('Salva'),
@@ -1515,7 +1515,7 @@ class _CandidateEditorState extends State<_CandidateEditor> {
       );
 
   Widget _selectChip(String label, bool selected, VoidCallback onTap, {Color? tint}) {
-    final color = tint ?? GimmyTokens.brand;
+    final color = tint ?? AppTokens.brand;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
@@ -1568,7 +1568,7 @@ class _StarPicker extends StatelessWidget {
                 child: Icon(
                   idx <= value ? Icons.star_rounded : Icons.star_outline_rounded,
                   size: 28,
-                  color: idx <= value ? GimmyTokens.brand : Colors.white.withOpacity(0.3),
+                  color: idx <= value ? AppTokens.brand : Colors.white.withOpacity(0.3),
                 ),
               ),
             );

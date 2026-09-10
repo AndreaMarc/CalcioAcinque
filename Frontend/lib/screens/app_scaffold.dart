@@ -5,7 +5,7 @@ import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/dashboard_provider.dart';
 import '../providers/announcements_provider.dart';
-import '../widgets/gimmy_widgets.dart';
+import '../widgets/app_widgets.dart';
 
 class AppScaffold extends StatefulWidget {
   final Widget child;
@@ -61,13 +61,13 @@ class _AppScaffoldState extends State<AppScaffold> {
     final routes = _buildRoutes(useGettoni);
     final activeIndex = _currentIndex(context, routes);
 
-    final tabs = <GimmyTab>[
-      const GimmyTab(Icons.home_outlined, 'Home'),
-      const GimmyTab(Icons.calendar_today_outlined, 'Partite'),
-      const GimmyTab(Icons.groups_outlined, 'Rosa'),
-      if (useGettoni) const GimmyTab(Icons.toll_outlined, 'Gettoni'),
-      const GimmyTab(Icons.bar_chart_outlined, 'Stats'),
-      GimmyTab(
+    final tabs = <AppTab>[
+      const AppTab(Icons.home_outlined, 'Home'),
+      const AppTab(Icons.calendar_today_outlined, 'Partite'),
+      const AppTab(Icons.groups_outlined, 'Rosa'),
+      if (useGettoni) const AppTab(Icons.toll_outlined, 'Gettoni'),
+      const AppTab(Icons.bar_chart_outlined, 'Stats'),
+      AppTab(
         Icons.campaign_outlined,
         'Bacheca',
         badge: Consumer<AnnouncementsProvider>(
@@ -76,7 +76,7 @@ class _AppScaffoldState extends State<AppScaffold> {
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
               decoration: BoxDecoration(
-                color: GimmyTokens.bad,
+                color: AppTokens.bad,
                 borderRadius: BorderRadius.circular(8),
               ),
               constraints: const BoxConstraints(minWidth: 16, minHeight: 14),
@@ -96,7 +96,7 @@ class _AppScaffoldState extends State<AppScaffold> {
     ];
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final paper = isDark ? GimmyTokens.darkPaper : GimmyTokens.paper;
+    final paper = isDark ? AppTokens.darkPaper : AppTokens.paper;
     final bottomInset = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
@@ -108,7 +108,7 @@ class _AppScaffoldState extends State<AppScaffold> {
       ),
       bottomNavigationBar: Padding(
         padding: EdgeInsets.fromLTRB(12, 0, 12, bottomInset + 12),
-        child: GimmyTabBar(
+        child: AppTabBar(
           activeIndex: activeIndex,
           onTap: (i) {
             if (i < routes.length) context.go(routes[i]);
