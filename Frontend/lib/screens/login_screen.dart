@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
+import '../widgets/brand_mark.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -215,7 +216,21 @@ class _LoginScreenState extends State<LoginScreen>
       return const Scaffold(
         backgroundColor: AppTokens.ink,
         body: Center(
-          child: CircularProgressIndicator(color: AppTokens.brand),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              BrandMark(size: 56),
+              SizedBox(height: 28),
+              SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  color: AppTokens.brand,
+                  strokeWidth: 2,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -275,46 +290,14 @@ class _LoginScreenState extends State<LoginScreen>
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             // Wordmark
-                            Row(
-                              children: [
-                                Container(
-                                  width: 36,
-                                  height: 36,
-                                  decoration: BoxDecoration(
-                                    color: AppTokens.brand,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Consumer<ThemeProvider>(
-                                    builder: (context, theme, _) {
-                                      final initial = theme.teamName.isNotEmpty
-                                          ? theme.teamName[0].toUpperCase()
-                                          : 'G';
-                                      return Text(
-                                        initial,
-                                        style: GoogleFonts.bebasNeue(
-                                          fontSize: 20,
-                                          color: AppTokens.brandInk,
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Text(
-                                  'INCAMPO',
-                                  style: GoogleFonts.bebasNeue(
-                                    fontSize: 22,
-                                    color: Colors.white,
-                                    letterSpacing: 0.04 * 22,
-                                  ),
-                                ),
-                              ],
-                            ),
+                            const BrandWordmark(markSize: 36),
                             const SizedBox(height: 60),
                             // Hero copy
                             Text(
-                              'CALCIO A 5 · SEASON 25/26',
+                              'CALCIO A 5 · 7 · 8 · 11  ·  STAGIONE ${seasonLabel()}',
+                              maxLines: 1,
+                              overflow: TextOverflow.fade,
+                              softWrap: false,
                               style: GoogleFonts.spaceGrotesk(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,

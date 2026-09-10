@@ -8,6 +8,7 @@ import '../providers/theme_provider.dart';
 import '../models/team_draft.dart';
 import '../models/team_membership_info.dart';
 import '../widgets/app_widgets.dart';
+import '../widgets/brand_mark.dart';
 
 class TeamSelectionScreen extends StatefulWidget {
   const TeamSelectionScreen({super.key});
@@ -84,10 +85,12 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
+                  padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const BrandWordmark(markSize: 28),
+                      const SizedBox(height: 28),
                       Text(
                         'I TUOI TEAM',
                         style: GoogleFonts.spaceGrotesk(
