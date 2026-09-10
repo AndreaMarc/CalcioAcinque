@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:web/web.dart' as web;
 
 import 'core/storage/secure_storage.dart';
 import 'core/network/api_client.dart';
@@ -41,6 +42,16 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('it_IT', null);
   runApp(const InCampoApp());
+  WidgetsBinding.instance.addPostFrameCallback((_) => _removeSplash());
+}
+
+/// Toglie lo splash HTML di index.html con una dissolvenza, appena Flutter ha
+/// disegnato il primo frame (il login su fondo ink: nessun flash bianco).
+void _removeSplash() {
+  final el = web.document.getElementById('splash');
+  if (el == null) return;
+  el.classList.add('out');
+  Future.delayed(const Duration(milliseconds: 300), el.remove);
 }
 
 class InCampoApp extends StatefulWidget {
