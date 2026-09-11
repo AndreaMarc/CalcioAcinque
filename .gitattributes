@@ -1,0 +1,4 @@
+# Gli script di shell devono restare LF anche su Windows: con CRLF lo shebang non funziona
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.yml text eol=lf
