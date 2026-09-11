@@ -7,6 +7,7 @@ import 'package:web/web.dart' as web;
 
 import 'core/storage/secure_storage.dart';
 import 'core/network/api_client.dart';
+import 'core/push/push_manager.dart';
 import 'providers/auth_provider.dart';
 import 'providers/matches_provider.dart';
 import 'providers/players_provider.dart';
@@ -97,6 +98,11 @@ class _InCampoAppState extends State<InCampoApp> {
     // Sessione scaduta (refresh fallito) → logout pulito + ritorno al login
     _apiClient.onSessionExpired = () async {
       if (!_authProvider.isAuthenticated) return;
+      // Senza token valido il server non si puo' avvisare: almeno il browser
+      // smette di ricevere (il server ripulisce la subscription al primo 410)
+      try {
+        await PushManager.unsubscribe();
+      } catch (_) {}
       await _authProvider.logout();
       _router.go('/login');
     };

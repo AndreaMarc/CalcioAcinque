@@ -23,6 +23,12 @@ public class Club
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// Chi ha creato la societa': finche' non ha giocatori e' l'unico che puo'
+    /// gestirla (prima bastava esserne membro).
+    /// </summary>
+    public int? CreatedByUserId { get; set; }
+
     // --- Dati per pagare, validi per tutte le squadre salvo override sulla singola ---
 
     /// <summary>Link PayPal.me o simile, aperto in una nuova scheda dal client.</summary>

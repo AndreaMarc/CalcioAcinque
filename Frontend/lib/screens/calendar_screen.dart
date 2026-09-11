@@ -195,9 +195,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  void _exportCalendar(BuildContext context) {
+  Future<void> _exportCalendar(BuildContext context) async {
     final auth = context.read<AuthProvider>();
-    final url = '${ApiConstants.baseUrl}${ApiConstants.calendarIcs(auth.teamId)}';
+    // Il feed e' anonimo ma protetto da un token nell'URL: lo chiede al server
+    String url;
+    try {
+      final resp = await auth.apiClient.dio.get(ApiConstants.calendarLink(auth.teamId));
+      url = resp.data['data']['url'] as String;
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Non riesco a preparare il calendario, riprova')),
+      );
+      return;
+    }
+    if (!context.mounted) return;
     final anchor = web.document.createElement('a') as web.HTMLAnchorElement;
     anchor.href = url;
     anchor.download = 'partite.ics';

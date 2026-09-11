@@ -40,6 +40,17 @@ public class PaymentsController : ControllerBase
     public async Task<ActionResult<ApiResponse<List<PlayerPaymentDto>>>> GetByPlayer(int playerId)
     {
         var claimTeamId = int.Parse(User.FindFirstValue("TeamId")!);
+        // Stessa regola dell'elenco di squadra: i conti di un compagno li vede
+        // solo chi tiene la cassa. Senza questo bastava cambiare l'id nell'URL.
+        var vedeTutti = User.IsInRole(nameof(UserRole.Admin)) ||
+                        User.IsInRole(nameof(UserRole.Cassiere));
+        var mioPlayerId = int.Parse(User.FindFirstValue("PlayerId")!);
+        if (!vedeTutti && playerId != mioPlayerId)
+            return StatusCode(403, new ApiResponse<List<PlayerPaymentDto>>
+            {
+                Success = false,
+                Message = "Puoi vedere solo i tuoi pagamenti"
+            });
         var result = await _paymentService.GetByPlayerAsync(playerId, claimTeamId);
         return Ok(new ApiResponse<List<PlayerPaymentDto>> { Success = true, Data = result });
     }

@@ -13,3 +13,7 @@ Frontend/.dart_tool/
 
 # Impostazioni locali Claude Code
 .claude/
+
+# Test
+Backend.Tests/bin/
+Backend.Tests/obj/

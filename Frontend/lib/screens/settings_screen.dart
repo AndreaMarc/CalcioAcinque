@@ -1376,6 +1376,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: _AccountCard(
                       onChangePassword: _showChangePasswordDialog,
                       onLogout: () async {
+                        // Prima della sessione: senza token il server non puo'
+                        // togliere il dispositivo, e continuerebbe a ricevere le
+                        // notifiche dell'utente precedente
+                        final notif = context.read<NotificationsProvider>();
+                        try {
+                          if (notif.attiveQui) await notif.disable();
+                        } catch (_) {}
+                        notif.reset();
                         await auth.logout();
                         if (context.mounted) context.go('/login');
                       },

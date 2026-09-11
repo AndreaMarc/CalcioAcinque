@@ -37,6 +37,7 @@ class ApiConstants {
   static String teamStats(int teamId) => '/api/teams/$teamId/stats';
   static String playerStats(int playerId) => '/api/players/$playerId/stats';
   static String calendarIcs(int teamId) => '/api/teams/$teamId/matches/calendar.ics';
+  static String calendarLink(int teamId) => '/api/teams/$teamId/matches/calendar-link';
   static String announcements(int teamId) => '/api/teams/$teamId/announcements';
   static String announcement(int teamId, int id) => '/api/teams/$teamId/announcements/$id';
   static String announcementAcknowledge(int teamId, int id) => '/api/teams/$teamId/announcements/$id/acknowledge';

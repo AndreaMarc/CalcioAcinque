@@ -72,6 +72,7 @@ public class ClubService : IClubService
         {
             Nome = dto.Nome.Trim(),
             InviteCode = await GenerateUniqueClubCodeAsync(),
+            CreatedByUserId = userId,
             CreatedAt = DateTime.UtcNow
         };
         _context.Clubs.Add(club);
@@ -463,7 +464,13 @@ public class ClubService : IClubService
     private static void EnsureAdmin(int userId, Club club)
     {
         EnsureMember(userId, club);
-        if (!club.Teams.Any(t => t.Players.Count > 0)) return;
+        if (!club.Teams.Any(t => t.Players.Count > 0))
+        {
+            // Societa' ancora senza giocatori: la gestisce chi l'ha creata, non
+            // chiunque sia in anagrafica
+            if (club.CreatedByUserId == userId) return;
+            throw new UnauthorizedException("Solo chi ha creato la societa puo gestirla finche non ha giocatori");
+        }
         if (club.Teams.Any(t => t.Players.Any(p => p.UserId == userId && p.Ruolo == UserRole.Admin))) return;
         throw new UnauthorizedException("Servono i permessi di amministratore della societa");
     }

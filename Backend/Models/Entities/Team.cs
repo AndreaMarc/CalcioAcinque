@@ -78,6 +78,13 @@ public class Team
     public string? InviteCode { get; set; }
 
     /// <summary>
+    /// Token opaco per il feed ICS: il calendario si sottoscrive senza login,
+    /// quindi l'URL deve essere indovinabile solo da chi l'ha ricevuto dall'app.
+    /// </summary>
+    [MaxLength(64)]
+    public string? CalendarToken { get; set; }
+
+    /// <summary>
     /// Logo della squadra come data-URL/base64 (PNG o JPEG, gia' ridotto dal client).
     /// Sta sul server cosi' lo vedono tutti i membri, non solo il browser che l'ha caricato.
     /// </summary>

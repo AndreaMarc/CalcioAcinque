@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 using CalcioAcinque.Backend.DTOs.Auth;
 using CalcioAcinque.Backend.DTOs.Players;
@@ -20,6 +21,7 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
+    [EnableRateLimiting("auth")]
     [HttpPost("login")]
     public async Task<ActionResult<ApiResponse<LoginResponse>>> Login([FromBody] LoginRequest request)
     {
@@ -27,6 +29,7 @@ public class AuthController : ControllerBase
         return Ok(new ApiResponse<LoginResponse> { Success = true, Data = result, Message = "Login effettuato" });
     }
 
+    [EnableRateLimiting("auth")]
     [HttpPost("signup")]
     public async Task<ActionResult<ApiResponse<LoginResponse>>> Signup([FromBody] SignupRequest request)
     {

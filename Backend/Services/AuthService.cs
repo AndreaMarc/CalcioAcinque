@@ -410,7 +410,8 @@ public class AuthService : IAuthService
 
             var isAdmin = existing.Teams.Any(t => t.Players.Any(p => p.UserId == userId && p.Ruolo == UserRole.Admin));
             var isEmpty = !existing.Teams.Any(t => t.Players.Count > 0);
-            if (!isAdmin && !isEmpty)
+            // Societa' vuota: solo chi l'ha creata puo' agganciarci una squadra
+            if (!isAdmin && !(isEmpty && existing.CreatedByUserId == userId))
                 throw new UnauthorizedException("Servono i permessi di amministratore della societa");
 
             return existing;
@@ -420,6 +421,7 @@ public class AuthService : IAuthService
         {
             Nome = string.IsNullOrWhiteSpace(request.NomeSocieta) ? request.NomeTeam : request.NomeSocieta!.Trim(),
             InviteCode = await GenerateUniqueClubCodeAsync(),
+            CreatedByUserId = userId,
             CreatedAt = DateTime.UtcNow
         };
         _context.Clubs.Add(club);

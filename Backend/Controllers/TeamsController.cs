@@ -27,14 +27,6 @@ public class TeamsController : ControllerBase
     }
 
     [Authorize(Roles = Ruoli.Squadra)]
-    [HttpPost]
-    public async Task<ActionResult<ApiResponse<TeamDto>>> Create([FromBody] CreateTeamDto dto)
-    {
-        var result = await _teamService.CreateAsync(dto);
-        return Ok(new ApiResponse<TeamDto> { Success = true, Data = result, Message = "Team creato" });
-    }
-
-    [Authorize(Roles = Ruoli.Squadra)]
     [HttpPut("{teamId}")]
     public async Task<ActionResult<ApiResponse<TeamDto>>> Update(int teamId, [FromBody] UpdateTeamDto dto)
     {

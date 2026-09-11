@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -77,12 +78,36 @@ public class MatchesController : ControllerBase
         var result = await _matchService.UpdateStatoAsync(teamId, id, stato);
         return Ok(new ApiResponse<MatchDto> { Success = true, Data = result, Message = "Stato aggiornato" });
     }
-    [AllowAnonymous]
-    [HttpGet("calendar.ics")]
-    public async Task<IActionResult> GetCalendarIcs(int teamId)
+    /// <summary>
+    /// URL del feed ICS con il token della squadra (creato alla prima richiesta).
+    /// Il feed e' anonimo per forza (i calendari non mandano header), quindi il
+    /// segreto sta nell'URL: si ottiene solo da qui, autenticati.
+    /// </summary>
+    [HttpGet("calendar-link")]
+    public async Task<ActionResult<ApiResponse<object>>> GetCalendarLink(int teamId)
     {
         var team = await _context.Teams.FindAsync(teamId);
         if (team == null) return NotFound();
+
+        if (string.IsNullOrEmpty(team.CalendarToken))
+        {
+            team.CalendarToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
+            await _context.SaveChangesAsync();
+        }
+
+        var url = $"{Request.Scheme}://{Request.Host}/api/teams/{teamId}/matches/calendar.ics?t={team.CalendarToken}";
+        return Ok(new ApiResponse<object> { Success = true, Data = new { url } });
+    }
+
+    [AllowAnonymous]
+    [HttpGet("calendar.ics")]
+    public async Task<IActionResult> GetCalendarIcs(int teamId, [FromQuery(Name = "t")] string? token = null)
+    {
+        var team = await _context.Teams.FindAsync(teamId);
+        if (team == null) return NotFound();
+        // Senza token valido il feed non esiste: prima era pubblico per qualsiasi
+        // teamId, con date, campi e note di tutte le squadre.
+        if (string.IsNullOrEmpty(team.CalendarToken) || token != team.CalendarToken) return NotFound();
 
         var matches = await _context.Matches
             .Where(m => m.TeamId == teamId)

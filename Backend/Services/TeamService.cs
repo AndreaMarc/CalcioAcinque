@@ -10,7 +10,6 @@ namespace CalcioAcinque.Backend.Services;
 public interface ITeamService
 {
     Task<TeamDto> GetByIdAsync(int teamId);
-    Task<TeamDto> CreateAsync(CreateTeamDto dto);
     Task<TeamDto> UpdateAsync(int teamId, UpdateTeamDto dto);
 }
 
@@ -27,26 +26,6 @@ public class TeamService : ITeamService
             .Include(t => t.Club)
             .FirstOrDefaultAsync(t => t.Id == teamId);
         if (team == null) throw new NotFoundException("Team", teamId);
-        return MapToDto(team);
-    }
-
-    public async Task<TeamDto> CreateAsync(CreateTeamDto dto)
-    {
-        var team = new Team
-        {
-            Nome = dto.Nome,
-            Formato = ClubService.ParseFormat(dto.Formato),
-            PartitePerStagione = dto.PartitePerStagione,
-            GettoniPerGiocatore = dto.GettoniPerGiocatore,
-            UseGettoni = dto.UseGettoni,
-            QuotaIscrizione = dto.QuotaIscrizione,
-            QuotaTesseramento = dto.QuotaTesseramento,
-            CostoPartita = dto.CostoPartita,
-            CreatedAt = DateTime.UtcNow
-        };
-        team.ApplyFormatDefaults();
-        _context.Teams.Add(team);
-        await _context.SaveChangesAsync();
         return MapToDto(team);
     }
 

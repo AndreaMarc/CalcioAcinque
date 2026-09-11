@@ -1,10 +1,14 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using CalcioAcinque.Backend.Configuration;
 using CalcioAcinque.Backend.Middleware;
+using CalcioAcinque.Backend.Models;
 using CalcioAcinque.Backend.Services;
 using CalcioAcinque.Backend.Services.Push;
 using Lib.Net.Http.WebPush;
@@ -154,7 +158,42 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Dietro Traefik l'IP del client sta in X-Forwarded-For: senza questo il rate
+// limiter vedrebbe un solo IP (quello del proxy) e bloccherebbe tutti insieme.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
+// Login e registrazione: 10 tentativi al minuto per IP. Con password da 6
+// caratteri e nessun lockout, senza questo il login era brute-forzabile.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        httpContext.Connection.RemoteIpAddress?.ToString() ?? "sconosciuto",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        }));
+    options.OnRejected = async (context, ct) =>
+    {
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsJsonAsync(new ApiResponse<object>
+        {
+            Success = false,
+            Message = "Troppi tentativi: aspetta un minuto e riprova"
+        }, ct);
+    };
+});
+
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 // Apply migrations and seed database
 using (var scope = app.Services.CreateScope())
@@ -191,6 +230,7 @@ app.Use(async (ctx, next) =>
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseCors("AllowFrontend");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<TeamAuthorizationMiddleware>();

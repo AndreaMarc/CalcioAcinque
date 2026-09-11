@@ -251,6 +251,7 @@ public class TeamDraftService : ITeamDraftService
         {
             Nome = draft.NomeTeam,
             InviteCode = await GenerateUniqueClubCodeAsync(),
+            CreatedByUserId = userId,
             CreatedAt = DateTime.UtcNow
         };
         _context.Clubs.Add(club);
