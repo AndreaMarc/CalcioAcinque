@@ -100,7 +100,10 @@ public class MatchReminderService : BackgroundService
 
         foreach (var match in candidate)
         {
-            var inizio = match.Data.Date.Add(match.Ora);
+            // Data e Ora sono ora di campo (italiana): il confronto con UtcNow va
+            // fatto in UTC, altrimenti il promemoria parte 1-2 ore fuori bersaglio.
+            var inizioLocale = match.Data.Date.Add(match.Ora);
+            var inizio = AppTime.ToUtc(inizioLocale);
             var promemoria = inizio.AddHours(-match.Team.OrePromemoriaPartita);
 
             // Non ancora nella finestra: se ne riparla al giro successivo
@@ -115,7 +118,7 @@ public class MatchReminderService : BackgroundService
 
             if (convocazioni.Count == 0) continue;
 
-            var quando = inizio.ToString("dd/MM 'alle' HH:mm");
+            var quando = inizioLocale.ToString("dd/MM 'alle' HH:mm");
             var dove = string.IsNullOrWhiteSpace(match.Luogo) ? string.Empty : $" - {match.Luogo}";
             var avversario = string.IsNullOrWhiteSpace(match.Titolo)
                 ? $"Giornata {match.NumeroGiornata}"

@@ -48,6 +48,9 @@ public class TeamDto
 
     public int TotaleGiocatori { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    /// <summary>Logo condiviso della squadra (base64), null se non caricato.</summary>
+    public string? LogoBase64 { get; set; }
 }
 
 public class CreateTeamDto
@@ -91,4 +94,7 @@ public class UpdateTeamDto
     public string? PaypalLink { get; set; }
     public string? Iban { get; set; }
     public string? IntestatarioIban { get; set; }
+
+    /// <summary>Logo in base64; stringa vuota per rimuoverlo, null per non toccarlo.</summary>
+    public string? LogoBase64 { get; set; }
 }

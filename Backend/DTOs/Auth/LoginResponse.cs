@@ -17,6 +17,7 @@ public class PlayerInfo
     public string Email { get; set; } = string.Empty;
     public string Nome { get; set; } = string.Empty;
     public string? Soprannome { get; set; }
+    public string? Telefono { get; set; }
     public string Ruolo { get; set; } = string.Empty;
 }
 

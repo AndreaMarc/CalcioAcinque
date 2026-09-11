@@ -61,6 +61,11 @@ builder.Services.AddScoped<ITeamDraftService, TeamDraftService>();
 
 // Configurazione JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key non configurata");
+// La chiave in appsettings.json e' SOLO per lo sviluppo: in produzione arriva da
+// Jwt__Key (env, vedi docker-compose.yml). Se manca, meglio non partire che
+// firmare i token con una chiave che sta nel repository.
+if (!builder.Environment.IsDevelopment() && (jwtKey.StartsWith("DEV_ONLY", StringComparison.Ordinal) || jwtKey.Length < 32))
+    throw new InvalidOperationException("Jwt:Key di sviluppo o troppo corta: in produzione va passata con la variabile d'ambiente Jwt__Key");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
 
@@ -156,7 +161,11 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await db.Database.MigrateAsync();
-    await DatabaseSeeder.SeedAsync(db);
+    // I dati demo (admin@incampo.it / admin123) solo in sviluppo o se richiesti
+    // esplicitamente: un database di produzione ricreato non deve nascere con
+    // credenziali note.
+    if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("Seed:Demo"))
+        await DatabaseSeeder.SeedAsync(db);
 }
 
 // Configure the HTTP request pipeline
@@ -169,11 +178,9 @@ if (app.Environment.IsDevelopment())
         c.RoutePrefix = string.Empty;
     });
 }
-else
-{
-    app.UseHsts();
-    app.UseHttpsRedirection();
-}
+// Niente UseHttpsRedirection/UseHsts: il TLS lo termina Traefik davanti al
+// container, e senza porta https configurata il middleware loggava solo
+// "Failed to determine the https port for redirect" a ogni richiesta.
 
 // Security header minimo lato API
 app.Use(async (ctx, next) =>

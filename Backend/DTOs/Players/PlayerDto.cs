@@ -77,5 +77,8 @@ public class UpdatePlayerDto
 
 public class ResetPasswordDto
 {
+    [System.ComponentModel.DataAnnotations.Required]
+    [System.ComponentModel.DataAnnotations.MinLength(6)]
+    [System.ComponentModel.DataAnnotations.MaxLength(100)]
     public string NewPassword { get; set; } = string.Empty;
 }

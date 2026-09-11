@@ -21,7 +21,15 @@ public class PlayerStatsDto
 public class TeamStatsDto
 {
     public int TeamId { get; set; }
+
+    /// <summary>Stagione su cui sono calcolate; null = tutte (squadre senza stagioni).</summary>
+    public int? SeasonId { get; set; }
+    public string? SeasonNome { get; set; }
+
     public int TotalePartite { get; set; }
+    public int Vittorie { get; set; }
+    public int Pareggi { get; set; }
+    public int Sconfitte { get; set; }
     public int TotaleGoal { get; set; }
     public int TotaleAssist { get; set; }
     public int TotaleAutogoal { get; set; }

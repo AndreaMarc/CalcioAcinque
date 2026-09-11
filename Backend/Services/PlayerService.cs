@@ -125,7 +125,17 @@ public class PlayerService : IPlayerService
 
         if (dto.IscrizionePagata.HasValue) player.IscrizionePagata = dto.IscrizionePagata.Value;
         if (dto.TesseramentoPagato.HasValue) player.TesseramentoPagato = dto.TesseramentoPagato.Value;
-        if (dto.Ruolo != null && Enum.TryParse<UserRole>(dto.Ruolo, true, out var parsedRole)) player.Ruolo = parsedRole;
+        if (dto.Ruolo != null && Enum.TryParse<UserRole>(dto.Ruolo, true, out var parsedRole))
+        {
+            // Come per l'eliminazione: senza almeno un admin la squadra e' ingestibile
+            if (player.Ruolo == UserRole.Admin && parsedRole != UserRole.Admin)
+            {
+                var adminCount = await _context.Players.CountAsync(p => p.TeamId == teamId && p.Ruolo == UserRole.Admin);
+                if (adminCount <= 1)
+                    throw new BusinessException("Non puoi togliere l'ultimo admin del team: nomina prima un altro admin");
+            }
+            player.Ruolo = parsedRole;
+        }
 
         // Ruolo in campo e numero valgono solo per questa squadra
         if (dto.Posizione != null)

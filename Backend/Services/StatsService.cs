@@ -2,14 +2,15 @@ using Microsoft.EntityFrameworkCore;
 using CalcioAcinque.Backend.Configuration;
 using CalcioAcinque.Backend.DTOs.Stats;
 using CalcioAcinque.Backend.Exceptions;
+using CalcioAcinque.Backend.Models.Entities;
 using CalcioAcinque.Backend.Models.Enums;
 
 namespace CalcioAcinque.Backend.Services;
 
 public interface IStatsService
 {
-    Task<TeamStatsDto> GetTeamStatsAsync(int teamId);
-    Task<PlayerStatsDto> GetPlayerStatsAsync(int playerId, int teamId);
+    Task<TeamStatsDto> GetTeamStatsAsync(int teamId, int? seasonId = null);
+    Task<PlayerStatsDto> GetPlayerStatsAsync(int playerId, int teamId, int? seasonId = null);
 }
 
 public class StatsService : IStatsService
@@ -21,14 +22,32 @@ public class StatsService : IStatsService
         _context = context;
     }
 
-    public async Task<TeamStatsDto> GetTeamStatsAsync(int teamId)
+    /// <summary>
+    /// Stagione da usare: quella richiesta, altrimenti quella aperta. Null se la
+    /// squadra non ha stagioni (dati legacy): allora si contano tutte le partite.
+    /// </summary>
+    private async Task<Season?> ResolveSeasonAsync(int teamId, int? seasonId)
+    {
+        if (seasonId.HasValue)
+            return await _context.Seasons.FirstOrDefaultAsync(s => s.Id == seasonId.Value && s.TeamId == teamId)
+                   ?? throw new NotFoundException("Stagione", seasonId.Value);
+        return await _context.Seasons
+            .Where(s => s.TeamId == teamId && !s.Chiusa)
+            .OrderByDescending(s => s.Id)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<TeamStatsDto> GetTeamStatsAsync(int teamId, int? seasonId = null)
     {
         var team = await _context.Teams.FindAsync(teamId);
         if (team == null) throw new NotFoundException("Squadra", teamId);
 
-        // Partite concluse del team
-        var matchIds = await _context.Matches
-            .Where(m => m.TeamId == teamId && m.Stato == StatoPartita.Conclusa)
+        var season = await ResolveSeasonAsync(teamId, seasonId);
+
+        // Partite concluse del team, nella stagione scelta
+        var matchQuery = _context.Matches.Where(m => m.TeamId == teamId && m.Stato == StatoPartita.Conclusa);
+        if (season != null) matchQuery = matchQuery.Where(m => m.SeasonId == season.Id);
+        var matchIds = await matchQuery
             .OrderBy(m => m.Data)
             .Select(m => new { m.Id, m.NumeroGiornata, m.Data })
             .ToListAsync();
@@ -83,7 +102,12 @@ public class StatsService : IStatsService
         return new TeamStatsDto
         {
             TeamId = teamId,
+            SeasonId = season?.Id,
+            SeasonNome = season?.Nome,
             TotalePartite = matchIds.Count,
+            Vittorie = storicoPartite.Count(m => m.GoalFatti > m.GoalSubiti),
+            Pareggi = storicoPartite.Count(m => m.GoalFatti == m.GoalSubiti),
+            Sconfitte = storicoPartite.Count(m => m.GoalFatti < m.GoalSubiti),
             TotaleGoal = playerGroups.Sum(p => p.TotaleGoal),
             TotaleAssist = playerGroups.Sum(p => p.TotaleAssist),
             TotaleAutogoal = playerGroups.Sum(p => p.TotaleAutogoal),
@@ -95,16 +119,18 @@ public class StatsService : IStatsService
         };
     }
 
-    public async Task<PlayerStatsDto> GetPlayerStatsAsync(int playerId, int teamId)
+    public async Task<PlayerStatsDto> GetPlayerStatsAsync(int playerId, int teamId, int? seasonId = null)
     {
         var player = await _context.Players.FindAsync(playerId);
         if (player == null) throw new NotFoundException("Giocatore", playerId);
         if (player.TeamId != teamId) throw new UnauthorizedException("Non sei autorizzato ad accedere a questa risorsa");
 
-        var attendances = await _context.MatchAttendances
+        var season = await ResolveSeasonAsync(teamId, seasonId);
+        var attQuery = _context.MatchAttendances
             .Include(a => a.Match)
-            .Where(a => a.PlayerId == playerId && a.Match.Stato == StatoPartita.Conclusa)
-            .ToListAsync();
+            .Where(a => a.PlayerId == playerId && a.Match.Stato == StatoPartita.Conclusa);
+        if (season != null) attQuery = attQuery.Where(a => a.Match.SeasonId == season.Id);
+        var attendances = await attQuery.ToListAsync();
 
         return new PlayerStatsDto
         {

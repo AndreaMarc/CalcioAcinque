@@ -106,6 +106,16 @@ public class AuthController : ControllerBase
         return Ok(new ApiResponse<JoinInfoResponse> { Success = true, Data = result });
     }
 
+    /// <summary>Cambio password dell'utente autenticato (richiede quella attuale).</summary>
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<ActionResult<ApiResponse<object>>> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        await _authService.ChangePasswordAsync(userId, request);
+        return Ok(new ApiResponse<object> { Success = true, Message = "Password aggiornata" });
+    }
+
     [Authorize(Roles = Ruoli.Squadra)]
     [HttpGet("invite-code")]
     public async Task<ActionResult<ApiResponse<object>>> GetInviteCode()

@@ -4,7 +4,9 @@ services:
     restart: always
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Server=infra-mysql-1;Database=calcioacinque;User=root;Password=RocketStudio2026!;
+      # Segreti dal file .env sul server (mai nel repo). Senza, compose si ferma.
+      - ConnectionStrings__DefaultConnection=${DB_CONNECTION:?DB_CONNECTION mancante nel .env}
+      - Jwt__Key=${JWT_KEY:?JWT_KEY mancante nel .env}
       # Origin ammessi dal CORS. Il vecchio dominio resta finche' le PWA
       # installate prima del rebrand non vengono reinstallate (vedi README/piano):
       # da togliere a fine transizione.

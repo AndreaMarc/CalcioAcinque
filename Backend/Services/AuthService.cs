@@ -26,6 +26,7 @@ public interface IAuthService
     Task<LoginResponse> JoinTeamAsync(int userId, JoinTeamRequest request);
     Task<string> GetTeamInviteCodeAsync(int teamId);
     Task<JoinInfoResponse?> GetJoinInfoAsync(string inviteCode);
+    Task ChangePasswordAsync(int userId, ChangePasswordRequest request);
 }
 
 public class AuthService : IAuthService
@@ -783,7 +784,30 @@ public class AuthService : IAuthService
             Email = user.Email,
             Nome = player.Nome,
             Soprannome = player.Soprannome,
+            Telefono = player.Telefono,
             Ruolo = player.Ruolo.ToString()
         };
+    }
+
+    /// <summary>
+    /// Cambio password da parte dell'utente stesso: serve quella attuale.
+    /// Non revoca i refresh token: chi cambia password dal telefono non deve
+    /// ritrovarsi buttato fuori dal telefono stesso.
+    /// </summary>
+    public async Task ChangePasswordAsync(int userId, ChangePasswordRequest request)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId && u.IsActive);
+        if (user == null) throw new UnauthorizedException("Utente non trovato");
+
+        if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+            throw new BadRequestException("La password attuale non e' corretta");
+
+        if (request.CurrentPassword == request.NewPassword)
+            throw new BadRequestException("La nuova password deve essere diversa da quella attuale");
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        user.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+        _logger.LogInformation("Password cambiata dall'utente {UserId}", userId);
     }
 }

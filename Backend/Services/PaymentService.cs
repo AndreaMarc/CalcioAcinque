@@ -169,14 +169,18 @@ public class PaymentService : IPaymentService
         var playerIds = players.Select(p => p.Id).ToList();
         var descrizioni = quote.Select(q => q.Descrizione).ToList();
 
+        var stagione = await _seasons.GetOrCreateCorrenteAsync(teamId);
+
+        // Solo le voci della stagione corrente: quelle archiviate non vanno ne'
+        // contate come "gia' generate" ne' riscritte con i nuovi importi.
         var esistenti = await _context.PlayerPayments
             .Where(p => p.PlayerId != null && playerIds.Contains(p.PlayerId.Value)
-                        && descrizioni.Contains(p.Descrizione))
+                        && descrizioni.Contains(p.Descrizione)
+                        && p.SeasonId == stagione.Id)
             .ToListAsync();
 
         var data = (dto.Data ?? DateTime.UtcNow).Date;
         var adminNome = await NomeAdminAsync(adminPlayerId);
-        var stagione = await _seasons.GetOrCreateCorrenteAsync(teamId);
         var result = new GenerateFeesResultDto();
 
         foreach (var player in players)

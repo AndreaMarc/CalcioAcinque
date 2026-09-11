@@ -77,6 +77,12 @@ public class Team
     [MaxLength(20)]
     public string? InviteCode { get; set; }
 
+    /// <summary>
+    /// Logo della squadra come data-URL/base64 (PNG o JPEG, gia' ridotto dal client).
+    /// Sta sul server cosi' lo vedono tutti i membri, non solo il browser che l'ha caricato.
+    /// </summary>
+    public string? LogoBase64 { get; set; }
+
     [NotMapped]
     public TeamFormatPreset Preset => TeamFormats.Preset(Formato);
 

@@ -139,6 +139,14 @@ public class TeamService : ITeamService
         if (dto.Iban != null) team.Iban = Vuoto(dto.Iban)?.Replace(" ", string.Empty).ToUpperInvariant();
         if (dto.IntestatarioIban != null) team.IntestatarioIban = Vuoto(dto.IntestatarioIban);
 
+        if (dto.LogoBase64 != null)
+        {
+            // ~300 KB di immagine: il client la ridimensiona prima, questo e' il paracadute
+            if (dto.LogoBase64.Length > 400_000)
+                throw new BadRequestException("Il logo e' troppo grande: massimo 300 KB");
+            team.LogoBase64 = Vuoto(dto.LogoBase64);
+        }
+
         if (dto.QuotaIscrizione.HasValue) team.QuotaIscrizione = RequireNonNegative(dto.QuotaIscrizione.Value, "La quota di iscrizione");
         if (dto.QuotaTesseramento.HasValue) team.QuotaTesseramento = RequireNonNegative(dto.QuotaTesseramento.Value, "La quota di tesseramento");
         if (dto.CostoPartita.HasValue) team.CostoPartita = RequireNonNegative(dto.CostoPartita.Value, "Il costo partita");
@@ -205,7 +213,8 @@ public class TeamService : ITeamService
             IbanEffettivo = team.Iban ?? team.Club?.Iban,
             IntestatarioIbanEffettivo = team.IntestatarioIban ?? team.Club?.IntestatarioIban,
             TotaleGiocatori = team.Players?.Count ?? 0,
-            CreatedAt = team.CreatedAt
+            CreatedAt = team.CreatedAt,
+            LogoBase64 = team.LogoBase64
         };
     }
 }
