@@ -208,7 +208,6 @@ class ClubProvider extends ChangeNotifier {
     String? paypalLink,
     String? iban,
     String? intestatarioIban,
-    String? logoBase64,
   }) =>
       _mutate(() async {
         final response = await apiClient.dio.put(ApiConstants.club(clubId), data: {
@@ -278,6 +277,7 @@ class ClubProvider extends ChangeNotifier {
     String? paypalLink,
     String? iban,
     String? intestatarioIban,
+    String? logoBase64,
   }) =>
       _mutate(() async {
         final response = await apiClient.dio.put(
