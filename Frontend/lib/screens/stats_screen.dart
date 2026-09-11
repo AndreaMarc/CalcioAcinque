@@ -15,6 +15,7 @@ class StatsScreen extends StatefulWidget {
 
 class _StatsScreenState extends State<StatsScreen> {
   Map<String, dynamic>? _teamStats;
+  Map<String, dynamic>? _myStats;
   bool _isLoading = true;
   bool _meTab = false;
 
@@ -26,15 +27,24 @@ class _StatsScreenState extends State<StatsScreen> {
 
   Future<void> _loadStats() async {
     setState(() => _isLoading = true);
+    final auth = context.read<AuthProvider>();
     try {
-      final auth = context.read<AuthProvider>();
       final resp = await auth.apiClient.dio
           .get(ApiConstants.teamStats(auth.teamId));
-      if (resp.data['success'] == true) {
+      if (resp.data['success'] == true && mounted) {
         setState(() => _teamStats = resp.data['data']);
       }
     } catch (_) {}
-    setState(() => _isLoading = false);
+    final me = auth.currentPlayer;
+    if (me != null) {
+      try {
+        final resp = await auth.apiClient.dio.get(ApiConstants.playerStats(me.id));
+        if (resp.data['success'] == true && mounted) {
+          setState(() => _myStats = resp.data['data']);
+        }
+      } catch (_) {}
+    }
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
@@ -66,13 +76,15 @@ class _StatsScreenState extends State<StatsScreen> {
     final maxGoals = top5.isEmpty
         ? 1
         : (top5.first['totaleGoal'] as int).clamp(1, 99999);
+    final seasonNome = _teamStats?['seasonNome'] as String?;
+    final seasonLabel = seasonNome != null ? 'Stagione $seasonNome' : 'Tutte le stagioni';
 
     return Column(
       children: [
         AppTopBar(
           teamInitials: initials,
           title: 'Statistiche',
-          subtitle: 'Stagione in corso',
+          subtitle: seasonLabel,
         ),
         Expanded(
           child: RefreshIndicator(
@@ -87,9 +99,16 @@ class _StatsScreenState extends State<StatsScreen> {
                     onChange: (v) => setState(() => _meTab = v),
                   ),
                 ),
+                if (_meTab)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                    child: _MyStatsCard(stats: _myStats, seasonLabel: seasonLabel),
+                  )
+                else ...[
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
                   child: _SeasonHero(
+                    label: seasonLabel,
                     vittorie: vittorie,
                     pareggi: pareggi,
                     sconfitte: sconfitte,
@@ -104,8 +123,11 @@ class _StatsScreenState extends State<StatsScreen> {
                     totPartite: totPartite,
                   ),
                 ),
-                const SectionHead(title: 'CAPOCANNONIERI'),
-                if (top5.isEmpty)
+                ],
+                if (!_meTab) const SectionHead(title: 'CAPOCANNONIERI'),
+                if (_meTab)
+                  const SizedBox.shrink()
+                else if (top5.isEmpty)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                     child: Center(child: Text('Nessun dato ancora')),
@@ -200,11 +222,13 @@ class _TabSwitcher extends StatelessWidget {
 }
 
 class _SeasonHero extends StatelessWidget {
+  final String label;
   final int vittorie;
   final int pareggi;
   final int sconfitte;
   final int diff;
   const _SeasonHero({
+    required this.label,
     required this.vittorie,
     required this.pareggi,
     required this.sconfitte,
@@ -229,7 +253,7 @@ class _SeasonHero extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Eyebrow('Stagione in corso', color: muteColor),
+          Eyebrow(label.toUpperCase(), color: muteColor),
           const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -519,6 +543,77 @@ class _ScorerRow extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Le statistiche personali di chi guarda (scheda "Io").
+class _MyStatsCard extends StatelessWidget {
+  final Map<String, dynamic>? stats;
+  final String seasonLabel;
+  const _MyStatsCard({required this.stats, required this.seasonLabel});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
+    final s = stats;
+    if (s == null) {
+      return const EmptyState(
+        icon: Icons.person_outline,
+        title: 'NESSUN DATO',
+        message: 'Le tue statistiche compaiono dopo la prima partita conclusa.',
+      );
+    }
+    int n(String k) => (s[k] as num?)?.toInt() ?? 0;
+    String d(String k) => ((s[k] as num?)?.toDouble() ?? 0).toStringAsFixed(1);
+    final voci = <(String, String, Color?)>[
+      ('${n('partiteGiocate')}', 'PARTITE GIOCATE', null),
+      ('${n('partitePresente')}', 'PRESENZE', null),
+      ('${n('totaleGoal')}', 'GOL', AppTokens.ok),
+      ('${n('totaleAssist')}', 'ASSIST', null),
+      ('${n('totaleMinutiGiocati')}', 'MINUTI', null),
+      (d('mediaGoalPartita'), 'GOL / PARTITA', null),
+      ('${n('totaleAmmonizioni')}', 'AMMONIZIONI', AppTokens.warn),
+      ('${n('totaleEspulsioni')}', 'ESPULSIONI', AppTokens.bad),
+    ];
+    return AppCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Eyebrow(seasonLabel.toUpperCase(), color: muteColor),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 18,
+            runSpacing: 16,
+            children: voci
+                .map((v) => SizedBox(
+                      width: 130,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            v.$1,
+                            style: GoogleFonts.bebasNeue(fontSize: 34, height: 1, color: v.$3 ?? textColor),
+                          ),
+                          Text(
+                            v.$2,
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1,
+                              color: muteColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ))
+                .toList(),
           ),
         ],
       ),

@@ -52,6 +52,26 @@ class MatchesProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Una partita per id, anche se non e' nella lista caricata (altra stagione,
+  /// deep link da notifica prima del caricamento): la aggiunge alla lista.
+  Future<MatchModel?> fetchMatch(int teamId, int matchId) async {
+    try {
+      final response = await apiClient.dio.get(ApiConstants.match(teamId, matchId));
+      if (response.data['success'] == true) {
+        final match = MatchModel.fromJson(response.data['data'] as Map<String, dynamic>);
+        final i = _matches.indexWhere((m) => m.id == match.id);
+        if (i >= 0) {
+          _matches[i] = match;
+        } else {
+          _matches.add(match);
+        }
+        notifyListeners();
+        return match;
+      }
+    } catch (_) {}
+    return null;
+  }
+
   Future<bool> createMatch(int teamId, Map<String, dynamic> data) async {
     try {
       final response = await apiClient.dio.post(ApiConstants.matches(teamId), data: data);

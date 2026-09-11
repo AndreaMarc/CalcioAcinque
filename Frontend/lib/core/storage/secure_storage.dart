@@ -63,8 +63,15 @@ class SecureStorageService {
     return prefs.getInt('last_team_id');
   }
 
+  /// Cancella SOLO la sessione. Le preferenze del tema (nome, logo, colori,
+  /// dark mode) hanno chiavi proprie e devono sopravvivere al logout.
   Future<void> clearAll() async {
     final prefs = await _prefs;
-    await prefs.clear();
+    for (final k in const [
+      'access_token', 'refresh_token', 'player_id', 'user_id', 'team_id',
+      'player_nome', 'player_ruolo', 'last_team_id',
+    ]) {
+      await prefs.remove(k);
+    }
   }
 }

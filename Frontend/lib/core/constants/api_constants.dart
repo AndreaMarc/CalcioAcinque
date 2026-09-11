@@ -5,6 +5,7 @@ class ApiConstants {
   static const String register = '/api/auth/register';
   static const String refreshToken = '/api/auth/refresh';
   static const String me = '/api/auth/me';
+  static const String changePassword = '/api/auth/change-password';
   static const String selectTeam = '/api/auth/select-team';
   static const String myTeams = '/api/auth/teams';
   static const String createTeam = '/api/auth/create-team';

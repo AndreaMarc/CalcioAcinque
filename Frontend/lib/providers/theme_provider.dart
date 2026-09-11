@@ -206,6 +206,44 @@ class ThemeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Allinea nome e logo a quelli sul server per la squadra attiva: la copia
+  /// locale e' solo una cache (prima era l'unica fonte, e ogni dispositivo
+  /// vedeva "InCampo" finche' qualcuno non riscriveva il nome a mano).
+  /// Il server e' la verita' anche quando non ha un logo.
+  Future<void> syncFromServer({
+    required int teamId,
+    String? teamName,
+    String? logoBase64,
+    bool syncLogo = false,
+  }) async {
+    if (teamId != _currentTeamId) return;
+    var changed = false;
+    final prefs = await SharedPreferences.getInstance();
+
+    if (teamName != null && teamName.trim().isNotEmpty && teamName != _teamName) {
+      _teamName = teamName;
+      await prefs.setString(_keyTeamName(), teamName);
+      changed = true;
+    }
+
+    // Il logo si tocca solo quando il chiamante ha davvero letto la squadra dal
+    // server (syncLogo): un nome passato da solo non deve cancellare il logo.
+    final serverLogo = (logoBase64 == null || logoBase64.isEmpty) ? null : logoBase64;
+    if (syncLogo && serverLogo != _logoBase64) {
+      _logoBase64 = serverLogo;
+      _logoBytes = _decode(serverLogo);
+      _teamLogoCache[teamId] = _logoBytes;
+      if (serverLogo == null) {
+        await prefs.remove(_keyLogoBase64());
+      } else {
+        await prefs.setString(_keyLogoBase64(), serverLogo);
+      }
+      changed = true;
+    }
+
+    if (changed) notifyListeners();
+  }
+
   Future<void> setPrimaryColor(Color color) async {
     _primaryColor = color;
     final prefs = await SharedPreferences.getInstance();

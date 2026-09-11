@@ -23,6 +23,7 @@ class MatchDetailScreen extends StatefulWidget {
 class _MatchDetailScreenState extends State<MatchDetailScreen> {
   MatchModel? _match;
   Map<String, dynamic>? _availabilityData;
+  bool _notFound = false;
 
   @override
   void initState() {
@@ -42,12 +43,150 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
         setState(() => _availabilityData = response.data['data']);
       }
     } catch (_) {}
-    if (mounted) {
-      final matches = context.read<MatchesProvider>().matches;
-      setState(() {
-        _match = matches.where((m) => m.id == widget.matchId).firstOrNull;
-      });
+    if (!mounted) return;
+    final matchesProv = context.read<MatchesProvider>();
+    var match = matchesProv.matches.where((m) => m.id == widget.matchId).firstOrNull;
+    // Dalla notifica si arriva qui prima che la lista sia caricata, o per una
+    // partita di un'altra stagione: si chiede al server invece di girare a vuoto
+    match ??= await matchesProv.fetchMatch(auth.teamId, widget.matchId);
+    if (!mounted) return;
+    setState(() {
+      _match = match;
+      _notFound = match == null;
+    });
+  }
+
+  Future<void> _rispondiConvocazione(int convocationId, String risposta) async {
+    final ok = await context.read<ConvocationsProvider>().respond(convocationId, risposta);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(ok
+          ? (risposta == 'Confermato' ? 'Confermato: ci sei!' : 'Segnato come non disponibile')
+          : 'Non riesco a salvare la risposta, riprova'),
+    ));
+    if (ok) _loadData();
+  }
+
+  Future<void> _setDisponibilita(bool disponibile) async {
+    try {
+      await context.read<AuthProvider>().apiClient.dio.post(
+        ApiConstants.matchAvailability(widget.matchId),
+        data: {'disponibile': disponibile},
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(disponibile ? 'Sei disponibile!' : 'Segnato come non disponibile'),
+      ));
+      _loadData();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Errore nel salvare la disponibilita')),
+      );
     }
+  }
+
+  /// La risposta di chi guarda: e' il motivo per cui la notifica porta qui.
+  Widget _buildMyResponse(BuildContext context, MatchModel match) {
+    final me = context.read<AuthProvider>().currentPlayer;
+    if (me == null || match.stato == 'Conclusa' || match.stato == 'InCorso') {
+      return const SizedBox.shrink();
+    }
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
+
+    final convs = context.watch<ConvocationsProvider>().convocations;
+    final mia = convs.where((c) => c.playerId == me.id).firstOrNull;
+
+    String eyebrow;
+    String stato;
+    AppChipVariant variant;
+    bool? attuale;
+    void Function(bool) onRisposta;
+
+    if (mia != null) {
+      eyebrow = 'LA TUA CONVOCAZIONE';
+      if (mia.isConfermato) {
+        stato = 'Hai confermato';
+        variant = AppChipVariant.ok;
+        attuale = true;
+      } else if (mia.isNonDisponibile) {
+        stato = 'Hai dato forfait';
+        variant = AppChipVariant.bad;
+        attuale = false;
+      } else {
+        stato = 'In attesa di risposta';
+        variant = AppChipVariant.warn;
+      }
+      onRisposta = (si) => _rispondiConvocazione(mia.id, si ? 'Confermato' : 'NonDisponibile');
+    } else {
+      eyebrow = 'LA TUA DISPONIBILITA';
+      final dettaglio = (_availabilityData?['dettaglio'] as List?) ?? const [];
+      final miaDisp = dettaglio
+          .cast<Map>()
+          .where((d) => d['playerId'] == me.id)
+          .firstOrNull;
+      if (miaDisp == null) {
+        stato = 'Non hai ancora risposto';
+        variant = AppChipVariant.warn;
+      } else if (miaDisp['disponibile'] == true) {
+        stato = 'Disponibile';
+        variant = AppChipVariant.ok;
+        attuale = true;
+      } else {
+        stato = 'Non disponibile';
+        variant = AppChipVariant.bad;
+        attuale = false;
+      }
+      onRisposta = _setDisponibilita;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: AppCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(child: Eyebrow(eyebrow)),
+                AppChip(text: stato, variant: variant),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: attuale == true ? null : () => onRisposta(true),
+                    icon: const Icon(Icons.check, size: 18),
+                    label: const Text('Ci sono'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: attuale == false ? null : () => onRisposta(false),
+                    icon: const Icon(Icons.close, size: 18),
+                    label: const Text('Non ci sono'),
+                    style: OutlinedButton.styleFrom(foregroundColor: textColor),
+                  ),
+                ),
+              ],
+            ),
+            if (mia == null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'La disponibilita serve al mister per convocare. La convocazione arriva dopo, con una notifica.',
+                style: GoogleFonts.spaceGrotesk(fontSize: 11, color: muteColor, height: 1.3),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -58,7 +197,26 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     if (_match == null) {
       return Scaffold(
         backgroundColor: paper,
-        body: const Center(child: CircularProgressIndicator()),
+        body: SafeArea(
+          child: _notFound
+              ? Column(
+                  children: [
+                    AppTopBar(title: 'Partita', onBack: () => context.go('/calendar')),
+                    Expanded(
+                      child: EmptyState(
+                        icon: Icons.event_busy_outlined,
+                        title: 'PARTITA NON TROVATA',
+                        message: 'Forse e\' stata eliminata, o appartiene a un\'altra squadra.',
+                        action: FilledButton(
+                          onPressed: () => context.go('/calendar'),
+                          child: const Text('Vai al calendario'),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : const Center(child: CircularProgressIndicator()),
+        ),
       );
     }
 
@@ -101,6 +259,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                         bgColor: paper,
                       ),
                     ),
+                    _buildMyResponse(context, match),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                       child: _AvailabilitySummary(
@@ -230,6 +389,25 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                   Navigator.pop(ctx);
                   await _updateStato(context, match, 'Conclusa');
                   if (mounted) _proponiIncasso(match.id);
+                },
+              ),
+            // Presenze e statistiche si bloccano alla conclusione: per correggerle
+            // si riapre (il server ammette solo Conclusa -> InCorso)
+            if (campo && match.stato == 'Conclusa')
+              ListTile(
+                leading: const Icon(Icons.replay, color: AppTokens.warn),
+                title: const Text('Riapri partita'),
+                subtitle: const Text('Per correggere presenze e statistiche'),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final ok = await showConfirmDialog(
+                    context,
+                    title: 'Riaprire la partita?',
+                    message: 'Torna "in corso": potrai correggere presenze e statistiche, '
+                        'poi andra\' conclusa di nuovo. I gettoni si riallineano da soli.',
+                    confirmLabel: 'Riapri',
+                  );
+                  if (ok && mounted) await _updateStato(context, match, 'InCorso');
                 },
               ),
             // Riapribile in qualsiasi momento: l incasso spesso si registra

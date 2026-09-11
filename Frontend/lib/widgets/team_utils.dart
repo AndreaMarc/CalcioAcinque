@@ -12,7 +12,9 @@ import '../providers/players_provider.dart';
 import '../models/team_membership_info.dart';
 import 'app_widgets.dart';
 
-void _resetProviders(BuildContext context) {
+/// Svuota i provider legati alla squadra: dopo un cambio squadra nessun dato
+/// dell'altra deve restare in memoria.
+void resetTeamProviders(BuildContext context) {
   context.read<DashboardProvider>().reset();
   context.read<MatchesProvider>().reset();
   context.read<PlayersProvider>().reset();
@@ -26,7 +28,7 @@ Future<void> switchToTeam(BuildContext context, TeamMembershipInfo team) async {
   final success = await auth.switchTeam(team.teamId);
   if (success && context.mounted) {
     context.read<ThemeProvider>().setCurrentTeamId(auth.teamId);
-    _resetProviders(context);
+    resetTeamProviders(context);
     context.go('/dashboard');
   } else if (context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(

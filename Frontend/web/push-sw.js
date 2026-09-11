@@ -1,23 +1,81 @@
 /*
- * Service worker dedicato alle notifiche push.
+ * Service worker unico dell'app: notifiche push + shell offline.
  *
  * E' separato da quello di Flutter (disattivato con --pwa-strategy=none) perche'
  * deve restare registrato in modo stabile: due service worker che si contendono
  * lo scope si disinstallano a vicenda e la subscription push muore.
  *
- * Non fa caching: serve solo a ricevere le push e ad aprire l'app al tap.
+ * Caching: "prima la rete, poi la cache". Online si scarica sempre la versione
+ * corrente (niente app stantia dopo un deploy); offline si serve l'ultima copia
+ * buona e, se non c'e' nulla, una pagina che lo dice invece di uno schermo nero.
+ * Le chiamate API stanno su un altro origin e non passano di qui.
  */
 
 const APP_ICON = 'icons/Icon-192.png';
+const SHELL_CACHE = 'incampo-shell-v1';
+const PRECACHE = [
+  './',
+  'index.html',
+  'offline.html',
+  'manifest.json',
+  'flutter_bootstrap.js',
+  'icons/brand.svg',
+  APP_ICON,
+];
 
 self.addEventListener('install', (event) => {
-  // Entra in servizio subito, senza aspettare che si chiudano le altre schede
-  event.waitUntil(self.skipWaiting());
+  event.waitUntil(
+    caches.open(SHELL_CACHE)
+      .then((cache) => Promise.allSettled(PRECACHE.map((url) => cache.add(url))))
+      // Entra in servizio subito, senza aspettare che si chiudano le altre schede
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(
+        keys.filter((k) => k.startsWith('incampo-shell-') && k !== SHELL_CACHE).map((k) => caches.delete(k))
+      ))
+      .then(() => self.clients.claim())
+  );
 });
+
+self.addEventListener('fetch', (event) => {
+  const request = event.request;
+  if (request.method !== 'GET') return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+  if (url.pathname.endsWith('/push-sw.js')) return;
+
+  if (request.mode === 'navigate') {
+    event.respondWith(networkFirst(request, 'index.html'));
+    return;
+  }
+  event.respondWith(networkFirst(request, null));
+});
+
+async function networkFirst(request, navigationFallback) {
+  const cache = await caches.open(SHELL_CACHE);
+  try {
+    const response = await fetch(request);
+    if (response && response.ok) {
+      cache.put(request, response.clone()).catch(() => undefined);
+    }
+    return response;
+  } catch (e) {
+    const cached = await cache.match(request, { ignoreSearch: navigationFallback !== null });
+    if (cached) return cached;
+    if (navigationFallback) {
+      const shell = await cache.match(navigationFallback);
+      if (shell) return shell;
+      const offline = await cache.match('offline.html');
+      if (offline) return offline;
+    }
+    return new Response('Sei senza rete.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+  }
+}
 
 self.addEventListener('push', (event) => {
   let payload = {};

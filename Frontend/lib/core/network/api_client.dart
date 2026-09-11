@@ -11,6 +11,25 @@ class ApiClient {
   /// l'app deve fare logout e tornare al login. Impostato da main.dart.
   Future<void> Function()? onSessionExpired;
 
+  /// Invocato per gli errori che non sono "colpa" della richiesta: rete
+  /// assente, timeout, 5xx. I provider spesso ingoiano l'errore e mostrano
+  /// una lista vuota: almeno un avviso globale l'utente lo deve vedere.
+  void Function(String message)? onNetworkError;
+
+  static String describeNetworkError(DioException error) {
+    switch (error.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.receiveTimeout:
+      case DioExceptionType.sendTimeout:
+        return 'Il server non risponde: controlla la connessione e riprova';
+      case DioExceptionType.connectionError:
+      case DioExceptionType.unknown:
+        return 'Sei senza rete o il server non e\' raggiungibile';
+      default:
+        return 'Il server ha avuto un problema: riprova tra poco';
+    }
+  }
+
   static bool _isAuthEndpoint(String path) =>
       path.contains('/auth/login') ||
       path.contains('/auth/signup') ||
@@ -45,6 +64,10 @@ class ApiClient {
           }
           // Refresh fallito → sessione scaduta: logout + redirect al login
           await onSessionExpired?.call();
+        }
+        final status = error.response?.statusCode;
+        if (status == null || status >= 500) {
+          onNetworkError?.call(describeNetworkError(error));
         }
         handler.next(error);
       },

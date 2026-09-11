@@ -9,6 +9,7 @@ import '../models/team_draft.dart';
 import '../models/team_membership_info.dart';
 import '../widgets/app_widgets.dart';
 import '../widgets/brand_mark.dart';
+import '../widgets/join_team_dialog.dart';
 
 class TeamSelectionScreen extends StatefulWidget {
   const TeamSelectionScreen({super.key});
@@ -335,150 +336,7 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
   }
 
   void _showJoinTeamDialog() {
-    final codeCtrl = TextEditingController();
-    final nomeCtrl = TextEditingController();
-    final soprannomeCtrl = TextEditingController();
-    final telefonoCtrl = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    bool checking = false;
-    bool checked = false;
-    String? teamName;
-    List<dynamic> pending = [];
-    int? selectedPendingId;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setLocal) {
-          Future<void> verifica() async {
-            if (codeCtrl.text.trim().isEmpty) return;
-            setLocal(() => checking = true);
-            final info = await context.read<AuthProvider>().getJoinInfo(codeCtrl.text.trim());
-            setLocal(() {
-              checking = false;
-              checked = true;
-              teamName = info?['teamName'] as String?;
-              pending = (info?['pendingPlayers'] as List?) ?? [];
-              selectedPendingId = null;
-            });
-          }
-
-          return AlertDialog(
-            title: const Text('Unisciti con codice'),
-            content: SingleChildScrollView(
-              child: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: codeCtrl,
-                            textCapitalization: TextCapitalization.characters,
-                            decoration: const InputDecoration(labelText: 'Codice invito'),
-                            validator: (v) =>
-                                v == null || v.trim().isEmpty ? 'Obbligatorio' : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        checking
-                            ? const SizedBox(
-                                width: 20, height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2))
-                            : TextButton(onPressed: verifica, child: const Text('Verifica')),
-                      ],
-                    ),
-                    if (checked && teamName != null) ...[
-                      const SizedBox(height: 8),
-                      Text('Team: $teamName',
-                          style: const TextStyle(fontWeight: FontWeight.w600)),
-                    ],
-                    if (pending.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      const Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text('Sei uno di questi? (opzionale)',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                      ),
-                      const SizedBox(height: 6),
-                      AppChoiceChips<int>(
-                        values: pending.map<int>((p) => p['id'] as int).toList(),
-                        selected: selectedPendingId,
-                        allowNull: true,
-                        spacing: 6,
-                        label: (id) =>
-                            pending.firstWhere((p) => p['id'] == id)['nome'] as String,
-                        onChanged: (id) => setLocal(() {
-                          if (id == null) {
-                            selectedPendingId = null;
-                            return;
-                          }
-                          final p = pending.firstWhere((p) => p['id'] == id);
-                          selectedPendingId = id;
-                          nomeCtrl.text = p['nome'] as String;
-                          if (p['soprannome'] != null) {
-                            soprannomeCtrl.text = p['soprannome'] as String;
-                          }
-                        }),
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: nomeCtrl,
-                      decoration: const InputDecoration(labelText: 'Nome'),
-                      validator: (v) =>
-                          v == null || v.trim().isEmpty ? 'Obbligatorio' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: soprannomeCtrl,
-                      decoration: const InputDecoration(labelText: 'Soprannome'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: telefonoCtrl,
-                      decoration: const InputDecoration(labelText: 'Telefono'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('Annulla')),
-              FilledButton(
-                onPressed: () async {
-                  if (!formKey.currentState!.validate()) return;
-                  final auth = context.read<AuthProvider>();
-                  final success = await auth.joinTeam(
-                    inviteCode: codeCtrl.text.trim(),
-                    nome: nomeCtrl.text.trim(),
-                    soprannome: soprannomeCtrl.text.trim(),
-                    telefono: telefonoCtrl.text.trim(),
-                    pendingPlayerId: selectedPendingId,
-                  );
-                  if (ctx.mounted) Navigator.of(ctx).pop();
-                  if (success && mounted) {
-                    context.read<ThemeProvider>().setCurrentTeamId(auth.teamId);
-                    context.go('/dashboard');
-                  } else if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(auth.error ?? 'Errore')),
-                    );
-                  }
-                },
-                child: const Text('Unisciti'),
-              ),
-            ],
-          );
-        },
-      ),
-    );
+    showJoinTeamDialog(context, onJoined: () => context.go('/dashboard'));
   }
 }
 

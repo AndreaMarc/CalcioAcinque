@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/dashboard_provider.dart';
+import '../providers/club_provider.dart';
 import '../providers/announcements_provider.dart';
 import '../widgets/app_widgets.dart';
 
@@ -17,6 +18,22 @@ class AppScaffold extends StatefulWidget {
 
 class _AppScaffoldState extends State<AppScaffold> {
   bool _teamsLoaded = false;
+  int? _syncedTeamId;
+
+  /// Nome e logo della squadra vengono dal server: prima la top bar diceva
+  /// "InCampo" finche' qualcuno non riscriveva il nome nel proprio browser.
+  Future<void> _syncBrand(int teamId) async {
+    final auth = context.read<AuthProvider>();
+    final theme = context.read<ThemeProvider>();
+    if (theme.currentTeamId != teamId) await theme.setCurrentTeamId(teamId);
+    final membership = auth.teams?.where((t) => t.teamId == teamId).firstOrNull;
+    if (membership != null) {
+      await theme.syncFromServer(teamId: teamId, teamName: membership.teamName);
+    }
+    final cfg = await context.read<ClubProvider>().loadTeamConfig(teamId);
+    if (!mounted || cfg == null) return;
+    await theme.syncFromServer(teamId: teamId, teamName: cfg.nome, logoBase64: cfg.logoBase64, syncLogo: true);
+  }
 
   @override
   void didChangeDependencies() {
@@ -56,6 +73,13 @@ class _AppScaffoldState extends State<AppScaffold> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    if (auth.teamId != 0 && auth.teamId != _syncedTeamId) {
+      _syncedTeamId = auth.teamId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _syncBrand(auth.teamId);
+      });
+    }
     final dashProv = context.watch<DashboardProvider>();
     final useGettoni = dashProv.useGettoni;
     final routes = _buildRoutes(useGettoni);

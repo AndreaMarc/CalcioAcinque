@@ -6,6 +6,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'dart:convert';
+import '../widgets/join_team_dialog.dart';
+import '../widgets/image_utils.dart';
+import '../widgets/team_utils.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
@@ -87,22 +91,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }.toJS);
 
     final bytes = await completer.future;
-    if (bytes != null && mounted) {
-      await context.read<ThemeProvider>().setLogo(bytes);
+    if (bytes == null || !mounted) return;
+    // Ridotto a 256 px: un JPEG da fotocamera farebbe saltare il limite del
+    // server e la memoria locale del browser
+    final small = await shrinkImage(bytes);
+    if (!mounted) return;
+    final auth = context.read<AuthProvider>();
+    final ok = await context.read<ClubProvider>().updateTeamConfig(
+      teamId: auth.teamId,
+      logoBase64: base64Encode(small),
+    );
+    if (!mounted) return;
+    if (ok) {
+      await context.read<ThemeProvider>().setLogo(small);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Logo caricato!')),
+          const SnackBar(content: Text('Logo caricato: lo vede tutta la squadra')),
         );
       }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(context.read<ClubProvider>().error ?? 'Non riesco a salvare il logo'),
+      ));
     }
   }
 
-  void _resetAllProviders() {
-    context.read<DashboardProvider>().reset();
-    context.read<MatchesProvider>().reset();
-    context.read<PlayersProvider>().reset();
-    context.read<AnnouncementsProvider>().reset();
-  }
+  void _resetAllProviders() => resetTeamProviders(context);
 
   Future<void> _switchToTeam(int teamId) async {
     final auth = context.read<AuthProvider>();
@@ -116,6 +130,87 @@ class _SettingsScreenState extends State<SettingsScreen> {
         SnackBar(content: Text(auth.error ?? 'Errore nel cambio team')),
       );
     }
+  }
+
+  void _showChangePasswordDialog() {
+    final currentCtrl = TextEditingController();
+    final nextCtrl = TextEditingController();
+    final next2Ctrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    var busy = false;
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('Cambia password'),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: currentCtrl,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Password attuale'),
+                  validator: (v) => v == null || v.isEmpty ? 'Obbligatoria' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: nextCtrl,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Nuova password (min 6)'),
+                  validator: (v) => v == null || v.length < 6 ? 'Almeno 6 caratteri' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: next2Ctrl,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Ripeti la nuova password'),
+                  validator: (v) => v != nextCtrl.text ? 'Le password non coincidono' : null,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: busy ? null : () => Navigator.of(ctx).pop(),
+              child: const Text('Annulla'),
+            ),
+            FilledButton(
+              onPressed: busy
+                  ? null
+                  : () async {
+                      if (!formKey.currentState!.validate()) return;
+                      setLocal(() => busy = true);
+                      final auth = context.read<AuthProvider>();
+                      final ok = await auth.changePassword(
+                        current: currentCtrl.text,
+                        next: nextCtrl.text,
+                      );
+                      if (!ctx.mounted) return;
+                      if (ok) {
+                        Navigator.of(ctx).pop();
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Password aggiornata')),
+                          );
+                        }
+                      } else {
+                        setLocal(() => busy = false);
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          SnackBar(content: Text(auth.error ?? 'Errore nel cambio password')),
+                        );
+                      }
+                    },
+              child: busy
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Text('Salva'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showEditProfileDialog() {
@@ -1001,166 +1096,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  /// Un codice puo' essere di una squadra o di una societa': nel secondo caso
-  /// si sceglie a quale squadra unirsi.
   void _showJoinTeamDialog() {
-    final codeCtrl = TextEditingController();
-    final nomeCtrl = TextEditingController();
-    final soprannomeCtrl = TextEditingController();
-    final telefonoCtrl = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    List<Map<String, dynamic>> squadre = const [];
-    String? nomeSocieta;
-    int? teamId;
-    var verificando = false;
-    var verificato = false;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) {
-          final cs = Theme.of(ctx).colorScheme;
-
-          Future<void> verifica() async {
-            final code = codeCtrl.text.trim();
-            if (code.isEmpty) return;
-            setDialogState(() => verificando = true);
-
-            final info = await context.read<AuthProvider>().getJoinInfo(code);
-            if (!ctx.mounted) return;
-
-            setDialogState(() {
-              verificando = false;
-              verificato = info != null;
-              nomeSocieta = info?['clubName'] as String?;
-              squadre = ((info?['teams'] as List?) ?? const [])
-                  .cast<Map<String, dynamic>>()
-                  .toList();
-              teamId = squadre.length == 1 ? squadre.first['teamId'] as int? : null;
-            });
-
-            if (info == null) {
-              ScaffoldMessenger.of(ctx).showSnackBar(
-                const SnackBar(content: Text('Codice non valido')),
-              );
-            }
-          }
-
-          return AlertDialog(
-            title: const Text('Unisciti con codice'),
-            content: SingleChildScrollView(
-              child: Form(
-                key: formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: codeCtrl,
-                            textCapitalization: TextCapitalization.characters,
-                            decoration: const InputDecoration(
-                              labelText: 'Codice invito',
-                              helperText: 'Di una squadra o della societa',
-                            ),
-                            validator: (v) =>
-                                v == null || v.trim().isEmpty ? 'Obbligatorio' : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        verificando
-                            ? const SizedBox(
-                                width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                            : TextButton(onPressed: verifica, child: const Text('Verifica')),
-                      ],
-                    ),
-                    if (verificato && squadre.length > 1) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        nomeSocieta != null
-                            ? 'Squadre di $nomeSocieta'
-                            : 'Scegli la squadra',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 6),
-                      ...squadre.map((t) => RadioListTile<int>(
-                            contentPadding: EdgeInsets.zero,
-                            value: t['teamId'] as int,
-                            groupValue: teamId,
-                            title: Text(t['nome'] as String? ?? ''),
-                            subtitle: Text(
-                              '${t['formatoLabel'] ?? ''} · ${t['totaleGiocatori'] ?? 0} in rosa',
-                              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-                            ),
-                            onChanged: (v) => setDialogState(() => teamId = v),
-                          )),
-                    ] else if (verificato && squadre.length == 1) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        'Ti unisci a ${squadre.first['nome']} (${squadre.first['formatoLabel'] ?? ''})',
-                        style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: nomeCtrl,
-                      decoration: const InputDecoration(labelText: 'Nome'),
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Obbligatorio' : null,
-                    ),
-                    TextFormField(
-                      controller: soprannomeCtrl,
-                      decoration: const InputDecoration(labelText: 'Soprannome'),
-                    ),
-                    TextFormField(
-                      controller: telefonoCtrl,
-                      decoration: const InputDecoration(labelText: 'Telefono'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('Annulla')),
-              FilledButton(
-                onPressed: () async {
-                  if (!formKey.currentState!.validate()) return;
-                  if (squadre.length > 1 && teamId == null) {
-                    ScaffoldMessenger.of(ctx).showSnackBar(
-                      const SnackBar(content: Text('Scegli a quale squadra unirti')),
-                    );
-                    return;
-                  }
-                  final auth = context.read<AuthProvider>();
-                  final success = await auth.joinTeam(
-                    inviteCode: codeCtrl.text.trim(),
-                    nome: nomeCtrl.text.trim(),
-                    soprannome: soprannomeCtrl.text.trim(),
-                    telefono: telefonoCtrl.text.trim(),
-                    teamId: teamId,
-                  );
-                  if (ctx.mounted) Navigator.of(ctx).pop();
-                  if (success && mounted) {
-                    context.read<ThemeProvider>().setCurrentTeamId(auth.teamId);
-                    _resetAllProviders();
-                    context.go('/dashboard');
-                  } else if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(auth.error ?? 'Errore')),
-                    );
-                  }
-                },
-                child: const Text('Unisciti'),
-              ),
-            ],
-          );
-        },
-      ),
-    );
+    showJoinTeamDialog(context, onJoined: () {
+      _resetAllProviders();
+      context.go('/dashboard');
+    });
   }
 
   Future<void> _showInviteCode() async {
@@ -1385,6 +1325,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
                     child: _BrandCard(
+                      canEditBrand: auth.puoGestireSquadra,
                       isDark: theme.isDark,
                       onToggleDark: theme.setDarkMode,
                       hasLogo: theme.hasLogo,
@@ -1394,18 +1335,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       primaryColor: theme.primaryColor,
                       onPickLogo: _pickLogo,
                       onRemoveLogo: () async {
-                        await theme.removeLogo();
+                        final ok = await context
+                            .read<ClubProvider>()
+                            .updateTeamConfig(teamId: auth.teamId, logoBase64: '');
+                        if (!mounted) return;
+                        if (ok) await theme.removeLogo();
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Logo rimosso')),
+                            SnackBar(content: Text(ok ? 'Logo rimosso' : 'Non riesco a rimuovere il logo')),
                           );
                         }
                       },
-                      onSaveName: () {
-                        if (_nameCtrl.text.trim().isNotEmpty) {
-                          theme.setTeamName(_nameCtrl.text.trim());
+                      onSaveName: () async {
+                        final nome = _nameCtrl.text.trim();
+                        if (nome.isEmpty) return;
+                        // Il nome vero sta sul server (push, calendario, gli altri
+                        // membri): la copia locale e' solo una cache
+                        final ok = await context
+                            .read<ClubProvider>()
+                            .updateTeamConfig(teamId: auth.teamId, nome: nome);
+                        if (!mounted) return;
+                        if (ok) {
+                          await theme.setTeamName(nome);
+                          await auth.loadMyTeams();
+                        }
+                        if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Nome aggiornato!')),
+                            SnackBar(content: Text(ok ? 'Nome aggiornato per tutta la squadra' : 'Non riesco a salvare il nome')),
                           );
                         }
                       },
@@ -1418,6 +1374,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
                     child: _AccountCard(
+                      onChangePassword: _showChangePasswordDialog,
                       onLogout: () async {
                         await auth.logout();
                         if (context.mounted) context.go('/login');
@@ -2337,6 +2294,8 @@ class _ConfigCard extends StatelessWidget {
 }
 
 class _BrandCard extends StatelessWidget {
+  /// Logo e nome cambiano per tutta la squadra: solo l'admin.
+  final bool canEditBrand;
   final bool isDark;
   final void Function(bool) onToggleDark;
   final bool hasLogo;
@@ -2350,6 +2309,7 @@ class _BrandCard extends StatelessWidget {
   final void Function(Color) onColorPick;
 
   const _BrandCard({
+    required this.canEditBrand,
     required this.isDark,
     required this.onToggleDark,
     required this.hasLogo,
@@ -2394,6 +2354,7 @@ class _BrandCard extends StatelessWidget {
             value: isDark,
             onChanged: onToggleDark,
           ),
+          if (canEditBrand) ...[
           Divider(color: lineColor, height: 1),
           // Logo
           Padding(
@@ -2499,6 +2460,7 @@ class _BrandCard extends StatelessWidget {
               ],
             ),
           ),
+          ],
           Divider(color: lineColor, height: 1),
           // Colore primario
           Padding(
@@ -2575,7 +2537,8 @@ class _BrandCard extends StatelessWidget {
 
 class _AccountCard extends StatelessWidget {
   final VoidCallback onLogout;
-  const _AccountCard({required this.onLogout});
+  final VoidCallback onChangePassword;
+  const _AccountCard({required this.onLogout, required this.onChangePassword});
 
   @override
   Widget build(BuildContext context) {
@@ -2600,6 +2563,20 @@ class _AccountCard extends StatelessWidget {
               '1.0.0',
               style: GoogleFonts.spaceGrotesk(color: muteColor, fontSize: 13),
             ),
+          ),
+          Divider(color: lineColor, height: 1),
+          ListTile(
+            leading: Icon(Icons.lock_outline, color: muteColor),
+            title: Text(
+              'Cambia password',
+              style: GoogleFonts.spaceGrotesk(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+                color: textColor,
+              ),
+            ),
+            trailing: Icon(Icons.chevron_right, color: muteColor),
+            onTap: onChangePassword,
           ),
           Divider(color: lineColor, height: 1),
           ListTile(

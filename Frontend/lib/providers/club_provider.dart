@@ -208,6 +208,7 @@ class ClubProvider extends ChangeNotifier {
     String? paypalLink,
     String? iban,
     String? intestatarioIban,
+    String? logoBase64,
   }) =>
       _mutate(() async {
         final response = await apiClient.dio.put(ApiConstants.club(clubId), data: {
@@ -308,6 +309,8 @@ class ClubProvider extends ChangeNotifier {
             if (paypalLink != null) 'paypalLink': paypalLink,
             if (iban != null) 'iban': iban,
             if (intestatarioIban != null) 'intestatarioIban': intestatarioIban,
+            // Stringa vuota = rimuovi il logo
+            if (logoBase64 != null) 'logoBase64': logoBase64,
           },
         );
         if (response.data['success'] != true) return response.data['message'] as String?;

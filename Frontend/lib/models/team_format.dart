@@ -215,6 +215,9 @@ class TeamConfig {
 
   final int totaleGiocatori;
 
+  /// Logo condiviso della squadra (base64), null se non caricato.
+  final String? logoBase64;
+
   TeamConfig({
     required this.id,
     this.clubId,
@@ -245,6 +248,7 @@ class TeamConfig {
     this.ibanEffettivo,
     this.intestatarioIbanEffettivo,
     required this.totaleGiocatori,
+    this.logoBase64,
   });
 
   factory TeamConfig.fromJson(Map<String, dynamic> json) {
@@ -281,6 +285,7 @@ class TeamConfig {
       ibanEffettivo: json['ibanEffettivo'] as String?,
       intestatarioIbanEffettivo: json['intestatarioIbanEffettivo'] as String?,
       totaleGiocatori: (json['totaleGiocatori'] as num?)?.toInt() ?? 0,
+      logoBase64: json['logoBase64'] as String?,
     );
   }
 

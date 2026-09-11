@@ -71,6 +71,8 @@ class _InCampoAppState extends State<InCampoApp> {
   late final ApiClient _apiClient;
   late final AuthProvider _authProvider;
   late final GoRouter _router;
+  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
+  DateTime? _lastNetworkToast;
 
   @override
   void initState() {
@@ -79,6 +81,19 @@ class _InCampoAppState extends State<InCampoApp> {
     _apiClient = ApiClient(storage: _storage);
     _authProvider = AuthProvider(apiClient: _apiClient, storage: _storage);
     _router = _buildRouter();
+    // Errore di rete/server: un avviso solo, non uno per ogni chiamata fallita
+    _apiClient.onNetworkError = (message) {
+      final now = DateTime.now();
+      if (_lastNetworkToast != null &&
+          now.difference(_lastNetworkToast!) < const Duration(seconds: 6)) {
+        return;
+      }
+      _lastNetworkToast = now;
+      _messengerKey.currentState?.showSnackBar(SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 4),
+      ));
+    };
     // Sessione scaduta (refresh fallito) → logout pulito + ritorno al login
     _apiClient.onSessionExpired = () async {
       if (!_authProvider.isAuthenticated) return;
@@ -107,6 +122,7 @@ class _InCampoAppState extends State<InCampoApp> {
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
           return MaterialApp.router(
+            scaffoldMessengerKey: _messengerKey,
             title: themeProvider.teamName,
             debugShowCheckedModeBanner: false,
             theme: themeProvider.buildTheme(dark: false),

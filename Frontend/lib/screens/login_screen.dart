@@ -90,7 +90,9 @@ class _LoginScreenState extends State<LoginScreen>
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setLocal) {
-          final auth = context.watch<AuthProvider>();
+          // ctx, non context: col context esterno il dialog non si ricostruiva
+          // mai e l'errore "email gia' registrata" restava invisibile
+          final auth = ctx.watch<AuthProvider>();
           return AlertDialog(
             backgroundColor: AppTokens.ink2,
             title: Text(
@@ -200,6 +202,30 @@ class _LoginScreenState extends State<LoginScreen>
     if (ok == true && mounted) {
       _navigateAfterAuth(context.read<AuthProvider>());
     }
+  }
+
+  void _showForgotPassword() {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTokens.ink2,
+        title: Text(
+          'Password dimenticata',
+          style: GoogleFonts.bebasNeue(fontSize: 26, color: Colors.white),
+        ),
+        content: Text(
+          'Chiedi a chi amministra la tua squadra: dalla Rosa puo\' impostarti una '
+          'password nuova in un attimo. Appena entri, cambiala da Impostazioni → Account.',
+          style: GoogleFonts.spaceGrotesk(fontSize: 14, height: 1.45, color: AppTokens.textOnInkMute),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Ho capito', style: TextStyle(color: AppTokens.brand)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -421,7 +447,20 @@ class _LoginScreenState extends State<LoginScreen>
                                 );
                               },
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 10),
+                            Center(
+                              child: TextButton(
+                                onPressed: _showForgotPassword,
+                                child: Text(
+                                  'Password dimenticata?',
+                                  style: GoogleFonts.spaceGrotesk(
+                                    fontSize: 13,
+                                    color: AppTokens.textOnInkMute,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
                             Center(
                               child: InkWell(
                                 onTap: _showSignupDialog,

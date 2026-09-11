@@ -445,6 +445,27 @@ class AuthProvider extends ChangeNotifier {
     return false;
   }
 
+  /// Cambio password con quella attuale. In caso di errore il messaggio del
+  /// server (password attuale sbagliata, troppo corta) finisce in [error].
+  Future<bool> changePassword({required String current, required String next}) async {
+    _error = null;
+    try {
+      final response = await apiClient.dio.post(
+        ApiConstants.changePassword,
+        data: {'currentPassword': current, 'newPassword': next},
+      );
+      if (response.data['success'] == true) return true;
+      _error = response.data['message'] ?? 'Errore nel cambio password';
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      _error = data is Map ? (data['message'] ?? data['title'] ?? 'Errore di connessione') : 'Errore di connessione';
+    } catch (e) {
+      _error = 'Errore imprevisto: $e';
+    }
+    notifyListeners();
+    return false;
+  }
+
   Future<void> logout() async {
     await storage.clearAll();
     _currentPlayer = null;
