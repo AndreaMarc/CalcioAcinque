@@ -283,7 +283,7 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
       context,
       title: 'Revocare la convocazione?',
       message: '${c.soprannome ?? c.nomeGiocatore} esce dalla lista di questa partita. '
-          'Nessuna notifica: avvisalo tu se serve.',
+          'Gli arriva una notifica che non è più tra i convocati.',
       confirmLabel: 'Revoca',
       destructive: true,
     );

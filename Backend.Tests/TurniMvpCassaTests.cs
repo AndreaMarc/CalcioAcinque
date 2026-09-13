@@ -72,6 +72,44 @@ public class TurniTests
     }
 }
 
+public class RevocaTests
+{
+    [Fact]
+    public async Task La_revoca_toglie_la_convocazione_e_avvisa_il_giocatore()
+    {
+        using var t = new TestDb();
+        var match = t.AddMatch(StatoPartita.ConvocazioniInviate);
+        var conv = t.AddConvocation(match, t.Giocatore, StatoRisposta.Confermato);
+        t.AddAttendance(match, t.Giocatore);
+
+        await t.Convocations().RevokeAsync(conv.Id, t.Team.Id);
+
+        Assert.Empty(t.Db.Convocations);
+        Assert.Empty(t.Db.MatchAttendances);
+        var n = Assert.Single(t.Notifiche.Accodate);
+        Assert.Equal(NotificationKind.Convocazione, n.kind);
+        Assert.Equal(1, n.destinatari);
+        Assert.Contains("revocata", n.titolo);
+    }
+
+    [Fact]
+    public async Task Non_si_revoca_a_partita_conclusa_o_con_presenza_segnata()
+    {
+        using var t = new TestDb();
+        var match = t.AddMatch(StatoPartita.InCorso);
+        var conv = t.AddConvocation(match, t.Giocatore, StatoRisposta.Confermato);
+        var att = t.AddAttendance(match, t.Giocatore);
+        att.Presente = true;
+        t.Db.SaveChanges();
+        await Assert.ThrowsAsync<Exceptions.BusinessException>(() => t.Convocations().RevokeAsync(conv.Id, t.Team.Id));
+
+        t.Db.Matches.Single(m => m.Id == match.Id).Stato = StatoPartita.Conclusa;
+        t.Db.SaveChanges();
+        await Assert.ThrowsAsync<Exceptions.BusinessException>(() => t.Convocations().RevokeAsync(conv.Id, t.Team.Id));
+        Assert.Empty(t.Notifiche.Accodate);
+    }
+}
+
 public class MvpTests
 {
     [Fact]

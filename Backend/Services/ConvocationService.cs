@@ -112,7 +112,9 @@ public class ConvocationService : IConvocationService
     /// </summary>
     public async Task RevokeAsync(int convocationId, int teamId)
     {
-        var convocation = await _context.Convocations.Include(c => c.Match)
+        var convocation = await _context.Convocations
+            .Include(c => c.Match).ThenInclude(m => m.Team)
+            .Include(c => c.Player)
             .FirstOrDefaultAsync(c => c.Id == convocationId);
         if (convocation == null) throw new NotFoundException("Convocazione", convocationId);
         if (convocation.Match.TeamId != teamId) throw new UnauthorizedException("Non sei autorizzato ad accedere a questa risorsa");
@@ -129,6 +131,19 @@ public class ConvocationService : IConvocationService
         }
         _context.Convocations.Remove(convocation);
         await _context.SaveChangesAsync();
+
+        // Chi esce dalla lista lo deve sapere dall'app, non dal gruppo: stessa
+        // preferenza delle convocazioni, cosi' chi le ha spente non riceve nulla
+        var match = convocation.Match;
+        var quando = $"{match.Data:dd/MM}" + (match.Ora == default ? string.Empty : $" alle {match.Ora:hh\\:mm}");
+        await _notifications.QueueAsync(
+            NotificationKind.Convocazione,
+            new[] { convocation.Player.UserId },
+            titolo: $"{match.Team.Nome}: convocazione revocata",
+            corpo: $"Giornata {match.NumeroGiornata}, {quando}: non sei piu' tra i convocati. Se hai dubbi, chiedi al mister.",
+            url: $"/match/{match.Id}",
+            tag: $"revoca-{match.Id}-{convocation.PlayerId}",
+            teamId: match.TeamId);
     }
 
     /// <summary>

@@ -109,6 +109,7 @@ public sealed class TestDb : IDisposable
     public MatchService Matches() => new(Db, Notifiche, Seasons());
     public PlayerService Players() => new(Db);
     public ChoreService Chores() => new(Db);
+    public ConvocationService Convocations() => new(Db, Notifiche);
     public MatchVoteService Votes() => new(Db);
     public ExpenseService Expenses() => new(Db, Seasons());
     public MatchPaymentService MatchPayments() => new(Db, Notifiche, NullLogger<MatchPaymentService>.Instance);
