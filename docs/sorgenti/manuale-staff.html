@@ -447,6 +447,10 @@
               <tr><th scope="row">Vedere i pagamenti di tutta la squadra</th><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
               <tr><th scope="row">Creare voci, generare quote, confermare i pagamenti</th><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
               <tr><th scope="row">Registrare l'incasso di una partita e sollecitare</th><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
+              <tr><th scope="row">Votare il migliore in campo, condividere convocati e risultato</th><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
+              <tr><th scope="row">Convocare un sostituto, revocare, assegnare i turni</th><td><span class="no">—</span></td><td><span class="yes">✓</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td></tr>
+              <tr><th scope="row">Vedere l'affidabilità dei giocatori</th><td><span class="no">—</span></td><td><span class="yes">✓</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td></tr>
+              <tr><th scope="row">Registrare le uscite e vedere il cruscotto Cassa</th><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
               <tr><th scope="row">Aggiungere, modificare ed eliminare giocatori</th><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td></tr>
               <tr><th scope="row">Assegnare i ruoli e resettare le password</th><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td></tr>
               <tr><th scope="row">Cambiare regole, costi e codice invito</th><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td></tr>
@@ -487,6 +491,15 @@
           <li><strong>Concludi.</strong> Dal menu, <span class="tap">Concludi Partita</span>. I risultati entrano nelle statistiche.</li>
         </ol>
 
+        <h3>Se uno dà forfait: il sostituto con un tocco</h3>
+        <p>Quando un convocato risponde <span class="tap">Non ci sono</span> ti arriva una notifica, con il numero di chi aveva dato disponibilità ma non è in lista. Aprila: in fondo alla schermata <span class="tap">Convocazioni</span> compare la sezione <span class="tap">DISPONIBILI NON CONVOCATI</span>, ordinata per affidabilità, e accanto a ciascuno il tasto <span class="tap">Convoca</span>. Un tocco e la convocazione parte, con la notifica. Se la rosa è al completo, prima libera un posto con l'icona <span class="tap">Revoca convocazione</span> sulla riga di chi ha dato forfait: la revoca non manda notifiche, avvisalo tu se serve.</p>
+
+        <h3>Turni di squadra: casacche, palloni, maglie</h3>
+        <p>L'Admin definisce i compiti una volta sola in <span class="tap">Impostazioni</span> → <span class="tap">TURNI DI SQUADRA</span> (ci sono già dei suggerimenti pronti). Da lì in poi, nel dettaglio di ogni partita con convocati compare il riquadro <span class="tap">TURNI DI SQUADRA</span>: tocca <span class="tap">Assegna</span> e l'app sceglie tra i convocati chi non lo fa da più tempo, un turno a testa, dando la precedenza a chi ha confermato. Toccando una riga cambi la persona o liberi il turno. I turni finiscono anche nel testo da condividere, così nessuno può dire di non saperlo.</p>
+
+        <h3>Condividere sul gruppo</h3>
+        <p>L'icona <span class="tap">Condividi</span> in alto, nel dettaglio partita e nelle convocazioni, prepara il messaggio: prima della partita l'elenco di confermati, in attesa e forfait con orario, campo e turni; dopo, il risultato con i marcatori e l'invito a votare il migliore in campo. Puoi aprirlo direttamente in WhatsApp, passarlo a un'altra app o copiarlo. L'app non scrive mai nel gruppo da sola.</p>
+
         <div class="note warn">
           <h3>Le presenze si bloccano quando concludi</h3>
           <p>Una partita <span class="tap">Conclusa</span> non accetta più modifiche alle presenze. Se ti accorgi di un errore, dal menu <span class="tap">⋮</span> scegli <span class="tap">Riapri partita</span>: torna <span class="tap">InCorso</span>, correggi e richiudila. I gettoni si riallineano da soli. Meglio ancora, sistema tutto <em>prima</em> di concludere.</p>
@@ -494,6 +507,10 @@
 
         <h3>Gettoni: non devi fare niente</h3>
         <p>Se la squadra usa i gettoni, spuntare un giocatore come presente ne scala uno in automatico. Togliendo la presenza il gettone torna indietro. Chi finisce i gettoni gioca lo stesso: la presenza viene registrata e resta traccia che era a zero.</p>
+
+        <h3>Migliore in campo e affidabilità</h3>
+        <p>A partita conclusa, nel dettaglio compare il riquadro <span class="tap">MIGLIORE IN CAMPO</span>: ognuno dà un voto, solo a chi era presente e mai a se stesso, e può cambiarlo. Chi vince una partita si porta un punto nella classifica <span class="tap">MIGLIORE IN CAMPO</span> in <span class="tap">Stats</span>; a pari voti vincono in due.</p>
+        <p>Sempre in <span class="tap">Stats</span>, ma <strong>solo per chi gestisce il campo</strong>, c'è <span class="tap">AFFIDABILITÀ</span>: per ogni giocatore la percentuale di convocazioni confermate sulle partite concluse, i forfait, le convocazioni lasciate senza risposta e in quanto tempo risponde in media. Lo stesso numero compare quando scegli chi convocare. Serve a decidere, non a fare classifiche pubbliche: i giocatori vedono solo la propria.</p>
 
         <h3>Bacheca</h3>
         <p>Dalla scheda <span class="tap">Bacheca</span>, <span class="tap">Nuova Comunicazione</span>. Spuntando <span class="tap">Importante</span> l'avviso viene messo in evidenza. Alla pubblicazione parte una notifica a tutti tranne che a te, e puoi vedere chi ha dato <span class="tap">Presa Visione</span>.</p>
@@ -516,6 +533,7 @@
           <li>Quando la partita viene conclusa ti compare un avviso in basso con <span class="tap">Gestisci</span>. Non è bloccante: puoi rimandare</li>
           <li>In qualsiasi momento riapri la partita e scegli <span class="tap">Incasso partita</span> dal menu <span class="tap">⋮</span></li>
           <li>L'app propone già selezionati i giocatori che erano presenti, hanno giocato e pagano a partita. Aggiungi o togli come vuoi: <strong>l'ultima parola è tua</strong></li>
+          <li>Se vuoi, scrivi il <span class="tap">Costo campo (totale)</span>: viene registrato come uscita di cassa legata alla partita, e se rilanci l'incasso si aggiorna invece di duplicarsi. Con <span class="tap">Dividi</span> acceso l'importo a testa diventa il costo diviso tra i selezionati, arrotondato ai 50 centesimi per eccesso</li>
           <li>Lascia acceso <span class="tap">Avvisa con una notifica</span> se vuoi che ricevano l'avviso subito</li>
           <li>Conferma con <span class="tap">Addebita</span></li>
         </ol>
@@ -532,6 +550,17 @@
         </div>
         <p>Per il resto: <span class="tap">+</span> in alto crea una voce a mano, l'icona della campanella manda un <span class="tap">Sollecita</span> a chi è in arretrato. Il sollecito è sempre manuale — l'app non ne manda mai per conto suo.</p>
 
+        <h3>Uscite e cruscotto: le tre viste della Cassa</h3>
+        <p>In cima alla <span class="tap">Cassa</span>, tu vedi un selettore che i giocatori non hanno: <span class="tap">Entrate</span> è la lista di sempre; <span class="tap">Uscite</span> raccoglie quello che esce (campo, arbitro, materiale, trasferta, altro), con <span class="tap">+</span> per aggiungere e un tocco sulla riga per correggere o cancellare; <span class="tap">Cassa</span> è il cruscotto.</p>
+        <div class="legend">
+          <div><span class="name">Saldo</span><span class="desc">Incassato meno uscite: i soldi che ci sono davvero. Sotto, incassato, uscite, da incassare e in verifica</span></div>
+          <div><span class="name">Partite da incassare</span><span class="desc">Le partite concluse per cui non hai ancora registrato addebiti. Toccane una e si apre l'incasso</span></div>
+          <div><span class="name">Arretrati</span><span class="desc">Quanto deve ciascuno. Toccando un nome si prepara un sollecito personale con le voci, PayPal e IBAN, da mandare su WhatsApp; <em>Sollecita con notifica</em> avvisa tutti in una volta, <em>Condividi elenco</em> prepara la lista per il gruppo</span></div>
+          <div><span class="name">Uscite per categoria</span><span class="desc">Dove vanno i soldi</span></div>
+          <div><span class="name">Esporta movimenti</span><span class="desc">Un CSV con entrate e uscite della stagione, pronto per Excel</span></div>
+        </div>
+        <p>Ogni lunedì alle 9 ti arriva una notifica di <strong>riepilogo cassa</strong> con da incassare, uscite e partite da chiudere, solo se c'è qualcosa in sospeso. Si spegne come le altre, da <span class="tap">Impostazioni</span> → <span class="tap">NOTIFICHE</span>. Il cruscotto segue la stagione scelta con l'icona del calendario, come il resto della Cassa.</p>
+
         <h3>PayPal e IBAN</h3>
         <p>Sono i dati che i giocatori vedono nel riquadro <span class="tap">Come pagare</span>. Si impostano una volta sulla <strong>società</strong> e valgono per tutte le sue squadre; se una squadra incassa su un conto diverso, la si sovrascrive da <span class="tap">Impostazioni</span> → <span class="tap">Come farsi pagare</span> → <span class="tap">Modifica</span>. Svuotando il campo si torna ai dati della società.</p>
       </section>
@@ -541,7 +570,7 @@
         <p class="lede">Quasi tutto vive in <span class="tap">Impostazioni</span>, l'ingranaggio in alto a destra della Home.</p>
 
         <h3>Far entrare la gente</h3>
-        <p>Il <strong>codice invito</strong> è in <span class="tap">Impostazioni</span> → <span class="tap">I MIEI TEAM</span> → <span class="tap">Codice invito</span>. È uno solo per squadra e si può girare a tutti: chi lo usa entra come semplice giocatore, i ruoli li assegni dopo.</p>
+        <p>Il <strong>codice invito</strong> è in <span class="tap">Impostazioni</span> → <span class="tap">I MIEI TEAM</span> → <span class="tap">Codice invito</span>. È uno solo per squadra e si può girare a tutti: chi lo usa entra come semplice giocatore, i ruoli li assegni dopo. La finestra mostra anche il <strong>QR</strong> da far scansionare a bordo campo e il <strong>link diretto</strong> (<span class="tap">incampo.studiorocket.it/#/join/CODICE</span>): chi lo apre trova il codice già compilato e verificato, gli resta solo da scrivere il nome. <span class="tap">Condividi</span> prepara il messaggio con link e codice. Lo stesso vale per il codice della società, dalla sua pagina.</p>
         <p>Puoi anche precaricare la rosa dalla scheda <span class="tap">Rosa</span> con <span class="tap">Nuovo Giocatore</span>: quando la persona si registra con il codice, trova il proprio nome sotto <span class="tap">Sei uno di questi?</span> e riprende la scheda già pronta, con numero di maglia e storico.</p>
 
         <h3>Regole e costi</h3>
