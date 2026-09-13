@@ -451,6 +451,7 @@
               <tr><th scope="row">Convocare un sostituto, revocare, assegnare i turni</th><td><span class="no">—</span></td><td><span class="yes">✓</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td></tr>
               <tr><th scope="row">Vedere l'affidabilità dei giocatori</th><td><span class="no">—</span></td><td><span class="yes">✓</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td></tr>
               <tr><th scope="row">Registrare le uscite e vedere il cruscotto Cassa</th><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
+              <tr><th scope="row">Segnare chi è solo staff e non gioca</th><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td></tr>
               <tr><th scope="row">Aggiungere, modificare ed eliminare giocatori</th><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td></tr>
               <tr><th scope="row">Assegnare i ruoli e resettare le password</th><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td></tr>
               <tr><th scope="row">Cambiare regole, costi e codice invito</th><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="no">—</span></td><td><span class="yes">✓</span></td></tr>
@@ -483,8 +484,8 @@
 
         <ol class="steps">
           <li><strong>Metti la partita in calendario.</strong> Dalla scheda <span class="tap">Partite</span>, tocca <span class="tap">+</span> in alto. Data, ora, campo e avversario. Da qui i giocatori iniziano a dare la disponibilità.</li>
-          <li><strong>Guarda chi c'è.</strong> Apri la partita: sotto la scheda trovi il riepilogo delle disponibilità, giocatore per giocatore. Serve a scegliere, non è ancora una convocazione.</li>
-          <li><strong>Convoca.</strong> Apri la partita, tocca <span class="tap">Convocazioni</span>, poi <span class="tap">Convoca Giocatori</span> e seleziona chi vuoi. Se la squadra ha un tetto di convocati per partita, l'app te lo ricorda quando lo superi.</li>
+          <li><strong>Guarda chi c'è.</strong> Apri la partita: sotto il biglietto i tre riquadri <span class="tap">Disponibili</span>, <span class="tap">Senza risposta</span> e <span class="tap">Non disponibili</span> contano la rosa che gioca; sotto, l'elenco nome per nome e, a parte, <span class="tap">In panchina</span> con lo staff. Serve a scegliere, non è ancora una convocazione.</li>
+          <li><strong>Convoca.</strong> Apri la partita, tocca <span class="tap">Convocazioni</span>, poi <span class="tap">Convoca Giocatori</span> e seleziona chi vuoi: la lista è ordinata per disponibilità e affidabilità, con i gettoni rimasti accanto a ogni nome. Lo staff che non gioca non compare. Se la squadra ha un tetto di convocati per partita, l'app te lo ricorda quando lo superi. Nella schermata i convocati sono raggruppati per disponibilità dichiarata (<span class="tap">Disponibili</span>, <span class="tap">Disponibilità non data</span>, <span class="tap">Non disponibili</span>), e su ogni riga c'è la loro risposta alla convocazione.</li>
           <li><strong>Invia.</strong> Dal menu <span class="tap">⋮</span> scegli <span class="tap">Invia Convocazioni</span>. Solo adesso partono le notifiche ai convocati, e loro possono confermare o dare forfait.</li>
           <li><strong>Il giorno della partita.</strong> Dal dettaglio, <span class="tap">Match Day</span> per segnare le presenze, oppure <span class="tap">Inizia Partita</span> per passare alla schermata <span class="tap">Live</span>.</li>
           <li><strong>Segna presenze e statistiche.</strong> In <span class="tap">Match Day</span> spunti chi c'era e chi ha giocato; toccando un giocatore inserisci minuti, gol, assist, autogol e gol subiti.</li>
@@ -500,7 +501,10 @@
         <h3>Condividere sul gruppo</h3>
         <p>L'icona <span class="tap">Condividi</span> in alto, nel dettaglio partita e nelle convocazioni, prepara il messaggio: prima della partita l'elenco di confermati, in attesa e forfait con orario, campo e turni; dopo, il risultato con i marcatori e l'invito a votare il migliore in campo. Puoi aprirlo direttamente in WhatsApp, passarlo a un'altra app o copiarlo. L'app non scrive mai nel gruppo da sola.</p>
 
-        <div class="note warn">
+        <h3>Le notifiche in più per chi gestisce</h3>
+        <p>Oltre a quelle di tutti, mister e admin ricevono <span class="tap">Forfait dei convocati</span> (chi ha detto di no, e quanti disponibili non convocati ci sono); admin e cassiere il <span class="tap">Riepilogo cassa</span> del lunedì. Si spengono una per una da <span class="tap">Impostazioni</span> → <span class="tap">NOTIFICHE</span>.</p>
+
+<div class="note warn">
           <h3>Le presenze si bloccano quando concludi</h3>
           <p>Una partita <span class="tap">Conclusa</span> non accetta più modifiche alle presenze. Se ti accorgi di un errore, dal menu <span class="tap">⋮</span> scegli <span class="tap">Riapri partita</span>: torna <span class="tap">InCorso</span>, correggi e richiudila. I gettoni si riallineano da soli. Meglio ancora, sistema tutto <em>prima</em> di concludere.</p>
         </div>
@@ -518,7 +522,7 @@
 
       <section id="cassiere" class="cassiere">
         <h2 class="cassiere"><span class="eyebrow">Cassiere</span>Far quadrare i conti</h2>
-        <p class="lede">Tutto passa da una schermata sola: il <strong>portafoglio</strong> in alto sulla Home, oppure <span class="tap">Impostazioni</span> → <span class="tap">Cassa</span>. Tu vedi le voci di tutti; ogni giocatore vede solo le proprie.</p>
+        <p class="lede">Tutto passa da una schermata sola: il <strong>portafoglio</strong> in alto sulla Home, oppure <span class="tap">Impostazioni</span> → <span class="tap">Cassa</span>. Per te si intitola <em>Cassa</em> e ha tre viste; i giocatori vedono solo le proprie voci sotto <em>Pagamenti</em>.</p>
 
         <h3>Le quote di inizio stagione</h3>
         <ol class="steps">
@@ -530,7 +534,7 @@
 
         <h3>L'incasso di una partita</h3>
         <ol class="steps">
-          <li>Quando la partita viene conclusa ti compare un avviso in basso con <span class="tap">Gestisci</span>. Non è bloccante: puoi rimandare</li>
+          <li>Quando la partita viene conclusa ti compare un avviso in basso con <span class="tap">Registra incasso</span>. Non è bloccante: puoi rimandare</li>
           <li>In qualsiasi momento riapri la partita e scegli <span class="tap">Incasso partita</span> dal menu <span class="tap">⋮</span></li>
           <li>L'app propone già selezionati i giocatori che erano presenti, hanno giocato e pagano a partita. Aggiungi o togli come vuoi: <strong>l'ultima parola è tua</strong></li>
           <li>Se vuoi, scrivi il <span class="tap">Costo campo (totale)</span>: viene registrato come uscita di cassa legata alla partita, e se rilanci l'incasso si aggiorna invece di duplicarsi. Con <span class="tap">Dividi</span> acceso l'importo a testa diventa il costo diviso tra i selezionati, arrotondato ai 50 centesimi per eccesso</li>
@@ -626,7 +630,7 @@
           </div>
           <div>
             <p class="q">Spostare una partita rifà il promemoria</p>
-            <p>Se cambi data, ora o campo, ai convocati parte una notifica di modifica e il promemoria viene ricalcolato sul nuovo orario. Non devi fare nulla, e non ne arrivano due.</p> Chi ha iscritto il calendario della squadra sul telefono (icona del calendario in <span class="tap">Partite</span>) vede la partita spostarsi da sola.
+            <p>Se cambi data, ora o campo, ai convocati parte una notifica di modifica e il promemoria viene ricalcolato sul nuovo orario. Non devi fare nulla, e non ne arrivano due. Chi ha iscritto il calendario della squadra sul telefono (icona del calendario in <span class="tap">Partite</span>) vede la partita spostarsi da sola.</p>
           </div>
           <div>
             <p class="q">Le spunte "iscrizione pagata" sulla scheda giocatore non si toccano</p>
@@ -641,6 +645,10 @@
             <p>Sono due cose separate e i giocatori le confondono spesso. La disponibilità la danno loro, quando vogliono; la convocazione la mandi tu a un gruppo ristretto, ed è la risposta a quella che fa fede.</p>
           </div>
           <div>
+            <p class="q">Il mister che gioca conta come giocatore</p>
+            <p>L'interruttore <span class="tap">Solo staff, non gioca</span> serve a chi sta in panchina e basta. Un giocatore-allenatore lo lascia spento: dà la disponibilità, viene convocato e finisce nelle statistiche come tutti, e in più ha il ruolo Mister per gestire la partita.</p>
+          </div>
+<div>
             <p class="q">Ogni squadra ha i suoi conti e le sue regole</p>
             <p>Anche dentro la stessa società: costi, gettoni, promemoria e ruoli sono per squadra. Se gestisci entrambe, controlla in alto quale hai aperta prima di cambiare qualcosa.</p>
           </div>
