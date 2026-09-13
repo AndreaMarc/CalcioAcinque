@@ -1302,7 +1302,7 @@ class _MyMatchesCard extends StatelessWidget {
   }
 
   Widget _convChip(MatchSummary p) {
-    if (p.hoConfermato) return const AppChip(text: 'Convocato ✓', variant: AppChipVariant.brand);
+    if (p.hoConfermato) return const AppChip(text: 'Convocato', variant: AppChipVariant.brand, leadingIcon: Icons.check);
     if (p.hoDatoForfait) return const AppChip(text: 'Forfait', variant: AppChipVariant.bad);
     if (p.devoRispondere) return const AppChip(text: 'Conferma!', variant: AppChipVariant.warn);
     if (p.convocazioniInviate) return const AppChip(text: 'Non convocato', variant: AppChipVariant.neutral);

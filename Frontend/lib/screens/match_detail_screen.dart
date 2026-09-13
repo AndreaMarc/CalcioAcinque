@@ -423,7 +423,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     final convs = context.watch<ConvocationsProvider>().convocations;
     return Column(
       children: [
-        SectionHead(title: 'CONVOCATI', more: '${convs.length} giocatori'),
+        SectionHead(title: 'CONVOCATI', more: convs.length == 1 ? '1 giocatore' : '${convs.length} giocatori'),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Column(
@@ -1036,10 +1036,12 @@ class _AvailabilitySummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    int disp = availability?['disponibili'] as int? ?? match.totaleConfermati;
-    int nonDisp = availability?['nonDisponibili'] as int? ?? 0;
-    int inAttesa = match.totaleConvocati - match.totaleConfermati;
-    if (inAttesa < 0) inAttesa = 0;
+    // Tre numeri della stessa natura: la disponibilita' dichiarata dalla rosa.
+    // Le convocazioni hanno la loro sezione sotto, mischiarle qui confondeva.
+    final int disp = availability?['disponibili'] as int? ?? 0;
+    final int nonDisp = availability?['nonDisponibili'] as int? ?? 0;
+    final int totale = availability?['totale'] as int? ?? (disp + nonDisp);
+    final int inAttesa = (totale - disp - nonDisp).clamp(0, 999);
 
     return Row(
       children: [
@@ -1047,7 +1049,7 @@ class _AvailabilitySummary extends StatelessWidget {
           child: _statCard(
             context,
             '$disp',
-            'CONFERMATI',
+            'DISPONIBILI',
             AppTokens.ok,
           ),
         ),
@@ -1056,7 +1058,7 @@ class _AvailabilitySummary extends StatelessWidget {
           child: _statCard(
             context,
             '$inAttesa',
-            'IN ATTESA',
+            'SENZA RISPOSTA',
             AppTokens.warn,
           ),
         ),
@@ -1065,7 +1067,7 @@ class _AvailabilitySummary extends StatelessWidget {
           child: _statCard(
             context,
             '$nonDisp',
-            'NON DISP.',
+            'NON DISPONIBILI',
             AppTokens.bad,
           ),
         ),
@@ -1092,13 +1094,18 @@ class _AvailabilitySummary extends StatelessWidget {
             style: GoogleFonts.bebasNeue(fontSize: 32, color: color, height: 1),
           ),
           const SizedBox(height: 2),
-          Text(
-            label,
-            style: GoogleFonts.spaceGrotesk(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: muteColor,
-              letterSpacing: 0.9,
+          // Etichette lunghe ("NON DISPONIBILI") su tile stretti: si riducono, non sbordano
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              maxLines: 1,
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: muteColor,
+                letterSpacing: 0.9,
+              ),
             ),
           ),
         ],
