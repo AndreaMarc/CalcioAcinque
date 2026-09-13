@@ -67,7 +67,7 @@ public class TeamService : ITeamService
         {
             // 0 = nessun limite
             if (dto.MaxConvocati.Value < 0)
-                throw new BadRequestException("Il numero massimo di convocati non puo' essere negativo");
+                throw new BadRequestException("Il numero massimo di convocati non può essere negativo");
             if (dto.MaxConvocati.Value > 0 && dto.MaxConvocati.Value < team.GiocatoriInCampo)
                 throw new BadRequestException("I convocati non possono essere meno dei giocatori in campo");
             team.MaxConvocati = dto.MaxConvocati.Value == 0 ? null : dto.MaxConvocati.Value;
@@ -122,7 +122,7 @@ public class TeamService : ITeamService
         {
             // ~300 KB di immagine: il client la ridimensiona prima, questo e' il paracadute
             if (dto.LogoBase64.Length > 400_000)
-                throw new BadRequestException("Il logo e' troppo grande: massimo 300 KB");
+                throw new BadRequestException("Il logo è troppo grande: massimo 300 KB");
             team.LogoBase64 = Vuoto(dto.LogoBase64);
         }
 
@@ -139,7 +139,7 @@ public class TeamService : ITeamService
 
     private static decimal RequireNonNegative(decimal value, string label)
     {
-        if (value < 0) throw new BadRequestException($"{label} non puo' essere negativa");
+        if (value < 0) throw new BadRequestException($"{label} non può essere negativa");
         return value;
     }
 

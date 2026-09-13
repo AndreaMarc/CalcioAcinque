@@ -41,7 +41,7 @@ public class MatchVoteService : IMatchVoteService
         var presente = await _context.MatchAttendances
             .AnyAsync(a => a.MatchId == matchId && a.PlayerId == votedPlayerId && a.Presente);
         if (!presente)
-            throw new BusinessException("Si puo' votare solo chi era presente alla partita");
+            throw new BusinessException("Si può votare solo chi era presente alla partita");
 
         var vote = await _context.MatchVotes
             .FirstOrDefaultAsync(v => v.MatchId == matchId && v.VoterPlayerId == voterPlayerId);

@@ -256,7 +256,7 @@ public class MatchPaymentService : IMatchPaymentService
     private static (bool Preselezionato, string? Motivo) Valuta(
         MatchPaymentCandidateDto candidato, RegimePagamento regime, int minutiMinimi)
     {
-        if (candidato.GiaAddebitato) return (false, "gia' addebitato");
+        if (candidato.GiaAddebitato) return (false, "già addebitato");
         if (regime != RegimePagamento.APartita) return (false, "paga a stagione");
         if (!candidato.Presente) return (false, "non presente");
         if (!candidato.HaGiocato) return (false, "non ha giocato");

@@ -46,8 +46,8 @@ public class TokenService : ITokenService
     public async Task<TokenTransactionDto> ManualAdjustAsync(int playerId, ManualTokenDto dto, int adminPlayerId, int teamId)
     {
         if (string.IsNullOrWhiteSpace(dto.Motivazione))
-            throw new BusinessException("La motivazione e' obbligatoria per le operazioni manuali sui gettoni");
-        if (dto.Quantita == 0) throw new BadRequestException("La quantita' non puo' essere zero");
+            throw new BusinessException("La motivazione è obbligatoria per le operazioni manuali sui gettoni");
+        if (dto.Quantita == 0) throw new BadRequestException("La quantità non può essere zero");
 
         var player = await _context.Players.FindAsync(playerId);
         if (player == null) throw new NotFoundException("Giocatore", playerId);
@@ -55,7 +55,7 @@ public class TokenService : ITokenService
 
         var team = await _context.Teams.FindAsync(teamId);
         if (team != null && !team.UseGettoni)
-            throw new BusinessException("Il sistema gettoni e' disabilitato per questo team");
+            throw new BusinessException("Il sistema gettoni è disabilitato per questo team");
 
         var tipo = dto.Quantita > 0 ? TipoTransazione.AggiuntaManuale : TipoTransazione.RimozioneManuale;
 

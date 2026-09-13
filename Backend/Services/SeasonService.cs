@@ -138,7 +138,7 @@ public class SeasonService : ISeasonService
 
         if (!string.IsNullOrWhiteSpace(dto.NomeNuovaStagione)
             && await _context.Seasons.AnyAsync(s => s.TeamId == teamId && s.Nome == nomeNuova))
-            throw new BusinessException($"Esiste gia' una stagione chiamata {nomeNuova}");
+            throw new BusinessException($"Esiste già una stagione chiamata {nomeNuova}");
 
         await using var tx = await _context.Database.BeginTransactionAsync();
 

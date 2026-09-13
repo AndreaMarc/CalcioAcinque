@@ -94,7 +94,7 @@ public class PlayerService : IPlayerService
         {
             // Utente esiste già — verifica che non sia già in questo team
             if (existingUser.Players.Any(p => p.TeamId == teamId))
-                throw new ConflictException("Questo utente e' gia' nel team");
+                throw new ConflictException("Questo utente è già nel team");
             user = existingUser;
         }
         else

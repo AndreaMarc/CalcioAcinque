@@ -56,7 +56,7 @@ public class ConvocationService : IConvocationService
             if (giaConvocati.Count + daAggiungere > max)
                 throw new BusinessException(
                     $"{team.Nome} ammette al massimo {max} convocati per partita " +
-                    $"({giaConvocati.Count} gia' convocati, ne stai aggiungendo {daAggiungere})");
+                    $"({giaConvocati.Count} già convocati, ne stai aggiungendo {daAggiungere})");
         }
 
         // Una sola query invece di due per giocatore (la lista e' piccola ma il ciclo era N+1)
@@ -119,14 +119,14 @@ public class ConvocationService : IConvocationService
         if (convocation == null) throw new NotFoundException("Convocazione", convocationId);
         if (convocation.Match.TeamId != teamId) throw new UnauthorizedException("Non sei autorizzato ad accedere a questa risorsa");
         if (convocation.Match.Stato == StatoPartita.Conclusa)
-            throw new BusinessException("La partita e' conclusa: la lista dei convocati non si tocca piu'");
+            throw new BusinessException("La partita è conclusa: la lista dei convocati non si tocca più");
 
         var attendance = await _context.MatchAttendances
             .FirstOrDefaultAsync(a => a.MatchId == convocation.MatchId && a.PlayerId == convocation.PlayerId);
         if (attendance != null)
         {
             if (attendance.Presente)
-                throw new BusinessException("Il giocatore e' gia' segnato presente: prima togli la presenza dal Match Day");
+                throw new BusinessException("Il giocatore è già segnato presente: prima togli la presenza dal Match Day");
             _context.MatchAttendances.Remove(attendance);
         }
         _context.Convocations.Remove(convocation);
@@ -140,7 +140,7 @@ public class ConvocationService : IConvocationService
             NotificationKind.Convocazione,
             new[] { convocation.Player.UserId },
             titolo: $"{match.Team.Nome}: convocazione revocata",
-            corpo: $"Giornata {match.NumeroGiornata}, {quando}: non sei piu' tra i convocati. Se hai dubbi, chiedi al mister.",
+            corpo: $"Giornata {match.NumeroGiornata}, {quando}: non sei più tra i convocati. Se hai dubbi, chiedi al mister.",
             url: $"/match/{match.Id}",
             tag: $"revoca-{match.Id}-{convocation.PlayerId}",
             teamId: match.TeamId);

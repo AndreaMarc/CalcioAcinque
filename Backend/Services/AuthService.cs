@@ -158,7 +158,7 @@ public class AuthService : IAuthService
         {
             // Utente esiste già — verifica che non sia già in questo team
             if (existingUser.Players.Any(p => p.TeamId == request.TeamId))
-                throw new ConflictException("Questo utente e' gia' nel team");
+                throw new ConflictException("Questo utente è già nel team");
             user = existingUser;
         }
         else
@@ -436,7 +436,7 @@ public class AuthService : IAuthService
         // Verifica che l'utente non sia già nel team
         var existing = await _context.Players.AnyAsync(p => p.UserId == userId && p.TeamId == team.Id);
         if (existing)
-            throw new ConflictException("Sei gia' in questo team");
+            throw new ConflictException("Sei già in questo team");
 
         var user = await _context.Users.FindAsync(userId);
         if (user == null)
@@ -484,7 +484,7 @@ public class AuthService : IAuthService
             }
         }
 
-        _logger.LogInformation("Utente {UserId} si e' unito al team {TeamId}", userId, team.Id);
+        _logger.LogInformation("Utente {UserId} si è unito al team {TeamId}", userId, team.Id);
 
         var accessToken = GenerateAccessToken(user, player);
         var refreshToken = await GenerateRefreshTokenAsync(userId);
@@ -519,7 +519,7 @@ public class AuthService : IAuthService
             throw new NotFoundException("Codice invito non valido");
 
         if (club.Teams.Count == 0)
-            throw new BusinessException($"La societa' {club.Nome} non ha ancora squadre");
+            throw new BusinessException($"La società {club.Nome} non ha ancora squadre");
 
         var chosen = teamId.HasValue
             ? club.Teams.FirstOrDefault(t => t.Id == teamId.Value)
@@ -802,7 +802,7 @@ public class AuthService : IAuthService
         if (user == null) throw new UnauthorizedException("Utente non trovato");
 
         if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
-            throw new BadRequestException("La password attuale non e' corretta");
+            throw new BadRequestException("La password attuale non è corretta");
 
         if (request.CurrentPassword == request.NewPassword)
             throw new BadRequestException("La nuova password deve essere diversa da quella attuale");

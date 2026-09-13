@@ -85,7 +85,7 @@ public class PaymentService : IPaymentService
         if (player.TeamId != teamId) throw new UnauthorizedException("Non sei autorizzato ad accedere a questa risorsa");
 
         if (dto.Importo < 0)
-            throw new BadRequestException("L'importo non puo' essere negativo");
+            throw new BadRequestException("L'importo non può essere negativo");
 
         var stagione = await _seasons.GetOrCreateCorrenteAsync(teamId);
         var payment = new PlayerPayment
@@ -125,7 +125,7 @@ public class PaymentService : IPaymentService
         if (dto.Importo.HasValue)
         {
             if (dto.Importo.Value < 0)
-                throw new BadRequestException("L'importo non puo' essere negativo");
+                throw new BadRequestException("L'importo non può essere negativo");
             payment.Importo = dto.Importo.Value;
         }
 
@@ -172,7 +172,7 @@ public class PaymentService : IPaymentService
         var stagione = await _seasons.GetOrCreateCorrenteAsync(teamId);
 
         // Solo le voci della stagione corrente: quelle archiviate non vanno ne'
-        // contate come "gia' generate" ne' riscritte con i nuovi importi.
+        // contate come "già generate" ne' riscritte con i nuovi importi.
         var esistenti = await _context.PlayerPayments
             .Where(p => p.PlayerId != null && playerIds.Contains(p.PlayerId.Value)
                         && descrizioni.Contains(p.Descrizione)
@@ -212,7 +212,7 @@ public class PaymentService : IPaymentService
                         Importo = quota.Importo,
                         Tipo = quota.Tipo,
                         DataPagamento = data,
-                        // I flag storici sul giocatore inizializzano il "gia' pagato";
+                        // I flag storici sul giocatore inizializzano il "già pagato";
                         // da qui in avanti e' la voce a comandare (SincronizzaFlagQuota)
                         Pagato = quota.GiaPagata(player),
                         AdminId = adminPlayerId,
@@ -252,7 +252,7 @@ public class PaymentService : IPaymentService
             throw new UnauthorizedException("Puoi segnalare solo i tuoi pagamenti");
 
         if (payment.Pagato)
-            throw new BusinessException("Questa voce risulta gia' saldata");
+            throw new BusinessException("Questa voce risulta già saldata");
 
         payment.DichiaratoPagatoAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();

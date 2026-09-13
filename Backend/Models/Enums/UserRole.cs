@@ -53,7 +53,7 @@ public static class Ruoli
 
     public static string Descrizione(UserRole ruolo) => ruolo switch
     {
-        UserRole.Admin => "Rosa, partite e cassa: puo' fare tutto",
+        UserRole.Admin => "Rosa, partite e cassa: può fare tutto",
         UserRole.Mister => "Partite, convocazioni e presenze. Non vede i pagamenti",
         UserRole.Cassiere => "Quote, incassi e solleciti. Non gestisce le partite",
         UserRole.User => "Vede il suo e risponde alle convocazioni",

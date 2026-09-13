@@ -24,7 +24,7 @@ public class AvailabilityService : IAvailabilityService
         var match = await _context.Matches.FindAsync(matchId);
         if (match == null) throw new NotFoundException("Partita", matchId);
         if (match.TeamId != teamId) throw new UnauthorizedException("Non sei autorizzato ad accedere a questa risorsa");
-        if (match.Stato == StatoPartita.Conclusa) throw new BusinessException("Non puoi dichiarare disponibilita' per una partita conclusa");
+        if (match.Stato == StatoPartita.Conclusa) throw new BusinessException("Non puoi dichiarare disponibilità per una partita conclusa");
 
         var existing = await _context.PlayerAvailabilities
             .Include(a => a.Player)
