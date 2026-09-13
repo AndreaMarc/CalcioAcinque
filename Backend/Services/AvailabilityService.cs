@@ -79,15 +79,19 @@ public class AvailabilityService : IAvailabilityService
             miaDisp = mia != null ? (mia.Disponibile ? "disponibile" : "nonDisponibile") : null;
         }
 
+        // La rosa che gioca: cosi' "senza risposta" = rosa - disponibili - non disponibili
+        var rosa = await _context.Players.CountAsync(p => p.TeamId == match.TeamId && p.Gioca);
+
         return new MatchAvailabilitySummaryDto
         {
             MatchId = match.Id,
             NumeroGiornata = match.NumeroGiornata,
             DataPartita = match.Data,
             OraPartita = match.Ora.ToString(@"hh\:mm"),
-            Disponibili = availabilities.Count(a => a.Disponibile),
-            NonDisponibili = availabilities.Count(a => !a.Disponibile),
-            Totale = availabilities.Count,
+            // I numeri sono dei giocatori: lo staff (Gioca = false) sta nel dettaglio ma non nei conteggi
+            Disponibili = availabilities.Count(a => a.Disponibile && a.Player.Gioca),
+            NonDisponibili = availabilities.Count(a => !a.Disponibile && a.Player.Gioca),
+            Totale = rosa,
             Dettaglio = availabilities.Select(MapToDto).ToList(),
             MiaDisponibilita = miaDisp
         };
@@ -108,6 +112,7 @@ public class AvailabilityService : IAvailabilityService
     {
         Id = a.Id, MatchId = a.MatchId, PlayerId = a.PlayerId,
         NomeGiocatore = a.Player.Nome, Soprannome = a.Player.Soprannome,
+        Gioca = a.Player.Gioca, Ruolo = a.Player.Ruolo.ToString(),
         Disponibile = a.Disponibile, Note = a.Note, UpdatedAt = a.UpdatedAt
     };
 }

@@ -258,24 +258,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         if (players.players.isEmpty) {
                           return const SizedBox.shrink();
                         }
-                        final present = (_availabilityData?['dettaglio']
-                                as List?)
-                            ?.where((d) => d['disponibile'] == true)
+                        // Giocatori e staff separati: la panchina non entra nel conto della rosa
+                        final giocatori = players.players.where((p) => p.gioca).toList();
+                        final staff = players.players.where((p) => !p.gioca).toList();
+                        final dettaglio = _availabilityData?['dettaglio'] as List?;
+                        final staffIds = staff.map((p) => p.id).toSet();
+                        final present = dettaglio
+                            ?.where((d) => d['disponibile'] == true && !staffIds.contains(d['playerId']))
                             .length ?? 0;
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             SectionHead(
                               title: 'CHI C\'È STASERA',
-                              more: '$present su ${players.players.length} →',
+                              more: '$present su ${giocatori.length} →',
                             ),
                             _StoriesRow(
-                              players: players.players,
-                              availabilityDetails:
-                                  _availabilityData?['dettaglio'] as List?,
+                              players: giocatori,
+                              availabilityDetails: dettaglio,
                               currentPlayerId:
                                   context.read<AuthProvider>().playerId,
                             ),
+                            if (staff.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                                child: _StaffPresenceCard(staff: staff, availabilityDetails: dettaglio),
+                              ),
                             const SizedBox(height: 16),
                           ],
                         );
@@ -1307,5 +1315,67 @@ class _MyMatchesCard extends StatelessWidget {
     if (p.devoRispondere) return const AppChip(text: 'Conferma!', variant: AppChipVariant.warn);
     if (p.convocazioniInviate) return const AppChip(text: 'Non convocato', variant: AppChipVariant.neutral);
     return const AppChip(text: 'In arrivo', variant: AppChipVariant.neutral);
+  }
+}
+
+/// Lo staff (mister, dirigenti) alla prossima partita: a parte dai giocatori,
+/// perché non conta per la rosa ma conta sapere se in panchina c'è qualcuno.
+class _StaffPresenceCard extends StatelessWidget {
+  final List<PlayerModel> staff;
+  final List? availabilityDetails;
+  const _StaffPresenceCard({required this.staff, required this.availabilityDetails});
+
+  bool? _disp(int playerId) {
+    final e = availabilityDetails
+        ?.cast<dynamic>()
+        .firstWhere((e) => e['playerId'] == playerId, orElse: () => null);
+    return e == null ? null : e['disponibile'] as bool?;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
+    final presenti = staff.where((p) => _disp(p.id) == true).length;
+    return AppCard(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.sports, size: 16, color: muteColor),
+              const SizedBox(width: 6),
+              const Expanded(child: Eyebrow('IN PANCHINA')),
+              Text(
+                presenti == 0 ? 'nessuno ha confermato' : '$presenti su ${staff.length}',
+                style: GoogleFonts.spaceGrotesk(fontSize: 11, color: presenti == 0 ? AppTokens.warn : muteColor),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: staff.map((p) {
+              final d = _disp(p.id);
+              final nome = (p.soprannome ?? '').isNotEmpty ? p.soprannome! : p.nome.split(' ').first;
+              final ruolo = p.ruoloBadge == 'MIS' ? 'mister' : (p.ruoloBadge ?? 'staff').toLowerCase();
+              return AppChip(
+                text: '$nome · $ruolo',
+                variant: d == true ? AppChipVariant.ok : d == false ? AppChipVariant.bad : AppChipVariant.warn,
+                leadingIcon: d == true ? Icons.check : d == false ? Icons.close : Icons.schedule,
+              );
+            }).toList(),
+          ),
+          if (staff.any((p) => _disp(p.id) == null))
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text('Chi non ha risposto è in arancione.',
+                  style: GoogleFonts.spaceGrotesk(fontSize: 10, color: muteColor)),
+            ),
+        ],
+      ),
+    );
   }
 }

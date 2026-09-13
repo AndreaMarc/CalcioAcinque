@@ -210,20 +210,69 @@ class _CalendarScreenState extends State<CalendarScreen> {
       return;
     }
     if (!context.mounted) return;
-    final anchor = web.document.createElement('a') as web.HTMLAnchorElement;
-    anchor.href = url;
-    anchor.download = 'partite.ics';
-    anchor.click();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Calendario esportato!'),
-        action: SnackBarAction(
-          label: 'Copia URL',
-          onPressed: () {
-            web.window.navigator.clipboard.writeText(url);
-          },
-        ),
-      ),
+    // webcal:// e' lo schema che iPhone/Mac riconoscono come "iscriviti": il
+    // calendario resta aggiornato quando il mister sposta una partita.
+    final webcal = url.replaceFirst(RegExp(r'^https?://'), 'webcal://');
+    final google = 'https://calendar.google.com/calendar/r?cid=${Uri.encodeComponent(webcal)}';
+    await showAppSheet<void>(
+      context,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            DisplayText('CALENDARIO SUL TELEFONO', size: 22, color: isDark ? AppTokens.darkText : AppTokens.text),
+            const SizedBox(height: 4),
+            Text(
+              'Le partite della squadra nel tuo calendario, aggiornate da sole quando cambiano.',
+              style: GoogleFonts.spaceGrotesk(fontSize: 12, color: muteColor),
+            ),
+            const SizedBox(height: 10),
+            AppSheetAction(
+              icon: Icons.phone_iphone,
+              label: 'iPhone e Mac: iscriviti',
+              subtitle: 'Si apre Calendario e chiede di aggiungere l\'abbonamento',
+              onTap: () {
+                Navigator.of(ctx).pop();
+                web.window.location.href = webcal;
+              },
+            ),
+            AppSheetAction(
+              icon: Icons.android,
+              label: 'Android: Google Calendar',
+              subtitle: 'Aggiunge il calendario della squadra al tuo account Google',
+              onTap: () {
+                Navigator.of(ctx).pop();
+                web.window.open(google, '_blank');
+              },
+            ),
+            AppSheetAction(
+              icon: Icons.download_outlined,
+              label: 'Scarica il file .ics',
+              subtitle: 'Una copia fissa, senza aggiornamenti',
+              onTap: () {
+                Navigator.of(ctx).pop();
+                final anchor = web.document.createElement('a') as web.HTMLAnchorElement;
+                anchor.href = url;
+                anchor.download = 'partite.ics';
+                anchor.click();
+              },
+            ),
+            AppSheetAction(
+              icon: Icons.link,
+              label: 'Copia il link',
+              subtitle: 'Da incollare in qualsiasi app calendario ("aggiungi da URL")',
+              onTap: () {
+                Navigator.of(ctx).pop();
+                web.window.navigator.clipboard.writeText(url);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link copiato')));
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 

@@ -276,6 +276,7 @@ class _PlayersScreenState extends State<PlayersScreen> {
     var posizione = player.posizione;
     var regime = player.regimePagamento;
     var ruolo = RuoloX.fromApi(player.ruolo);
+    var gioca = player.gioca;
 
     showDialog(
       context: context,
@@ -354,7 +355,17 @@ class _PlayersScreenState extends State<PlayersScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: const Text('Solo staff, non gioca'),
+                  subtitle: const Text('Allenatore o dirigente: dà la presenza ma resta fuori da convocazioni e statistiche',
+                      style: TextStyle(fontSize: 11)),
+                  value: !gioca,
+                  onChanged: (v) => setDialogState(() => gioca = !v),
+                ),
+                const SizedBox(height: 10),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text('Come paga',
@@ -451,6 +462,7 @@ class _PlayersScreenState extends State<PlayersScreen> {
                   'numeroMaglia': int.tryParse(numeroCtrl.text) ?? 0,
                   // Stringa vuota = torna al default della squadra
                   'ruolo': ruolo.apiValue,
+                  'gioca': gioca,
                   'regimePagamento': regime?.apiValue ?? '',
                 };
                 if (soprannomeCtrl.text.trim().isNotEmpty) {
@@ -565,6 +577,7 @@ class _PlayersScreenState extends State<PlayersScreen> {
     final telefonoCtrl = TextEditingController();
     final numeroCtrl = TextEditingController();
     PlayerPosition? posizione;
+    var gioca = true;
 
     showDialog(
       context: context,
@@ -619,6 +632,16 @@ class _PlayersScreenState extends State<PlayersScreen> {
                   decoration: const InputDecoration(labelText: 'Numero di maglia'),
                   keyboardType: TextInputType.number,
                 ),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: const Text('Solo staff, non gioca'),
+                  subtitle: const Text('Allenatore o dirigente: dà la presenza ma resta fuori da convocazioni e statistiche',
+                      style: TextStyle(fontSize: 11)),
+                  value: !gioca,
+                  onChanged: (v) => setDialogState(() => gioca = !v),
+                ),
               ],
             ),
           ),
@@ -643,6 +666,7 @@ class _PlayersScreenState extends State<PlayersScreen> {
                         : soprannomeCtrl.text.trim(),
                     'email': emailCtrl.text.trim(),
                     'password': passwordCtrl.text,
+                    'gioca': gioca,
                     'telefono': telefonoCtrl.text.trim().isEmpty
                         ? null
                         : telefonoCtrl.text.trim(),

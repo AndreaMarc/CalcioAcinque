@@ -34,6 +34,10 @@ public class Player
 
     public int? NumeroMaglia { get; set; }
 
+    /// <summary>Falso per chi e' solo staff (allenatore, dirigente): non entra in rosa,
+    /// convocazioni e statistiche, ma dichiara la presenza alla partita come gli altri.</summary>
+    public bool Gioca { get; set; } = true;
+
     public int GettoniTotali { get; set; }
     public int GettoniConsumati { get; set; } = 0;
 

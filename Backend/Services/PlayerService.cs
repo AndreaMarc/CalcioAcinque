@@ -65,7 +65,7 @@ public class PlayerService : IPlayerService
             Id = player.Id, TeamId = player.TeamId, UserId = player.UserId,
             ClubMemberId = player.ClubMemberId, Nome = player.Nome,
             Soprannome = player.Soprannome, Telefono = player.Telefono, Ruolo = player.Ruolo.ToString(),
-            Posizione = player.Posizione?.ToString(), NumeroMaglia = player.NumeroMaglia,
+            Posizione = player.Posizione?.ToString(), NumeroMaglia = player.NumeroMaglia, Gioca = player.Gioca,
             GettoniTotali = player.GettoniTotali, GettoniConsumati = player.GettoniConsumati,
             GettoniRimanenti = player.GettoniRimanenti, IscrizionePagata = player.IscrizionePagata,
             TesseramentoPagato = player.TesseramentoPagato, CreatedAt = player.CreatedAt,
@@ -125,6 +125,7 @@ public class PlayerService : IPlayerService
             Ruolo = ruolo,
             Posizione = ClubService.ParsePosition(dto.Posizione, team.Formato),
             NumeroMaglia = dto.NumeroMaglia,
+            Gioca = dto.Gioca ?? true,
             RegimePagamento = ParseRegime(dto.RegimePagamento),
             GettoniTotali = team.UseGettoni ? team.GettoniPerGiocatore : 0,
             GettoniConsumati = 0,
@@ -166,6 +167,8 @@ public class PlayerService : IPlayerService
                 : ClubService.ParsePosition(dto.Posizione, player.Team.Formato);
         if (dto.NumeroMaglia.HasValue)
             player.NumeroMaglia = dto.NumeroMaglia.Value <= 0 ? null : dto.NumeroMaglia.Value;
+        if (dto.Gioca.HasValue)
+            player.Gioca = dto.Gioca.Value;
 
         // Stringa vuota = nessuna scelta personale, torna a valere il default della squadra
         if (dto.RegimePagamento != null)
@@ -347,7 +350,7 @@ public class PlayerService : IPlayerService
         Id = p.Id, TeamId = p.TeamId, UserId = p.UserId, ClubMemberId = p.ClubMemberId,
         Nome = p.Nome, Soprannome = p.Soprannome,
         Telefono = p.Telefono, Ruolo = p.Ruolo.ToString(),
-        Posizione = p.Posizione?.ToString(), NumeroMaglia = p.NumeroMaglia,
+        Posizione = p.Posizione?.ToString(), NumeroMaglia = p.NumeroMaglia, Gioca = p.Gioca,
         GettoniTotali = p.GettoniTotali,
         GettoniConsumati = p.GettoniConsumati, GettoniRimanenti = p.GettoniRimanenti,
         IscrizionePagata = p.IscrizionePagata, TesseramentoPagato = p.TesseramentoPagato,

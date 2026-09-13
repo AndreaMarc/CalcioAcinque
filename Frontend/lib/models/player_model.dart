@@ -13,6 +13,9 @@ class PlayerModel {
   final int? clubMemberId;
   final PlayerPosition? posizione;
   final int? numeroMaglia;
+
+  /// Falso per chi è solo staff (allenatore, dirigente) e non gioca.
+  final bool gioca;
   final int gettoniTotali;
   final int gettoniConsumati;
   final int gettoniRimanenti;
@@ -32,7 +35,7 @@ class PlayerModel {
   PlayerModel({
     required this.id, required this.teamId, required this.userId,
     required this.nome, this.soprannome, this.telefono, required this.ruolo,
-    this.clubMemberId, this.posizione, this.numeroMaglia,
+    this.clubMemberId, this.posizione, this.numeroMaglia, this.gioca = true,
     required this.gettoniTotali, required this.gettoniConsumati,
     required this.gettoniRimanenti, required this.iscrizionePagata,
     required this.tesseramentoPagato,
@@ -49,6 +52,7 @@ class PlayerModel {
     clubMemberId: json['clubMemberId'] as int?,
     posizione: PlayerPositionX.fromApi(json['posizione'] as String?),
     numeroMaglia: json['numeroMaglia'] as int?,
+    gioca: json['gioca'] as bool? ?? true,
     gettoniTotali: json['gettoniTotali'] ?? 0,
     gettoniConsumati: json['gettoniConsumati'] ?? 0,
     gettoniRimanenti: json['gettoniRimanenti'] ?? 0,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:web/web.dart' as web;
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
@@ -74,7 +75,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(ok
-          ? (risposta == 'Confermato' ? 'Confermato: ci sei!' : 'Segnato come non disponibile')
+          ? (risposta == 'Confermato' ? 'Confermato: sei in lista per la partita.' : 'Forfait registrato: il mister cerca un sostituto.')
           : 'Non riesco a salvare la risposta, riprova'),
     ));
     if (ok) _loadData();
@@ -88,7 +89,9 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(disponibile ? 'Sei disponibile!' : 'Segnato come non disponibile'),
+        content: Text(disponibile
+            ? 'Hai detto: ci sono. Il mister lo vede quando sceglie i convocati.'
+            : 'Hai detto: salto. Puoi cambiare idea fino alle convocazioni.'),
       ));
       _loadData();
     } catch (_) {
@@ -251,6 +254,8 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
               subtitle: '${DateFormat('EEE d MMM', 'it_IT').format(match.data)} · ${match.ora}',
               onBack: () => context.go('/calendar'),
               actions: [
+                if (!match.isConclusa)
+                  AppTopBar.iconAction(context, Icons.event_available_outlined, () => _aggiungiAlCalendario(match)),
                 AppTopBar.iconAction(context, Icons.ios_share, () => _condividi(match)),
                 // Anche il cassiere: dentro il menu c'e' l'incasso, che e' suo
                 if (auth.puoGestireCampo || auth.puoGestireSoldi)
@@ -323,6 +328,83 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     );
   }
 
+  /// La singola partita nel calendario del telefono: file .ics dal server (iPhone lo
+  /// apre in Calendario, Android nell'app calendario) oppure Google Calendar via link.
+  Future<void> _aggiungiAlCalendario(MatchModel match) async {
+    final auth = context.read<AuthProvider>();
+    String feed;
+    try {
+      final resp = await auth.apiClient.dio.get(ApiConstants.calendarLink(auth.teamId));
+      feed = resp.data['data']['url'] as String;
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Non riesco a preparare il calendario, riprova')),
+      );
+      return;
+    }
+    if (!mounted) return;
+    final eventoIcs = feed.replaceFirst('/calendar.ics?', '/${match.id}/event.ics?');
+    final cfg = context.read<ClubProvider>().teamConfig;
+    final durata = cfg != null ? cfg.minutiPerTempo * cfg.numeroTempi + 15 : 90;
+    final parti = match.ora.split(':');
+    final inizio = DateTime(match.data.year, match.data.month, match.data.day,
+        int.tryParse(parti.first) ?? 21, parti.length > 1 ? int.tryParse(parti[1]) ?? 0 : 0);
+    final fine = inizio.add(Duration(minutes: durata));
+    String g(DateTime d) => DateFormat('yyyyMMdd\'T\'HHmmss').format(d);
+    final teamName = context.read<ThemeProvider>().teamName;
+    final titolo = (match.titolo ?? '').isNotEmpty ? '$teamName - G${match.numeroGiornata} vs ${match.titolo}' : '$teamName - Giornata ${match.numeroGiornata}';
+    final google = Uri.https('calendar.google.com', '/calendar/render', {
+      'action': 'TEMPLATE',
+      'text': titolo,
+      'dates': '${g(inizio)}/${g(fine)}',
+      if ((match.luogo ?? '').isNotEmpty) 'location': match.luogo!,
+      'details': 'Partita su InCampo: ${appLink('/match/${match.id}')}',
+    }).toString();
+
+    await showAppSheet<void>(
+      context,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            DisplayText('AGGIUNGI AL CALENDARIO', size: 22, color: isDark ? AppTokens.darkText : AppTokens.text),
+            const SizedBox(height: 10),
+            AppSheetAction(
+              icon: Icons.phone_iphone,
+              label: 'iPhone, Mac e altri calendari',
+              subtitle: 'Scarica l\'evento (.ics): si apre in Calendario',
+              onTap: () {
+                Navigator.of(ctx).pop();
+                web.window.open(eventoIcs, '_blank');
+              },
+            ),
+            AppSheetAction(
+              icon: Icons.android,
+              label: 'Google Calendar',
+              subtitle: 'Android, o chi usa Google Calendar',
+              onTap: () {
+                Navigator.of(ctx).pop();
+                web.window.open(google, '_blank');
+              },
+            ),
+            AppSheetAction(
+              icon: Icons.calendar_month_outlined,
+              label: 'Tutte le partite, sempre aggiornate',
+              subtitle: 'Iscrizione al calendario della squadra, dalla scheda Partite',
+              onTap: () {
+                Navigator.of(ctx).pop();
+                context.go('/calendar');
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   /// Testo pronto per il gruppo: risultato e marcatori se conclusa, altrimenti
   /// i convocati con i turni.
   Future<void> _condividi(MatchModel match) async {
@@ -392,29 +474,43 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
   }
 
   Widget _buildDettaglio(Map<String, dynamic> data) {
-    final dettaglio = data['dettaglio'] as List? ?? [];
+    final dettaglio = (data['dettaglio'] as List? ?? []).cast<Map>();
     if (dettaglio.isEmpty) return const SizedBox.shrink();
-    return Column(
-      children: [
-        const SectionHead(title: 'DISPONIBILITÀ'),
-        Padding(
+    // Chi gioca e chi sta in panchina si leggono a parte
+    final giocatori = dettaglio.where((d) => d['gioca'] != false).toList();
+    final staff = dettaglio.where((d) => d['gioca'] == false).toList();
+
+    Widget righe(List<Map> lista, {bool conRuolo = false}) => Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
           child: Column(
-            children: dettaglio.map((d) {
-              final nome = d['soprannome'] ?? d['nomeGiocatore'] ?? '';
-              final disponibile = d['disponibile'] == true;
-              final note = d['note'] as String?;
+            children: lista.map((d) {
+              var nome = (d['soprannome'] ?? d['nomeGiocatore'] ?? '') as String;
+              if (conRuolo) {
+                final ruolo = d['ruolo'] as String?;
+                nome = '$nome · ${ruolo == 'Mister' ? 'mister' : ruolo == 'Admin' ? 'admin' : ruolo == 'Cassiere' ? 'cassiere' : 'staff'}';
+              }
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: _AvailabilityRow(
                   nome: nome,
-                  disponibile: disponibile,
-                  note: note,
+                  disponibile: d['disponibile'] == true,
+                  note: d['note'] as String?,
                 ),
               );
             }).toList(),
           ),
-        ),
+        );
+
+    return Column(
+      children: [
+        if (giocatori.isNotEmpty) ...[
+          SectionHead(title: 'DISPONIBILITÀ', more: '${giocatori.length} ${giocatori.length == 1 ? 'giocatore' : 'giocatori'}'),
+          righe(giocatori),
+        ],
+        if (staff.isNotEmpty) ...[
+          const SectionHead(title: 'IN PANCHINA', more: 'staff'),
+          righe(staff, conRuolo: true),
+        ],
       ],
     );
   }

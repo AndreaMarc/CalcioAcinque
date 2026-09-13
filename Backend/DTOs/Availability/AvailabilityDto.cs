@@ -7,6 +7,9 @@ public class AvailabilityDto
     public int PlayerId { get; set; }
     public string NomeGiocatore { get; set; } = string.Empty;
     public string? Soprannome { get; set; }
+    /// <summary>Falso per lo staff: il client lo mostra a parte.</summary>
+    public bool Gioca { get; set; } = true;
+    public string Ruolo { get; set; } = string.Empty;
     public bool Disponibile { get; set; }
     public string? Note { get; set; }
     public DateTime UpdatedAt { get; set; }

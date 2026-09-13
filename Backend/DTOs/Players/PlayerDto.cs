@@ -12,6 +12,8 @@ public class PlayerDto
     public string Ruolo { get; set; } = string.Empty;
     public string? Posizione { get; set; }
     public int? NumeroMaglia { get; set; }
+    /// <summary>Falso per chi e' solo staff e non gioca.</summary>
+    public bool Gioca { get; set; } = true;
     public int GettoniTotali { get; set; }
     public int GettoniConsumati { get; set; }
     public int GettoniRimanenti { get; set; }
@@ -63,6 +65,7 @@ public class CreatePlayerDto
     public string Ruolo { get; set; } = "User";
     public string? Posizione { get; set; }
     public int? NumeroMaglia { get; set; }
+    public bool? Gioca { get; set; }
     public string? RegimePagamento { get; set; }
 }
 
@@ -74,6 +77,7 @@ public class UpdatePlayerDto
     public string? Ruolo { get; set; }
     public string? Posizione { get; set; }
     public int? NumeroMaglia { get; set; }
+    public bool? Gioca { get; set; }
     public bool? IscrizionePagata { get; set; }
     public bool? TesseramentoPagato { get; set; }
 

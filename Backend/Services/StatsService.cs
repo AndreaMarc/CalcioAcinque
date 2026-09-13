@@ -73,6 +73,7 @@ public class StatsService : IStatsService
 
         // Statistiche per giocatore
         var playerGroups = allAttendances
+            .Where(a => a.Player.Gioca)
             .GroupBy(a => a.PlayerId)
             .Select(g => new PlayerStatsDto
             {

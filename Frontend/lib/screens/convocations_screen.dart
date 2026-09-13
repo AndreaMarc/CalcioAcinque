@@ -230,7 +230,7 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
     final players = context.read<PlayersProvider>().players;
     final convocati = convocations.map((c) => c.playerId).toSet();
     final sostituti = players
-        .where((p) => !convocati.contains(p.id) && _availabilityMap[p.id] == true)
+        .where((p) => p.gioca && !convocati.contains(p.id) && _availabilityMap[p.id] == true)
         .toList()
       ..sort((a, b) => (b.affidabilita ?? -1).compareTo(a.affidabilita ?? -1));
     if (sostituti.isEmpty) return const [];
@@ -333,7 +333,8 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
         .convocations
         .map((c) => c.playerId)
         .toSet();
-    final available = players.where((p) => !existing.contains(p.id)).toList();
+    // Lo staff che non gioca non entra in lista
+    final available = players.where((p) => p.gioca && !existing.contains(p.id)).toList();
     if (available.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Tutti i giocatori sono già convocati')));

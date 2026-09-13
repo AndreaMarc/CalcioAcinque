@@ -99,6 +99,55 @@ public class MatchesController : ControllerBase
         return Ok(new ApiResponse<object> { Success = true, Data = new { url } });
     }
 
+    /// <summary>
+    /// Un solo evento in formato .ics, con lo stesso token del feed: su iPhone si apre
+    /// in Calendario ("Aggiungi evento"), su Android lo raccoglie l'app calendario.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpGet("{matchId:int}/event.ics")]
+    public async Task<IActionResult> GetMatchIcs(int teamId, int matchId, [FromQuery(Name = "t")] string? token = null)
+    {
+        var team = await _context.Teams.FindAsync(teamId);
+        if (team == null) return NotFound();
+        if (string.IsNullOrEmpty(team.CalendarToken) || token != team.CalendarToken) return NotFound();
+        var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId && m.TeamId == teamId);
+        if (match == null) return NotFound();
+
+        var sb = new StringBuilder();
+        sb.AppendLine("BEGIN:VCALENDAR");
+        sb.AppendLine("VERSION:2.0");
+        sb.AppendLine($"PRODID:-//InCampo//{team.Nome}//IT");
+        sb.AppendLine("CALSCALE:GREGORIAN");
+        sb.AppendLine("METHOD:PUBLISH");
+        AppendVEvent(sb, team, match);
+        sb.AppendLine("END:VCALENDAR");
+        return File(Encoding.UTF8.GetBytes(sb.ToString()), "text/calendar; charset=utf-8", $"partita-{match.NumeroGiornata}.ics");
+    }
+
+    private static void AppendVEvent(StringBuilder sb, CalcioAcinque.Backend.Models.Entities.Team team, CalcioAcinque.Backend.Models.Entities.Match match)
+    {
+        var startDt = match.Data.Date.Add(match.Ora);
+        // Durata dalla configurazione della squadra, con un margine per intervallo e spogliatoi
+        var endDt = startDt.AddMinutes(team.MinutiPerTempo * team.NumeroTempi + 15);
+
+        sb.AppendLine("BEGIN:VEVENT");
+        sb.AppendLine($"UID:match-{match.Id}@calcioacinque");
+        sb.AppendLine($"DTSTART:{startDt:yyyyMMdd'T'HHmmss}");
+        sb.AppendLine($"DTEND:{endDt:yyyyMMdd'T'HHmmss}");
+        var summary = !string.IsNullOrEmpty(match.Titolo)
+            ? $"{team.Nome} - G{match.NumeroGiornata} vs {match.Titolo}"
+            : $"{team.Nome} - Giornata {match.NumeroGiornata}";
+        sb.AppendLine($"SUMMARY:{summary}");
+        if (!string.IsNullOrEmpty(match.Luogo))
+            sb.AppendLine($"LOCATION:{match.Luogo}");
+        var desc = $"{TeamFormats.Label(team.Formato)} - {team.Nome}\\nGiornata {match.NumeroGiornata}\\nStato: {match.Stato}";
+        if (!string.IsNullOrEmpty(match.Note))
+            desc += $"\\n{match.Note}";
+        sb.AppendLine($"DESCRIPTION:{desc}");
+        sb.AppendLine($"STATUS:{(match.Stato == StatoPartita.Conclusa ? "CONFIRMED" : "TENTATIVE")}");
+        sb.AppendLine("END:VEVENT");
+    }
+
     [AllowAnonymous]
     [HttpGet("calendar.ics")]
     public async Task<IActionResult> GetCalendarIcs(int teamId, [FromQuery(Name = "t")] string? token = null)
@@ -123,28 +172,7 @@ public class MatchesController : ControllerBase
         sb.AppendLine("METHOD:PUBLISH");
 
         foreach (var match in matches)
-        {
-            var startDt = match.Data.Date.Add(match.Ora);
-            // Durata dalla configurazione della squadra, con un margine per intervallo e spogliatoi
-            var endDt = startDt.AddMinutes(team.MinutiPerTempo * team.NumeroTempi + 15);
-
-            sb.AppendLine("BEGIN:VEVENT");
-            sb.AppendLine($"UID:match-{match.Id}@calcioacinque");
-            sb.AppendLine($"DTSTART:{startDt:yyyyMMdd'T'HHmmss}");
-            sb.AppendLine($"DTEND:{endDt:yyyyMMdd'T'HHmmss}");
-            var summary = !string.IsNullOrEmpty(match.Titolo)
-                ? $"{team.Nome} - G{match.NumeroGiornata} vs {match.Titolo}"
-                : $"{team.Nome} - Giornata {match.NumeroGiornata}";
-            sb.AppendLine($"SUMMARY:{summary}");
-            if (!string.IsNullOrEmpty(match.Luogo))
-                sb.AppendLine($"LOCATION:{match.Luogo}");
-            var desc = $"{TeamFormats.Label(team.Formato)} - {team.Nome}\\nGiornata {match.NumeroGiornata}\\nStato: {match.Stato}";
-            if (!string.IsNullOrEmpty(match.Note))
-                desc += $"\\n{match.Note}";
-            sb.AppendLine($"DESCRIPTION:{desc}");
-            sb.AppendLine($"STATUS:{(match.Stato == StatoPartita.Conclusa ? "CONFIRMED" : "TENTATIVE")}");
-            sb.AppendLine("END:VEVENT");
-        }
+            AppendVEvent(sb, team, match);
 
         sb.AppendLine("END:VCALENDAR");
 
