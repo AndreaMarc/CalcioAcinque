@@ -15,7 +15,10 @@ namespace CalcioAcinque.Backend.Migrations
                 table: "players",
                 type: "tinyint(1)",
                 nullable: false,
-                defaultValue: false);
+                defaultValue: true);
+
+            // Chi c'era prima gioca: la colonna nasce per marcare lo staff, non i giocatori
+            migrationBuilder.Sql("UPDATE players SET Gioca = 1;");
         }
 
         /// <inheritdoc />
