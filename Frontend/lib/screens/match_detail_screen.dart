@@ -118,6 +118,9 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     bool? attuale;
     void Function(bool) onRisposta;
 
+    final dettaglio = (_availabilityData?['dettaglio'] as List?) ?? const [];
+    final miaDisp = dettaglio.cast<Map>().where((d) => d['playerId'] == me.id).firstOrNull;
+    final convocazioniInviate = match.stato != 'Programmata';
     if (mia != null) {
       eyebrow = 'LA TUA CONVOCAZIONE';
       if (mia.isConfermato) {
@@ -134,12 +137,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
       }
       onRisposta = (si) => _rispondiConvocazione(mia.id, si ? 'Confermato' : 'NonDisponibile');
     } else {
-      eyebrow = 'LA TUA DISPONIBILITA';
-      final dettaglio = (_availabilityData?['dettaglio'] as List?) ?? const [];
-      final miaDisp = dettaglio
-          .cast<Map>()
-          .where((d) => d['playerId'] == me.id)
-          .firstOrNull;
+      eyebrow = 'LA TUA DISPONIBILITÀ';
       if (miaDisp == null) {
         stato = 'Non hai ancora risposto';
         variant = AppChipVariant.warn;
@@ -189,13 +187,17 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                 ),
               ],
             ),
-            if (mia == null) ...[
-              const SizedBox(height: 8),
-              Text(
-                'La disponibilita serve al mister per convocare. La convocazione arriva dopo, con una notifica.',
-                style: GoogleFonts.spaceGrotesk(fontSize: 11, color: muteColor, height: 1.3),
-              ),
-            ],
+            const SizedBox(height: 8),
+            Text(
+              mia != null
+                  ? (miaDisp == null
+                      ? 'Sei tra i convocati. Questa risposta è quella che conta per la distinta.'
+                      : 'Sei tra i convocati (avevi detto: ${miaDisp['disponibile'] == true ? 'ci sono' : 'salto'}). Questa risposta è quella che conta.')
+                  : convocazioniInviate
+                      ? 'Le convocazioni sono uscite e non sei in lista. La disponibilità resta utile: se serve un sostituto il mister ti vede.'
+                      : 'Il mister convoca guardando chi ha detto di esserci. La convocazione arriva con una notifica.',
+              style: GoogleFonts.spaceGrotesk(fontSize: 11, color: muteColor, height: 1.3),
+            ),
           ],
         ),
       ),

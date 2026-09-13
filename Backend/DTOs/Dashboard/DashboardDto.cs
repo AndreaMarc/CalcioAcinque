@@ -20,6 +20,9 @@ public class DashboardDto
     public int PartiteGiocate { get; set; }
     public int PartiteTotali { get; set; }
     public List<PlayerTokenSummaryForDashboard> ClassificaGettoni { get; set; } = new();
+
+    /// <summary>Le prossime partite (non concluse) con la mia disponibilita' e la mia convocazione: il riepilogo personale.</summary>
+    public List<MatchSummaryDto> MiePartite { get; set; } = new();
 }
 
 public class MatchSummaryDto
@@ -35,6 +38,12 @@ public class MatchSummaryDto
     public int InAttesa { get; set; }
     public int NonDisponibili { get; set; }
     public string? MiaConvocazione { get; set; }  // null = non convocato, "InAttesa", "Confermato", "NonDisponibile"
+    /// <summary>Id della mia convocazione, per rispondere direttamente dalla Home.</summary>
+    public int? MiaConvocazioneId { get; set; }
+    /// <summary>La disponibilita' che ho dichiarato: null = non ho risposto.</summary>
+    public bool? MiaDisponibilita { get; set; }
+    /// <summary>Vero quando il mister ha gia' mandato le convocazioni (stato oltre Programmata).</summary>
+    public bool ConvocazioniInviate { get; set; }
 }
 
 public class PlayerTokenSummaryForDashboard

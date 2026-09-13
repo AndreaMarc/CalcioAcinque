@@ -21,23 +21,36 @@ public class DashboardService : IDashboardService
         var useGettoni = team?.UseGettoni ?? true;
         var player = await _context.Players.FindAsync(playerId);
 
-        var nextMatch = await _context.Matches.Include(m => m.Convocations)
+        // Le prossime partite non concluse: la prima e' l'hero, tutte insieme sono il riepilogo personale
+        var upcoming = await _context.Matches.Include(m => m.Convocations)
             .Where(m => m.TeamId == teamId && m.Stato != StatoPartita.Conclusa)
-            .OrderBy(m => m.Data).FirstOrDefaultAsync();
+            .OrderBy(m => m.Data).ThenBy(m => m.Ora)
+            .Take(5)
+            .ToListAsync();
+        var upcomingIds = upcoming.Select(m => m.Id).ToList();
+        var mieDisponibilita = await _context.PlayerAvailabilities
+            .Where(a => a.PlayerId == playerId && upcomingIds.Contains(a.MatchId))
+            .ToDictionaryAsync(a => a.MatchId, a => a.Disponibile);
 
-        MatchSummaryDto? matchSummary = null;
-        if (nextMatch != null)
+        MatchSummaryDto Summary(Models.Entities.Match m)
         {
-            matchSummary = new MatchSummaryDto
+            var mia = m.Convocations.FirstOrDefault(c => c.PlayerId == playerId);
+            return new MatchSummaryDto
             {
-                Id = nextMatch.Id, Data = nextMatch.Data, Ora = nextMatch.Ora.ToString(@"hh\:mm"),
-                Luogo = nextMatch.Luogo, Titolo = nextMatch.Titolo, NumeroGiornata = nextMatch.NumeroGiornata, Stato = nextMatch.Stato.ToString(),
-                Confermati = nextMatch.Convocations.Count(c => c.StatoRisposta == StatoRisposta.Confermato),
-                InAttesa = nextMatch.Convocations.Count(c => c.StatoRisposta == StatoRisposta.InAttesa),
-                NonDisponibili = nextMatch.Convocations.Count(c => c.StatoRisposta == StatoRisposta.NonDisponibile),
-                MiaConvocazione = nextMatch.Convocations.FirstOrDefault(c => c.PlayerId == playerId)?.StatoRisposta.ToString()
+                Id = m.Id, Data = m.Data, Ora = m.Ora.ToString(@"hh\:mm"),
+                Luogo = m.Luogo, Titolo = m.Titolo, NumeroGiornata = m.NumeroGiornata, Stato = m.Stato.ToString(),
+                Confermati = m.Convocations.Count(c => c.StatoRisposta == StatoRisposta.Confermato),
+                InAttesa = m.Convocations.Count(c => c.StatoRisposta == StatoRisposta.InAttesa),
+                NonDisponibili = m.Convocations.Count(c => c.StatoRisposta == StatoRisposta.NonDisponibile),
+                MiaConvocazione = mia?.StatoRisposta.ToString(),
+                MiaConvocazioneId = mia?.Id,
+                MiaDisponibilita = mieDisponibilita.TryGetValue(m.Id, out var disp) ? disp : null,
+                ConvocazioniInviate = m.Stato != StatoPartita.Programmata
             };
         }
+
+        var miePartite = upcoming.Select(Summary).ToList();
+        var matchSummary = miePartite.FirstOrDefault();
 
         var pendingConvocations = await _context.Convocations
             .CountAsync(c => c.PlayerId == playerId && c.StatoRisposta == StatoRisposta.InAttesa);
@@ -71,7 +84,8 @@ public class DashboardService : IDashboardService
             ConvocazioniInAttesa = pendingConvocations,
             PartiteGiocate = playedMatches,
             PartiteTotali = totalMatches,
-            ClassificaGettoni = useGettoni ? tokenSummary : new()
+            ClassificaGettoni = useGettoni ? tokenSummary : new(),
+            MiePartite = miePartite
         };
     }
 }

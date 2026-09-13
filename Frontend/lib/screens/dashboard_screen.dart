@@ -69,7 +69,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _loadData();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(disponibile ? 'Sei disponibile!' : 'Segnato come non disponibile'),
+            content: Text(disponibile
+                ? 'Hai detto: ci sono. Il mister lo vede quando sceglie i convocati.'
+                : 'Hai detto: salto. Puoi cambiare idea fino alle convocazioni.'),
           ),
         );
       }
@@ -80,6 +82,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
       }
     }
+  }
+
+  Future<void> _rispondiConvocazione(int convocationId, bool ciSono) async {
+    final ok = await context
+        .read<ConvocationsProvider>()
+        .respond(convocationId, ciSono ? 'Confermato' : 'NonDisponibile');
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(!ok
+          ? 'Non riesco a salvare la risposta, riprova'
+          : ciSono
+              ? 'Confermato: sei in lista per la partita.'
+              : 'Forfait registrato: il mister cerca un sostituto.'),
+    ));
+    if (ok) _loadData();
   }
 
   @override
@@ -193,10 +210,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: _HeroMatchCard(
                           match: d.prossimaPartita!,
                           teamInitials: initials,
-                          myStatus: d.prossimaPartita!.miaConvocazione,
-                          onYes: () => _setAvailability(d.prossimaPartita!.id, true),
-                          onNo: () => _setAvailability(d.prossimaPartita!.id, false),
+                          // Se sono convocato i due tasti rispondono alla convocazione,
+                          // che e' la risposta che conta; altrimenti danno la disponibilita'
+                          onYes: () {
+                            final p = d.prossimaPartita!;
+                            if (p.sonoConvocato && p.miaConvocazioneId != null) {
+                              _rispondiConvocazione(p.miaConvocazioneId!, true);
+                            } else {
+                              _setAvailability(p.id, true);
+                            }
+                          },
+                          onNo: () {
+                            final p = d.prossimaPartita!;
+                            if (p.sonoConvocato && p.miaConvocazioneId != null) {
+                              _rispondiConvocazione(p.miaConvocazioneId!, false);
+                            } else {
+                              _setAvailability(p.id, false);
+                            }
+                          },
                           onTap: () => context.push('/match/${d.prossimaPartita!.id}'),
+                        ),
+                      ),
+                    if (d.miePartite.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        child: _MyMatchesCard(
+                          partite: d.miePartite,
+                          onOpen: (id) => context.push('/match/$id'),
                         ),
                       ),
                     if (conv.pending.isNotEmpty)
@@ -297,7 +337,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 class _HeroMatchCard extends StatelessWidget {
   final MatchSummary match;
   final String teamInitials;
-  final String? myStatus;
   final VoidCallback onYes;
   final VoidCallback onNo;
   final VoidCallback onTap;
@@ -305,7 +344,6 @@ class _HeroMatchCard extends StatelessWidget {
   const _HeroMatchCard({
     required this.match,
     required this.teamInitials,
-    required this.myStatus,
     required this.onYes,
     required this.onNo,
     required this.onTap,
@@ -322,32 +360,48 @@ class _HeroMatchCard extends StatelessWidget {
         ? opponent.substring(0, 2).toUpperCase()
         : opponent.toUpperCase();
 
-    Widget statusChip;
-    switch (myStatus) {
-      case 'Confermato':
-        statusChip = AppChip(
-          text: 'Convocato',
-          variant: AppChipVariant.brand,
-          leading: _dot(AppTokens.brand),
-        );
-        break;
-      case 'NonDisponibile':
-        statusChip = const AppChip(
-          text: 'Non disponibile',
-          variant: AppChipVariant.bad,
-        );
-        break;
-      case 'InAttesa':
-        statusChip = const AppChip(
-          text: 'In attesa',
-          variant: AppChipVariant.warn,
-        );
-        break;
-      default:
-        statusChip = const AppChip(
-          text: 'Da decidere',
-          variant: AppChipVariant.neutral,
-        );
+    // In alto: dove sono con la convocazione. Sotto i tasti: cosa sto rispondendo.
+    final Widget statusChip;
+    if (match.hoConfermato) {
+      statusChip = AppChip(text: 'Convocato · confermato', variant: AppChipVariant.brand, leading: _dot(AppTokens.brand));
+    } else if (match.hoDatoForfait) {
+      statusChip = const AppChip(text: 'Convocato · forfait', variant: AppChipVariant.bad);
+    } else if (match.devoRispondere) {
+      statusChip = const AppChip(text: 'Convocato · rispondi', variant: AppChipVariant.warn);
+    } else if (match.convocazioniInviate) {
+      statusChip = const AppChip(text: 'Non convocato', variant: AppChipVariant.neutral);
+    } else {
+      statusChip = const AppChip(text: 'Convocazioni in arrivo', variant: AppChipVariant.neutral);
+    }
+
+    // La domanda a cui rispondono i due tasti, e la risposta gia' data
+    final bool? scelta = match.sonoConvocato
+        ? (match.hoConfermato ? true : match.hoDatoForfait ? false : null)
+        : match.miaDisponibilita;
+    final String domanda;
+    final String? esito;
+    if (match.sonoConvocato) {
+      domanda = scelta == null ? 'SEI CONVOCATO: CI SEI?' : 'LA TUA RISPOSTA ALLA CONVOCAZIONE';
+      esito = scelta == null
+          ? 'Il mister aspetta la tua conferma.'
+          : scelta
+              ? 'Hai confermato: sei in lista. Se cambia qualcosa, tocca Salto.'
+              : 'Hai dato forfait. Se torni disponibile, tocca Ci sono.';
+    } else {
+      domanda = scelta == null ? 'DISPONIBILITÀ: CI SEI?' : 'LA TUA DISPONIBILITÀ';
+      if (match.convocazioniInviate) {
+        esito = scelta == null
+            ? 'Le convocazioni sono uscite e non sei in lista. Di\' comunque se ci sei: serve per i sostituti.'
+            : scelta
+                ? 'Hai detto: ci sono. Non sei tra i convocati, ma se serve un sostituto il mister ti vede.'
+                : 'Hai detto: salto. Non sei tra i convocati.';
+      } else {
+        esito = scelta == null
+            ? 'Il mister convoca guardando chi ha detto di esserci.'
+            : scelta
+                ? 'Hai detto: ci sono. La convocazione arriva con una notifica.'
+                : 'Hai detto: salto. Puoi cambiare idea fino alle convocazioni.';
+      }
     }
 
     return GestureDetector(
@@ -423,32 +477,51 @@ class _HeroMatchCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
+            Text(
+              domanda,
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.2,
+                color: scelta == null ? AppTokens.warn : AppTokens.textOnInkMute,
+              ),
+            ),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
                   child: _actionBtn(
                     label: 'Ci sono',
-                    icon: Icons.check,
+                    icon: scelta == true ? Icons.check_circle : Icons.check,
                     fill: AppTokens.brand,
                     fg: AppTokens.brandInk,
                     onTap: onYes,
-                    active: myStatus == 'Confermato',
+                    active: scelta == true,
+                    dimmed: scelta == false,
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: _actionBtn(
                     label: 'Salto',
-                    icon: Icons.close,
-                    fill: Colors.white.withOpacity(0.08),
+                    icon: scelta == false ? Icons.cancel : Icons.close,
+                    fill: scelta == false ? AppTokens.bad.withOpacity(0.25) : Colors.white.withOpacity(0.08),
                     fg: Colors.white,
-                    border: Colors.white.withOpacity(0.12),
+                    border: scelta == false ? AppTokens.bad : Colors.white.withOpacity(0.12),
                     onTap: onNo,
-                    active: myStatus == 'NonDisponibile',
+                    active: scelta == false,
+                    dimmed: scelta == true,
                   ),
                 ),
               ],
             ),
+            if (esito != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                esito,
+                style: GoogleFonts.spaceGrotesk(fontSize: 12, color: AppTokens.textOnInkMute, height: 1.3),
+              ),
+            ],
           ],
         ),
       ),
@@ -488,8 +561,12 @@ class _HeroMatchCard extends StatelessWidget {
     Color? border,
     required VoidCallback onTap,
     bool active = false,
+    bool dimmed = false,
   }) {
-    return InkWell(
+    // La scelta fatta resta piena e bordata, l'altra si spegne: si vede cosa si e' risposto
+    return Opacity(
+      opacity: dimmed ? 0.45 : 1,
+      child: InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
@@ -497,7 +574,7 @@ class _HeroMatchCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: fill,
           borderRadius: BorderRadius.circular(14),
-          border: border != null ? Border.all(color: border) : null,
+          border: active ? Border.all(color: Colors.white, width: 2) : (border != null ? Border.all(color: border) : null),
         ),
         alignment: Alignment.center,
         child: Row(
@@ -516,6 +593,7 @@ class _HeroMatchCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -1148,5 +1226,86 @@ class _AvailabilityCompactCard extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+/// Il riepilogo personale: per ogni partita in arrivo, cosa ho detto e se sono
+/// stato convocato. Risponde alla domanda "e adesso?" dopo aver toccato Ci sono.
+class _MyMatchesCard extends StatelessWidget {
+  final List<MatchSummary> partite;
+  final ValueChanged<int> onOpen;
+  const _MyMatchesCard({required this.partite, required this.onOpen});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
+    final lineColor = isDark ? AppTokens.darkLine : AppTokens.line;
+    final df = DateFormat('EEE d MMM', 'it_IT');
+
+    return AppCard(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(child: Eyebrow('LE MIE PARTITE')),
+              Text('disponibilità · convocazione',
+                  style: GoogleFonts.spaceGrotesk(fontSize: 10, color: muteColor)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ...partite.asMap().entries.map((e) {
+            final p = e.value;
+            final quando = df.format(p.data);
+            return InkWell(
+              onTap: () => onOpen(p.id),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  border: Border(bottom: BorderSide(color: e.key == partite.length - 1 ? Colors.transparent : lineColor)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(p.displayTitle,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.spaceGrotesk(fontSize: 13, fontWeight: FontWeight.w600, color: textColor)),
+                          Text('${quando[0].toUpperCase()}${quando.substring(1)} · ${p.ora}',
+                              style: GoogleFonts.spaceGrotesk(fontSize: 11, color: muteColor)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _dispChip(p),
+                    const SizedBox(width: 6),
+                    _convChip(p),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _dispChip(MatchSummary p) {
+    if (p.miaDisponibilita == true) return const AppChip(text: 'Ci sono', variant: AppChipVariant.ok, leadingIcon: Icons.check);
+    if (p.miaDisponibilita == false) return const AppChip(text: 'Salto', variant: AppChipVariant.bad, leadingIcon: Icons.close);
+    return const AppChip(text: 'Non risposto', variant: AppChipVariant.warn);
+  }
+
+  Widget _convChip(MatchSummary p) {
+    if (p.hoConfermato) return const AppChip(text: 'Convocato ✓', variant: AppChipVariant.brand);
+    if (p.hoDatoForfait) return const AppChip(text: 'Forfait', variant: AppChipVariant.bad);
+    if (p.devoRispondere) return const AppChip(text: 'Conferma!', variant: AppChipVariant.warn);
+    if (p.convocazioniInviate) return const AppChip(text: 'Non convocato', variant: AppChipVariant.neutral);
+    return const AppChip(text: 'In arrivo', variant: AppChipVariant.neutral);
   }
 }

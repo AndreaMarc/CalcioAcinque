@@ -18,6 +18,9 @@ class DashboardModel {
   final int? clubId;
   final String? clubNome;
 
+  /// Le prossime partite con la mia disponibilità e la mia convocazione.
+  final List<MatchSummary> miePartite;
+
   DashboardModel({
     this.prossimaPartita, this.useGettoni = true,
     required this.gettoniRimanenti, required this.gettoniTotali,
@@ -31,6 +34,7 @@ class DashboardModel {
     this.maxConvocati,
     this.clubId,
     this.clubNome,
+    this.miePartite = const [],
   });
 
   factory DashboardModel.fromJson(Map<String, dynamic> json) {
@@ -54,6 +58,9 @@ class DashboardModel {
     maxConvocati: (json['maxConvocati'] as num?)?.toInt(),
     clubId: json['clubId'] as int?,
     clubNome: json['clubNome'] as String?,
+    miePartite: ((json['miePartite'] as List?) ?? const [])
+        .map((e) => MatchSummary.fromJson(e as Map<String, dynamic>))
+        .toList(),
   );
   }
 }
@@ -70,12 +77,20 @@ class MatchSummary {
   final int inAttesa;
   final int nonDisponibili;
   final String? miaConvocazione; // null, "InAttesa", "Confermato", "NonDisponibile"
+  final int? miaConvocazioneId;
+  /// La disponibilità che ho dato: null = non ho ancora risposto.
+  final bool? miaDisponibilita;
+  /// Il mister ha già mandato le convocazioni.
+  final bool convocazioniInviate;
 
   MatchSummary({
     required this.id, required this.data, required this.ora, this.luogo,
     this.titolo, required this.numeroGiornata, required this.stato,
     required this.confermati, required this.inAttesa, required this.nonDisponibili,
     this.miaConvocazione,
+    this.miaConvocazioneId,
+    this.miaDisponibilita,
+    this.convocazioniInviate = false,
   });
 
   factory MatchSummary.fromJson(Map<String, dynamic> json) => MatchSummary(
@@ -85,11 +100,19 @@ class MatchSummary {
     stato: json['stato'] ?? '', confermati: json['confermati'] ?? 0,
     inAttesa: json['inAttesa'] ?? 0, nonDisponibili: json['nonDisponibili'] ?? 0,
     miaConvocazione: json['miaConvocazione'],
+    miaConvocazioneId: json['miaConvocazioneId'] as int?,
+    miaDisponibilita: json['miaDisponibilita'] as bool?,
+    convocazioniInviate: json['convocazioniInviate'] as bool? ?? false,
   );
 
   String get displayTitle => titolo != null && titolo!.isNotEmpty
       ? 'G$numeroGiornata vs $titolo'
       : 'Giornata $numeroGiornata';
+
+  bool get sonoConvocato => miaConvocazione != null;
+  bool get hoConfermato => miaConvocazione == 'Confermato';
+  bool get hoDatoForfait => miaConvocazione == 'NonDisponibile';
+  bool get devoRispondere => miaConvocazione == 'InAttesa';
 }
 
 class PlayerTokenSummary {
