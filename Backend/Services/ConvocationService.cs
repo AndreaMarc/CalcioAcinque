@@ -13,6 +13,7 @@ public interface IConvocationService
     Task<List<ConvocationDto>> SendConvocationsAsync(int matchId, SendConvocationsDto dto, int teamId);
     Task<ConvocationDto> RespondAsync(int convocationId, int playerId, RespondConvocationDto dto);
     Task<List<ConvocationDto>> GetPendingByPlayerAsync(int playerId, int teamId);
+    Task RevokeAsync(int convocationId, int teamId);
 }
 
 public class ConvocationService : IConvocationService
@@ -86,17 +87,89 @@ public class ConvocationService : IConvocationService
 
     public async Task<ConvocationDto> RespondAsync(int convocationId, int playerId, RespondConvocationDto dto)
     {
-        var convocation = await _context.Convocations.Include(c => c.Player).Include(c => c.Match)
+        var convocation = await _context.Convocations.Include(c => c.Player)
+            .Include(c => c.Match).ThenInclude(m => m.Team)
             .FirstOrDefaultAsync(c => c.Id == convocationId);
         if (convocation == null) throw new NotFoundException("Convocazione", convocationId);
         if (convocation.PlayerId != playerId) throw new UnauthorizedException("Non puoi rispondere alla convocazione di un altro giocatore");
         if (!Enum.TryParse<StatoRisposta>(dto.Risposta, true, out var stato) || stato == StatoRisposta.InAttesa)
             throw new BadRequestException("Risposta non valida. Usare 'Confermato' o 'NonDisponibile'");
 
+        var eraGiaForfait = convocation.StatoRisposta == StatoRisposta.NonDisponibile;
         convocation.StatoRisposta = stato;
         convocation.DataRisposta = DateTime.UtcNow;
         await _context.SaveChangesAsync();
+
+        if (stato == StatoRisposta.NonDisponibile && !eraGiaForfait)
+            await NotificaForfaitAsync(convocation);
+
         return MapToDto(convocation);
+    }
+
+    /// <summary>
+    /// Toglie una convocazione (Campo): libera il posto per un sostituto. La
+    /// presenza creata all'invio viene rimossa se non e' gia' stata segnata.
+    /// </summary>
+    public async Task RevokeAsync(int convocationId, int teamId)
+    {
+        var convocation = await _context.Convocations.Include(c => c.Match)
+            .FirstOrDefaultAsync(c => c.Id == convocationId);
+        if (convocation == null) throw new NotFoundException("Convocazione", convocationId);
+        if (convocation.Match.TeamId != teamId) throw new UnauthorizedException("Non sei autorizzato ad accedere a questa risorsa");
+        if (convocation.Match.Stato == StatoPartita.Conclusa)
+            throw new BusinessException("La partita e' conclusa: la lista dei convocati non si tocca piu'");
+
+        var attendance = await _context.MatchAttendances
+            .FirstOrDefaultAsync(a => a.MatchId == convocation.MatchId && a.PlayerId == convocation.PlayerId);
+        if (attendance != null)
+        {
+            if (attendance.Presente)
+                throw new BusinessException("Il giocatore e' gia' segnato presente: prima togli la presenza dal Match Day");
+            _context.MatchAttendances.Remove(attendance);
+        }
+        _context.Convocations.Remove(convocation);
+        await _context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Un forfait va saputo subito da chi deve trovare il sostituto: mister e
+    /// admin ricevono chi ha detto di no e quanti disponibili non convocati ci sono.
+    /// </summary>
+    private async Task NotificaForfaitAsync(Convocation convocation)
+    {
+        var match = convocation.Match;
+        var team = match.Team;
+        var convocatiIds = await _context.Convocations
+            .Where(c => c.MatchId == match.Id)
+            .Select(c => c.PlayerId)
+            .ToListAsync();
+        var disponibiliNonConvocati = await _context.PlayerAvailabilities
+            .CountAsync(a => a.MatchId == match.Id && a.Disponibile && !convocatiIds.Contains(a.PlayerId));
+
+        var staff = await _context.Players
+            .Where(p => p.TeamId == match.TeamId
+                        && (p.Ruolo == UserRole.Admin || p.Ruolo == UserRole.Mister)
+                        && p.Id != convocation.PlayerId)
+            .Select(p => p.UserId)
+            .ToListAsync();
+        if (staff.Count == 0) return;
+
+        var chi = string.IsNullOrWhiteSpace(convocation.Player.Soprannome)
+            ? convocation.Player.Nome
+            : convocation.Player.Soprannome;
+        var quando = $"{match.Data:dd/MM}" + (match.Ora == default ? string.Empty : $" alle {match.Ora:hh\\:mm}");
+        var sostituti = disponibiliNonConvocati == 0
+            ? "Nessun altro disponibile al momento."
+            : $"{disponibiliNonConvocati} disponibil{(disponibiliNonConvocati == 1 ? "e" : "i")} non convocat{(disponibiliNonConvocati == 1 ? "o" : "i")}: convoca un sostituto.";
+
+        await _notifications.QueueAsync(
+            NotificationKind.Forfait,
+            staff,
+            titolo: $"{team.Nome}: {chi} ha dato forfait",
+            corpo: $"Giornata {match.NumeroGiornata}, {quando}. {sostituti}",
+            url: $"/match/{match.Id}/convocations",
+            tag: $"forfait-{match.Id}",
+            teamId: match.TeamId);
     }
 
     public async Task<List<ConvocationDto>> GetPendingByPlayerAsync(int playerId, int teamId)

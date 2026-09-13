@@ -13,6 +13,11 @@ import '../models/team_format.dart';
 import '../widgets/app_widgets.dart';
 import '../widgets/payment_links.dart';
 import '../widgets/season_picker.dart';
+import 'package:web/web.dart' as web;
+import '../models/cassa_model.dart';
+import '../widgets/cassa_views.dart';
+import '../widgets/match_incasso_sheet.dart';
+import '../widgets/share_utils.dart';
 
 class PaymentsScreen extends StatefulWidget {
   const PaymentsScreen({super.key});
@@ -30,6 +35,11 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 
   /// null = stagione in corso, la scelta la fa il server.
   int? _seasonId;
+
+  /// Solo per chi gestisce i soldi: entrate (la lista di sempre), uscite, cruscotto.
+  SezioneCassa _sezione = SezioneCassa.entrate;
+  List<ExpenseModel> _expenses = [];
+  CassaSummary? _cassa;
 
   @override
   void initState() {
@@ -57,10 +67,87 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
             .toList();
         if (mounted) setState(() => _payments = lista);
       }
+      if (auth.puoGestireSoldi) await _loadCassa();
     } catch (_) {
       // La schermata resta usabile: il RefreshIndicator permette di riprovare
     }
     if (mounted) setState(() => _isLoading = false);
+  }
+
+  /// Uscite e cruscotto della stagione scelta (il server risolve null = in corso).
+  Future<void> _loadCassa() async {
+    final auth = context.read<AuthProvider>();
+    final q = {if (_seasonId != null) 'seasonId': _seasonId};
+    try {
+      final results = await Future.wait([
+        auth.apiClient.dio.get(ApiConstants.expenses(auth.teamId), queryParameters: q),
+        auth.apiClient.dio.get(ApiConstants.cassa(auth.teamId), queryParameters: q),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _expenses = ((results[0].data['data'] as List?) ?? const [])
+            .map((e) => ExpenseModel.fromJson(e as Map<String, dynamic>))
+            .toList();
+        _cassa = CassaSummary.fromJson(results[1].data['data'] as Map<String, dynamic>);
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _nuovaUscita([ExpenseModel? existing]) async {
+    final auth = context.read<AuthProvider>();
+    final changed = await showExpenseDialog(context, teamId: auth.teamId, existing: existing);
+    if (changed && mounted) _loadCassa();
+  }
+
+  Future<void> _incassaPartita(PartitaNonIncassata p) async {
+    final fatto = await MatchIncassoSheet.show(context, p.matchId);
+    if (fatto && mounted) _loadData();
+  }
+
+  /// Sollecito personale via WhatsApp: il testo e' pronto, il numero lo sa il cassiere.
+  void _sollecitaUno(Arretrato a) {
+    final voci = _payments
+        .where((p) => p.playerId == a.playerId && p.daPagare)
+        .map((p) => '• ${p.descrizione}: ${formatEuro(p.importo)}')
+        .join('\n');
+    final cfg = _config;
+    final come = <String>[
+      if (cfg?.paypalLinkEffettivo != null && cfg!.paypalLinkEffettivo!.isNotEmpty) 'PayPal: ${cfg.paypalLinkEffettivo}',
+      if (cfg?.ibanEffettivo != null && cfg!.ibanEffettivo!.isNotEmpty)
+        'IBAN: ${cfg.ibanEffettivo}${cfg.intestatarioIbanEffettivo != null ? ' (${cfg.intestatarioIbanEffettivo})' : ''}',
+    ];
+    final testo = 'Ciao ${a.displayName}, per la squadra risultano ${formatEuro(a.importo)} da saldare:\n'
+        '$voci\n'
+        '${come.isNotEmpty ? '\n${come.join('\n')}\n' : ''}'
+        '\nQuando hai fatto segnalo su InCampo: ${appLink('/payments')}';
+    showShareSheet(context, title: 'Sollecito', text: testo);
+  }
+
+  void _condividiArretrati() {
+    final c = _cassa;
+    if (c == null || c.arretrati.isEmpty) return;
+    final righe = c.arretrati.map((a) => '• ${a.displayName}: ${formatEuro(a.importo)}').join('\n');
+    final tot = c.arretrati.fold(0.0, (s, a) => s + a.importo);
+    final testo = '💰 Arretrati squadra (${formatEuro(tot)})\n$righe\n\n'
+        'Chi ha gia\' pagato lo segni su InCampo: ${appLink('/payments')}';
+    showShareSheet(context, title: 'Arretrati', text: testo);
+  }
+
+  /// Scarica i movimenti in CSV (su iPhone si apre l'anteprima: da li' si salva o si condivide).
+  void _esportaCsv() {
+    final csv = buildCassaCsv(_payments, _expenses);
+    final nome = 'incampo-cassa${_cassa?.seasonNome != null ? '-${_cassa!.seasonNome}' : ''}.csv'
+        .replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    final a = (web.document.createElement('a') as web.HTMLAnchorElement)
+      ..href = 'data:text/csv;charset=utf-8,\uFEFF${Uri.encodeComponent(csv)}'
+      ..download = nome
+      ..style.display = 'none';
+    web.document.body!.append(a);
+    a.click();
+    a.remove();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Esportati ${_payments.length + _expenses.length} movimenti')),
+    );
   }
 
   Future<void> _pickSeason() async {
@@ -124,17 +211,19 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
               ? seasonLabel(seasons, _seasonId)
               : (auth.puoGestireSoldi ? 'Quote e partite' : 'I tuoi pagamenti'),
           actions: [
-            if (auth.puoGestireSoldi && !archivio)
+            if (auth.puoGestireSoldi && !archivio && _sezione == SezioneCassa.entrate)
               AppTopBar.iconAction(
                 context,
                 Icons.notifications_active_outlined,
                 _confermaSollecito,
               ),
-            if (auth.puoGestireSoldi && !archivio)
+            if (auth.puoGestireSoldi && !archivio && _sezione != SezioneCassa.cassa)
               AppTopBar.iconAction(
                 context,
                 Icons.add,
-                () => _showCreatePaymentDialog(context),
+                () => _sezione == SezioneCassa.uscite
+                    ? _nuovaUscita()
+                    : _showCreatePaymentDialog(context),
               ),
             if (seasons.length > 1)
               AppTopBar.iconAction(context, Icons.event_repeat, _pickSeason),
@@ -156,6 +245,32 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                 : ListView(
                     padding: const EdgeInsets.only(bottom: 100),
                     children: [
+                      if (auth.puoGestireSoldi)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+                          child: CassaSwitcher(
+                            value: _sezione,
+                            onChange: (v) => setState(() => _sezione = v),
+                          ),
+                        ),
+                      if (auth.puoGestireSoldi && _sezione == SezioneCassa.uscite)
+                        UsciteView(
+                          expenses: _expenses,
+                          archivio: archivio,
+                          onAdd: _nuovaUscita,
+                          onEdit: _nuovaUscita,
+                        )
+                      else if (auth.puoGestireSoldi && _sezione == SezioneCassa.cassa)
+                        CassaView(
+                          cassa: _cassa,
+                          archivio: archivio,
+                          onIncassa: _incassaPartita,
+                          onSollecitaTutti: _confermaSollecito,
+                          onSollecitaUno: _sollecitaUno,
+                          onEsporta: _esportaCsv,
+                          onCondividi: _condividiArretrati,
+                        )
+                      else ...[
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
                         child: _PaymentsHero(
@@ -245,6 +360,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                                 onDichiara: () => _dichiaraPagato(p),
                               ),
                             )),
+                      ],
                     ],
                   ),
           ),

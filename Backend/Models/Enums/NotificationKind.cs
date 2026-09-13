@@ -22,7 +22,13 @@ public enum NotificationKind
     PagamentoDovuto = 4,
 
     /// <summary>Si gioca a breve: promemoria per i convocati.</summary>
-    PromemoriaPartita = 5
+    PromemoriaPartita = 5,
+
+    /// <summary>Un convocato ha dato forfait: avviso a mister e admin.</summary>
+    Forfait = 6,
+
+    /// <summary>Riepilogo settimanale della cassa per chi la tiene.</summary>
+    RiepilogoCassa = 7
 }
 
 public enum NotificationStatus
@@ -41,7 +47,9 @@ public static class NotificationKinds
         NotificationKind.Avviso,
         NotificationKind.PartitaAggiornata,
         NotificationKind.PagamentoDovuto,
-        NotificationKind.PromemoriaPartita
+        NotificationKind.PromemoriaPartita,
+        NotificationKind.Forfait,
+        NotificationKind.RiepilogoCassa
     };
 
     public static string Label(NotificationKind kind) => kind switch
@@ -51,6 +59,8 @@ public static class NotificationKinds
         NotificationKind.PartitaAggiornata => "Partite modificate",
         NotificationKind.PagamentoDovuto => "Pagamenti da saldare",
         NotificationKind.PromemoriaPartita => "Promemoria partita",
+        NotificationKind.Forfait => "Forfait dei convocati",
+        NotificationKind.RiepilogoCassa => "Riepilogo cassa",
         NotificationKind.Prova => "Notifica di prova",
         _ => kind.ToString()
     };
@@ -62,6 +72,8 @@ public static class NotificationKinds
         NotificationKind.PartitaAggiornata => "Quando cambia data, ora o campo",
         NotificationKind.PagamentoDovuto => "Quando hai una quota o una partita da pagare",
         NotificationKind.PromemoriaPartita => "Poco prima della partita, per ricordartela",
+        NotificationKind.Forfait => "Solo mister e admin: quando un convocato dice di no, con i sostituti disponibili",
+        NotificationKind.RiepilogoCassa => "Solo cassiere e admin: il lunedi', cosa manca da incassare",
         _ => string.Empty
     };
 }

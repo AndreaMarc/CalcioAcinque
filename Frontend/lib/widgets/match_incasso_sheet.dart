@@ -41,6 +41,8 @@ class _MatchIncassoSheetState extends State<MatchIncassoSheet> {
   MatchPaymentPreview? _preview;
   final Set<int> _selezionati = {};
   final _importoCtrl = TextEditingController();
+  final _spesaCampoCtrl = TextEditingController();
+  bool _dividi = false;
 
   bool _caricamento = true;
   bool _invio = false;
@@ -56,6 +58,7 @@ class _MatchIncassoSheetState extends State<MatchIncassoSheet> {
   @override
   void dispose() {
     _importoCtrl.dispose();
+    _spesaCampoCtrl.dispose();
     super.dispose();
   }
 
@@ -81,6 +84,9 @@ class _MatchIncassoSheetState extends State<MatchIncassoSheet> {
             ..clear()
             ..addAll(preview.candidati.where((c) => c.preselezionato).map((c) => c.playerId));
           _importoCtrl.text = _formatImporto(preview.costoPartita);
+          if (preview.spesaCampoRegistrata != null) {
+            _spesaCampoCtrl.text = _formatImporto(preview.spesaCampoRegistrata!);
+          }
           _caricamento = false;
         });
       } else {
@@ -118,7 +124,10 @@ class _MatchIncassoSheetState extends State<MatchIncassoSheet> {
         ApiConstants.matchPayments(widget.matchId),
         data: {
           'playerIds': _selezionati.toList(),
-          if (importo != null && importo > 0) 'importo': importo,
+          // Con la divisione l'importo a testa lo calcola il server dalla spesa
+          if (!_dividiAttivo && importo != null && importo > 0) 'importo': importo,
+          if (_spesaCampo > 0) 'spesaCampo': _spesaCampo,
+          'dividiSpesaCampo': _dividiAttivo,
           'inviaNotifica': _inviaNotifica,
         },
       );
@@ -144,12 +153,17 @@ class _MatchIncassoSheetState extends State<MatchIncassoSheet> {
     }
   }
 
-  double get _totale {
-    final importo = double.tryParse(_importoCtrl.text.replaceAll(',', '.')) ??
-        _preview?.costoPartita ??
-        0;
-    return importo * _selezionati.length;
+  double get _spesaCampo => double.tryParse(_spesaCampoCtrl.text.replaceAll(',', '.')) ?? 0;
+  bool get _dividiAttivo => _dividi && _spesaCampo > 0 && _selezionati.isNotEmpty;
+
+  /// A testa: la spesa divisa tra i selezionati (arrotondata a 50 cent, come il
+  /// server) oppure l'importo scritto a mano.
+  double get _importoATesta {
+    if (_dividiAttivo) return (_spesaCampo / _selezionati.length * 2).ceilToDouble() / 2;
+    return double.tryParse(_importoCtrl.text.replaceAll(',', '.')) ?? _preview?.costoPartita ?? 0;
   }
+
+  double get _totale => _importoATesta * _selezionati.length;
 
   @override
   Widget build(BuildContext context) {
@@ -249,19 +263,61 @@ class _MatchIncassoSheetState extends State<MatchIncassoSheet> {
             ),
           ),
           const Divider(height: 20),
+          // Costo del campo: diventa un'uscita di cassa e, se si vuole, si divide
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
                 child: TextField(
-                  controller: _importoCtrl,
+                  controller: _spesaCampoCtrl,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Importo a testa',
+                    labelText: 'Costo campo (totale)',
                     prefixText: '€ ',
                     isDense: true,
+                    helperText: 'Registrato come uscita di cassa',
                   ),
                   onChanged: (_) => setState(() {}),
                 ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Dividi', style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
+                  Switch(
+                    value: _dividi && _spesaCampo > 0,
+                    onChanged: _spesaCampo > 0 ? (v) => setState(() => _dividi = v) : null,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: _dividiAttivo
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Importo a testa', style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
+                          Text(formatEuro(_importoATesta),
+                              style: GoogleFonts.spaceGrotesk(fontSize: 16, fontWeight: FontWeight.w600, color: cs.onSurface)),
+                          Text('${formatEuro(_spesaCampo)} / ${_selezionati.length}, arrotondato a 50 cent',
+                              style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant)),
+                        ],
+                      )
+                    : TextField(
+                        controller: _importoCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Importo a testa',
+                          prefixText: '€ ',
+                          isDense: true,
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
               ),
               const SizedBox(width: 16),
               Column(

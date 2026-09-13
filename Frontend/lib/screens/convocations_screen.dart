@@ -10,7 +10,10 @@ import '../providers/players_provider.dart';
 import '../providers/theme_provider.dart';
 import '../models/convocation_model.dart';
 import '../core/constants/api_constants.dart';
+import 'package:intl/intl.dart';
+import '../models/player_model.dart';
 import '../widgets/app_widgets.dart';
+import '../widgets/share_utils.dart';
 
 class ConvocationsScreen extends StatefulWidget {
   final int matchId;
@@ -82,6 +85,8 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
               }(),
               onBack: () => context.pop(),
               actions: [
+                if (context.watch<ConvocationsProvider>().convocations.isNotEmpty)
+                  AppTopBar.iconAction(context, Icons.ios_share, _condividiConvocati),
                 if (auth.puoGestireCampo)
                   AppTopBar.iconAction(
                     context,
@@ -168,6 +173,7 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
                                   isAdmin: auth.puoGestireCampo,
                                   onRespond: _loadData,
                                   availability: true,
+                                  onRevoke: () => _revoca(c),
                                 ),
                               )),
                         ],
@@ -184,6 +190,7 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
                                   isAdmin: auth.puoGestireCampo,
                                   onRespond: _loadData,
                                   availability: null,
+                                  onRevoke: () => _revoca(c),
                                 ),
                               )),
                         ],
@@ -200,9 +207,11 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
                                   isAdmin: auth.puoGestireCampo,
                                   onRespond: _loadData,
                                   availability: false,
+                                  onRevoke: () => _revoca(c),
                                 ),
                               )),
                         ],
+                        if (auth.puoGestireCampo) ..._sostitutiSection(context, convocations, totNon),
                       ],
                     );
                   },
@@ -213,6 +222,107 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
         ),
       ),
     );
+  }
+
+  /// Chi ha detto "ci sono" ma non e' convocato: il sostituto e' a un tocco.
+  List<Widget> _sostitutiSection(
+      BuildContext context, List<ConvocationModel> convocations, int forfait) {
+    final players = context.read<PlayersProvider>().players;
+    final convocati = convocations.map((c) => c.playerId).toSet();
+    final sostituti = players
+        .where((p) => !convocati.contains(p.id) && _availabilityMap[p.id] == true)
+        .toList()
+      ..sort((a, b) => (b.affidabilita ?? -1).compareTo(a.affidabilita ?? -1));
+    if (sostituti.isEmpty) return const [];
+
+    final cfg = context.read<ClubProvider>().teamConfig;
+    final maxConvocati = cfg?.maxConvocati;
+    // Chi ha dato forfait non occupa piu' un posto
+    final attivi = convocations.where((c) => !c.isNonDisponibile).length;
+    final pieno = maxConvocati != null && attivi >= maxConvocati;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
+
+    return [
+      _Head(label: 'DISPONIBILI NON CONVOCATI', count: sostituti.length, color: AppTokens.brand),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+        child: Text(
+          pieno
+              ? 'Rosa al completo ($maxConvocati): per convocarne uno revoca prima una convocazione.'
+              : forfait > 0
+                  ? 'Qualcuno ha dato forfait: convoca il sostituto con un tocco.'
+                  : 'Hanno votato disponibile ma non sono in lista.',
+          style: GoogleFonts.spaceGrotesk(fontSize: 11, color: muteColor),
+        ),
+      ),
+      ...sostituti.map((p) => Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: _SubTile(
+              player: p,
+              enabled: !pieno,
+              onConvoca: () => _convocaSostituto(p),
+            ),
+          )),
+    ];
+  }
+
+  Future<void> _convocaSostituto(PlayerModel p) async {
+    final ok = await context
+        .read<ConvocationsProvider>()
+        .sendConvocations(widget.matchId, [p.id]);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(ok ? '${p.displayName} convocato: gli arriva la notifica' : 'Non riesco a convocare, riprova'),
+    ));
+    if (ok) _loadData();
+  }
+
+  Future<void> _revoca(ConvocationModel c) async {
+    final ok = await showConfirmDialog(
+      context,
+      title: 'Revocare la convocazione?',
+      message: '${c.soprannome ?? c.nomeGiocatore} esce dalla lista di questa partita. '
+          'Nessuna notifica: avvisalo tu se serve.',
+      confirmLabel: 'Revoca',
+      destructive: true,
+    );
+    if (!ok || !mounted) return;
+    final errore = await context.read<ConvocationsProvider>().revoke(c.id, widget.matchId);
+    if (!mounted) return;
+    if (errore != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errore)));
+    } else {
+      _loadData();
+    }
+  }
+
+  /// Il messaggio per il gruppo: chi c'e', chi manca, chi non ha risposto.
+  void _condividiConvocati() {
+    final convs = context.read<ConvocationsProvider>().convocations;
+    if (convs.isEmpty) return;
+    final first = convs.first;
+    String nome(ConvocationModel c) => c.soprannome ?? c.nomeGiocatore;
+    final conf = convs.where((c) => c.isConfermato).map(nome).toList();
+    final att = convs.where((c) => c.isInAttesa).map(nome).toList();
+    final no = convs.where((c) => c.isNonDisponibile).map(nome).toList();
+    final quando = first.dataPartita != null
+        ? DateFormat('EEEE d MMMM', 'it_IT').format(first.dataPartita!)
+        : null;
+    final b = StringBuffer();
+    b.writeln('⚽ CONVOCATI · Giornata ${first.numeroGiornata ?? ''}'.trim());
+    b.writeln([
+      if (quando != null) quando[0].toUpperCase() + quando.substring(1),
+      if (first.oraPartita != null) 'ore ${first.oraPartita}',
+      if (first.luogoPartita != null) first.luogoPartita!,
+    ].join(' · '));
+    b.writeln();
+    if (conf.isNotEmpty) b.writeln('✅ Confermati (${conf.length}): ${conf.join(', ')}');
+    if (att.isNotEmpty) b.writeln('⏳ In attesa (${att.length}): ${att.join(', ')}');
+    if (no.isNotEmpty) b.writeln('❌ Forfait (${no.length}): ${no.join(', ')}');
+    b.writeln();
+    b.write('Rispondi su InCampo: ${appLink('/match/${widget.matchId}')}');
+    showShareSheet(context, title: 'Convocati', text: b.toString());
   }
 
   void _showSendConvocationsDialog(BuildContext context) {
@@ -244,7 +354,10 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
       final aAvail = _availabilityMap[a.id];
       final bAvail = _availabilityMap[b.id];
       int order(bool? v) => v == true ? 0 : v == null ? 1 : 2;
-      return order(aAvail).compareTo(order(bAvail));
+      final byAvail = order(aAvail).compareTo(order(bAvail));
+      if (byAvail != 0) return byAvail;
+      // A pari disponibilita' prima chi di solito risponde e viene
+      return (b.affidabilita ?? -1).compareTo(a.affidabilita ?? -1);
     });
     final selected = <int>{};
 
@@ -282,6 +395,7 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
                           subtitle: Text([
                             'Gettoni: ${p.gettoniRimanenti}',
                             if (p.posizione != null) p.posizione!.label,
+                            if (p.affidabilita != null) 'affidabilita\' ${p.affidabilita}%',
                           ].join(' · ')),
                           value: isSelected,
                           // Oltre il limite si possono solo deselezionare
@@ -414,12 +528,14 @@ class _ConvTile extends StatelessWidget {
   final bool isAdmin;
   final VoidCallback onRespond;
   final bool? availability;
+  final VoidCallback? onRevoke;
 
   const _ConvTile({
     required this.conv,
     required this.isAdmin,
     required this.onRespond,
     required this.availability,
+    this.onRevoke,
   });
 
   @override
@@ -491,6 +607,15 @@ class _ConvTile extends StatelessWidget {
             ),
           ] else
             AppChip(text: _statusLabel(), variant: variant, leadingIcon: icon),
+          if (isAdmin && onRevoke != null)
+            IconButton(
+              tooltip: 'Revoca convocazione',
+              icon: Icon(Icons.person_remove_outlined, size: 20, color: muteColor),
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+              onPressed: onRevoke,
+            ),
         ],
       ),
     );
@@ -500,5 +625,55 @@ class _ConvTile extends StatelessWidget {
     if (conv.isConfermato) return 'Confermato';
     if (conv.isNonDisponibile) return 'Non disponibile';
     return 'In attesa';
+  }
+}
+
+/// Un disponibile non convocato, con il bottone per convocarlo al volo.
+class _SubTile extends StatelessWidget {
+  final PlayerModel player;
+  final bool enabled;
+  final VoidCallback onConvoca;
+  const _SubTile({required this.player, required this.enabled, required this.onConvoca});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
+    final dettagli = <String>[
+      if (player.posizione != null) player.posizione!.label,
+      if (player.affidabilita != null) 'affidabilita\' ${player.affidabilita}%',
+      'gettoni ${player.gettoniRimanenti}',
+    ];
+    return AppCard(
+      padding: const EdgeInsets.all(10),
+      child: Row(
+        children: [
+          JerseyNumber(number: player.numeroMaglia, size: 40, fontSize: 19),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  player.displayName,
+                  style: GoogleFonts.spaceGrotesk(fontSize: 14, fontWeight: FontWeight.w600, color: textColor),
+                ),
+                Text(dettagli.join(' · '), style: GoogleFonts.spaceGrotesk(fontSize: 11, color: muteColor)),
+              ],
+            ),
+          ),
+          FilledButton.tonal(
+            onPressed: enabled ? onConvoca : null,
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              minimumSize: const Size(0, 34),
+            ),
+            child: const Text('Convoca'),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -52,10 +52,24 @@ public class StatsService : IStatsService
             .Select(m => new { m.Id, m.NumeroGiornata, m.Data })
             .ToListAsync();
 
+        var ids = matchIds.Select(m => m.Id).ToList();
         var allAttendances = await _context.MatchAttendances
             .Include(a => a.Player)
-            .Where(a => matchIds.Select(m => m.Id).Contains(a.MatchId))
+            .Where(a => ids.Contains(a.MatchId))
             .ToListAsync();
+        var voti = await _context.MatchVotes.Where(v => ids.Contains(v.MatchId)).ToListAsync();
+        var convocazioni = await _context.Convocations.Where(c => ids.Contains(c.MatchId)).ToListAsync();
+        // Vince l'MVP chi ha piu' voti nella partita (a pari merito vincono tutti)
+        var vincitori = voti
+            .GroupBy(v => v.MatchId)
+            .SelectMany(g =>
+            {
+                var conteggi = g.GroupBy(v => v.VotedPlayerId).Select(x => new { PlayerId = x.Key, N = x.Count() }).ToList();
+                var max = conteggi.Max(x => x.N);
+                return conteggi.Where(x => x.N == max).Select(x => x.PlayerId);
+            })
+            .GroupBy(p => p)
+            .ToDictionary(g => g.Key, g => g.Count());
 
         // Statistiche per giocatore
         var playerGroups = allAttendances
@@ -78,7 +92,10 @@ public class StatsService : IStatsService
                     ? Math.Round((double)g.Sum(a => a.Goal ?? 0) / g.Count(a => a.HaGiocato), 2) : 0,
                 MediaAssistPartita = g.Count(a => a.HaGiocato) > 0
                     ? Math.Round((double)g.Sum(a => a.Assist ?? 0) / g.Count(a => a.HaGiocato), 2) : 0,
+                VotiMvp = voti.Count(v => v.VotedPlayerId == g.Key),
+                PartiteMvp = vincitori.GetValueOrDefault(g.Key),
             })
+            .Select(p => ConAffidabilita(p, convocazioni.Where(c => c.PlayerId == p.PlayerId)))
             .OrderByDescending(p => p.TotaleGoal)
             .ThenByDescending(p => p.TotaleAssist)
             .ThenByDescending(p => p.PartiteGiocate)
@@ -131,8 +148,23 @@ public class StatsService : IStatsService
             .Where(a => a.PlayerId == playerId && a.Match.Stato == StatoPartita.Conclusa);
         if (season != null) attQuery = attQuery.Where(a => a.Match.SeasonId == season.Id);
         var attendances = await attQuery.ToListAsync();
+        var matchIds = attendances.Select(a => a.MatchId).ToList();
 
-        return new PlayerStatsDto
+        var votiRicevuti = await _context.MatchVotes.CountAsync(v => matchIds.Contains(v.MatchId) && v.VotedPlayerId == playerId);
+        var votiPartite = await _context.MatchVotes.Where(v => matchIds.Contains(v.MatchId)).ToListAsync();
+        var partiteMvp = votiPartite
+            .GroupBy(v => v.MatchId)
+            .Count(g =>
+            {
+                var conteggi = g.GroupBy(v => v.VotedPlayerId).Select(x => new { x.Key, N = x.Count() }).ToList();
+                var max = conteggi.Max(x => x.N);
+                return conteggi.Any(x => x.Key == playerId && x.N == max);
+            });
+        var convocazioni = await _context.Convocations
+            .Where(c => c.PlayerId == playerId && matchIds.Contains(c.MatchId))
+            .ToListAsync();
+
+        var dto = new PlayerStatsDto
         {
             PlayerId = playerId,
             NomeGiocatore = player.Nome,
@@ -150,6 +182,23 @@ public class StatsService : IStatsService
                 ? Math.Round((double)attendances.Sum(a => a.Goal ?? 0) / attendances.Count(a => a.HaGiocato), 2) : 0,
             MediaAssistPartita = attendances.Count(a => a.HaGiocato) > 0
                 ? Math.Round((double)attendances.Sum(a => a.Assist ?? 0) / attendances.Count(a => a.HaGiocato), 2) : 0,
+            VotiMvp = votiRicevuti,
+            PartiteMvp = partiteMvp,
         };
+        return ConAffidabilita(dto, convocazioni);
+    }
+
+    /// <summary>Riempie i campi di affidabilita' a partire dalle convocazioni del giocatore.</summary>
+    private static PlayerStatsDto ConAffidabilita(PlayerStatsDto dto, IEnumerable<Convocation> convocazioni)
+    {
+        var list = convocazioni.ToList();
+        dto.ConvocazioniRicevute = list.Count;
+        dto.ConvocazioniConfermate = list.Count(c => c.StatoRisposta == StatoRisposta.Confermato);
+        dto.Forfait = list.Count(c => c.StatoRisposta == StatoRisposta.NonDisponibile);
+        dto.SenzaRisposta = list.Count(c => c.StatoRisposta == StatoRisposta.InAttesa);
+        dto.Affidabilita = list.Count == 0 ? null : (int)Math.Round(100.0 * dto.ConvocazioniConfermate / list.Count);
+        var risposte = list.Where(c => c.DataRisposta != null).Select(c => (c.DataRisposta!.Value - c.DataConvocazione).TotalHours).ToList();
+        dto.OreMedieRisposta = risposte.Count == 0 ? null : Math.Round(risposte.Average(), 1);
+        return dto;
     }
 }

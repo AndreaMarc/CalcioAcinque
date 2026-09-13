@@ -16,8 +16,11 @@ import 'app_widgets.dart';
 Future<void> showJoinTeamDialog(
   BuildContext context, {
   required VoidCallback onJoined,
+  /// Codice gia' noto (link o QR di invito): compilato e verificato subito.
+  String? initialCode,
 }) {
-  final codeCtrl = TextEditingController();
+  final codeCtrl = TextEditingController(text: initialCode?.trim().toUpperCase() ?? '');
+  var autoVerifica = (initialCode ?? '').trim().isNotEmpty;
   final nomeCtrl = TextEditingController();
   final soprannomeCtrl = TextEditingController();
   final telefonoCtrl = TextEditingController();
@@ -101,6 +104,11 @@ Future<void> showJoinTeamDialog(
               SnackBar(content: Text(auth.error ?? 'Non riesco a unirti alla squadra')),
             );
           }
+        }
+
+        if (autoVerifica) {
+          autoVerifica = false;
+          WidgetsBinding.instance.addPostFrameCallback((_) => verifica());
         }
 
         return AlertDialog(

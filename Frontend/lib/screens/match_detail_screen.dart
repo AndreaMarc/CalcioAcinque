@@ -11,6 +11,9 @@ import '../models/match_model.dart';
 import '../core/constants/api_constants.dart';
 import '../widgets/app_widgets.dart';
 import '../widgets/match_incasso_sheet.dart';
+import '../widgets/mvp_card.dart';
+import '../widgets/share_utils.dart';
+import '../widgets/turni_card.dart';
 
 class MatchDetailScreen extends StatefulWidget {
   final int matchId;
@@ -236,6 +239,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
               subtitle: '${DateFormat('EEE d MMM', 'it_IT').format(match.data)} · ${match.ora}',
               onBack: () => context.go('/calendar'),
               actions: [
+                AppTopBar.iconAction(context, Icons.ios_share, () => _condividi(match)),
                 // Anche il cassiere: dentro il menu c'e' l'incasso, che e' suo
                 if (auth.puoGestireCampo || auth.puoGestireSoldi)
                   AppTopBar.iconAction(
@@ -260,6 +264,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                       ),
                     ),
                     _buildMyResponse(context, match),
+                    if (match.isConclusa) MvpCard(key: ValueKey('mvp-${match.id}'), matchId: match.id),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                       child: _AvailabilitySummary(
@@ -268,8 +273,15 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                       ),
                     ),
                     if (_availabilityData != null) _buildDettaglio(_availabilityData!),
-                    if (context.watch<ConvocationsProvider>().convocations.isNotEmpty)
+                    if (context.watch<ConvocationsProvider>().convocations.isNotEmpty) ...[
                       _buildConvocations(context),
+                      TurniCard(
+                        key: ValueKey('turni-${match.id}'),
+                        matchId: match.id,
+                        canEdit: auth.puoGestireCampo,
+                        convocati: context.watch<ConvocationsProvider>().convocations,
+                      ),
+                    ],
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                       child: _ActionButtons(
@@ -289,6 +301,74 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
         ),
       ),
     );
+  }
+
+  /// Testo pronto per il gruppo: risultato e marcatori se conclusa, altrimenti
+  /// i convocati con i turni.
+  Future<void> _condividi(MatchModel match) async {
+    final auth = context.read<AuthProvider>();
+    final teamName = context.read<ThemeProvider>().teamName;
+    final quando = DateFormat('EEEE d MMMM', 'it_IT').format(match.data);
+    final b = StringBuffer();
+    final testata = [
+      quando[0].toUpperCase() + quando.substring(1),
+      'ore ${match.ora}',
+      if (match.luogo != null && match.luogo!.isNotEmpty) match.luogo!,
+    ].join(' · ');
+
+    if (match.isConclusa) {
+      var fatti = 0, subiti = 0;
+      final marcatori = <String>[];
+      try {
+        final resp = await auth.apiClient.dio.get(ApiConstants.matchAttendance(match.id));
+        for (final a in (resp.data['data'] as List? ?? const [])) {
+          final goal = (a['goal'] as num?)?.toInt() ?? 0;
+          fatti += goal;
+          subiti += (a['goalSubiti'] as num?)?.toInt() ?? 0;
+          if (goal > 0) {
+            final nome = (a['soprannome'] as String?) ?? (a['nomeGiocatore'] as String? ?? '');
+            marcatori.add(goal == 1 ? nome : '$nome ($goal)');
+          }
+        }
+      } catch (_) {}
+      if (!mounted) return;
+      final avversario = (match.titolo ?? '').isNotEmpty ? match.titolo! : 'Avversari';
+      b.writeln('🏁 RISULTATO · Giornata ${match.numeroGiornata}');
+      b.writeln(testata);
+      b.writeln();
+      b.writeln('$teamName $fatti - $subiti $avversario');
+      if (marcatori.isNotEmpty) b.writeln('⚽ ${marcatori.join(', ')}');
+      b.writeln();
+      b.write('Vota il migliore in campo: ${appLink('/match/${match.id}')}');
+      showShareSheet(context, title: 'Risultato', text: b.toString());
+      return;
+    }
+
+    final convs = context.read<ConvocationsProvider>().convocations;
+    String nome(dynamic c) => (c.soprannome as String?) ?? (c.nomeGiocatore as String);
+    final conf = convs.where((c) => c.isConfermato).map(nome).toList();
+    final att = convs.where((c) => c.isInAttesa).map(nome).toList();
+    final no = convs.where((c) => c.isNonDisponibile).map(nome).toList();
+    b.writeln('⚽ ${match.displayTitle.toUpperCase()}');
+    b.writeln(testata);
+    if (convs.isNotEmpty) {
+      b.writeln();
+      if (conf.isNotEmpty) b.writeln('✅ Confermati (${conf.length}): ${conf.join(', ')}');
+      if (att.isNotEmpty) b.writeln('⏳ In attesa (${att.length}): ${att.join(', ')}');
+      if (no.isNotEmpty) b.writeln('❌ Forfait (${no.length}): ${no.join(', ')}');
+      try {
+        final resp = await auth.apiClient.dio.get(ApiConstants.matchChores(match.id));
+        final turni = (resp.data['data'] as List? ?? const [])
+            .where((t) => t['playerId'] != null)
+            .map((t) => '${t['nome']}: ${t['soprannome'] ?? t['nomeGiocatore']}')
+            .toList();
+        if (turni.isNotEmpty) b.writeln('🎽 Turni · ${turni.join(' · ')}');
+      } catch (_) {}
+    }
+    b.writeln();
+    b.write('Rispondi su InCampo: ${appLink('/match/${match.id}')}');
+    if (!mounted) return;
+    showShareSheet(context, title: 'Partita', text: b.toString());
   }
 
   Widget _buildDettaglio(Map<String, dynamic> data) {

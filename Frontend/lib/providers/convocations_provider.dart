@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import '../core/network/api_client.dart';
 import '../core/constants/api_constants.dart';
@@ -55,6 +56,25 @@ class ConvocationsProvider extends ChangeNotifier {
       }
     } catch (_) {}
     return false;
+  }
+
+  /// Toglie una convocazione (per fare posto a un sostituto). Ritorna il
+  /// messaggio d'errore, null se e' andata.
+  Future<String?> revoke(int convocationId, int matchId) async {
+    try {
+      final response = await apiClient.dio.delete(ApiConstants.convocation(convocationId));
+      if (response.data['success'] == true) {
+        await loadByMatch(matchId);
+        return null;
+      }
+      return response.data['message'] as String? ?? 'Non riesco a revocare';
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      if (data is Map && data['message'] != null) return data['message'] as String;
+      return 'Errore di connessione';
+    } catch (_) {
+      return 'Errore imprevisto';
+    }
   }
 
   Future<bool> respond(int convocationId, String risposta) async {

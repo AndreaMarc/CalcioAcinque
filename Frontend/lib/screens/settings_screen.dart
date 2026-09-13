@@ -8,6 +8,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import '../widgets/join_team_dialog.dart';
+import '../widgets/invite_dialog.dart';
+import '../widgets/chores_card.dart';
 import '../widgets/image_utils.dart';
 import '../widgets/team_utils.dart';
 import 'package:go_router/go_router.dart';
@@ -1107,64 +1109,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final auth = context.read<AuthProvider>();
     final code = await auth.getInviteCode();
     if (!mounted) return;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Codice Invito'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Condividi questo codice:',
-              style: GoogleFonts.spaceGrotesk(
-                fontSize: 13,
-                color: Theme.of(ctx).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              decoration: BoxDecoration(
-                color: AppTokens.brandSoft,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    code ?? 'N/A',
-                    style: GoogleFonts.bebasNeue(
-                      fontSize: 28,
-                      letterSpacing: 4,
-                      color: AppTokens.brandInk,
-                    ),
-                  ),
-                  if (code != null) ...[
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.copy, size: 18),
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: code));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Codice copiato!')),
-                        );
-                      },
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Chiudi'),
-          ),
-        ],
-      ),
+    if (code == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Non riesco a leggere il codice invito')),
+      );
+      return;
+    }
+    await showInviteDialog(
+      context,
+      code: code,
+      titolo: 'Invita in squadra',
+      nome: context.read<ThemeProvider>().teamName,
+      descrizione: 'Chi apre il link o scansiona il QR entra direttamente in squadra.',
     );
   }
 
@@ -1270,6 +1226,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onEditRules: _showTeamRulesDialog,
                         onGenerateFees: _generateFees,
                       ),
+                    ),
+                  ],
+
+                  // TURNI DI SQUADRA (admin): casacche, palloni, maglie
+                  if (auth.puoGestireSquadra) ...[
+                    const _Head(text: 'TURNI DI SQUADRA'),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                      child: ChoresCard(teamId: auth.teamId),
                     ),
                   ],
 

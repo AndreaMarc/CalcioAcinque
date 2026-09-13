@@ -132,6 +132,9 @@ class MatchPaymentPreview {
   final bool giaGestita;
   final bool presenzeDaRegistrare;
   final bool presenzeBloccate;
+
+  /// Costo campo gia' registrato come uscita per questa partita.
+  final double? spesaCampoRegistrata;
   final List<MatchPaymentCandidate> candidati;
 
   MatchPaymentPreview({
@@ -144,6 +147,7 @@ class MatchPaymentPreview {
     required this.giaGestita,
     required this.presenzeDaRegistrare,
     required this.presenzeBloccate,
+    this.spesaCampoRegistrata,
     required this.candidati,
   });
 
@@ -157,6 +161,7 @@ class MatchPaymentPreview {
         giaGestita: json['giaGestita'] as bool? ?? false,
         presenzeDaRegistrare: json['presenzeDaRegistrare'] as bool? ?? false,
         presenzeBloccate: json['presenzeBloccate'] as bool? ?? false,
+        spesaCampoRegistrata: (json['spesaCampoRegistrata'] as num?)?.toDouble(),
         candidati: ((json['candidati'] as List?) ?? const [])
             .map((e) => MatchPaymentCandidate.fromJson(e as Map<String, dynamic>))
             .toList(),

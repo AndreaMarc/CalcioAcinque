@@ -32,6 +32,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<PushDevice> PushDevices { get; set; } = null!;
     public DbSet<NotificationPreference> NotificationPreferences { get; set; } = null!;
     public DbSet<NotificationOutboxItem> NotificationOutbox { get; set; } = null!;
+    public DbSet<TeamExpense> TeamExpenses { get; set; } = null!;
+    public DbSet<MatchVote> MatchVotes { get; set; } = null!;
+    public DbSet<TeamChore> TeamChores { get; set; } = null!;
+    public DbSet<MatchChoreAssignment> MatchChoreAssignments { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -417,6 +421,51 @@ public class ApplicationDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.RecipientUserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configurazione TeamExpense (uscite di cassa)
+        modelBuilder.Entity<TeamExpense>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.TeamId, e.SeasonId });
+            entity.HasIndex(e => e.MatchId);
+            entity.Property(e => e.Categoria).HasConversion<string>().HasMaxLength(20);
+
+            entity.HasOne(e => e.Team).WithMany().HasForeignKey(e => e.TeamId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Season).WithMany().HasForeignKey(e => e.SeasonId).OnDelete(DeleteBehavior.SetNull);
+            // La partita puo' sparire, l'uscita resta nei conti
+            entity.HasOne(e => e.Match).WithMany().HasForeignKey(e => e.MatchId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Configurazione MatchVote (migliore in campo)
+        modelBuilder.Entity<MatchVote>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.MatchId, e.VoterPlayerId }).IsUnique();
+            entity.HasIndex(e => e.VotedPlayerId);
+
+            entity.HasOne(e => e.Match).WithMany().HasForeignKey(e => e.MatchId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Voter).WithMany().HasForeignKey(e => e.VoterPlayerId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Voted).WithMany().HasForeignKey(e => e.VotedPlayerId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configurazione TeamChore / MatchChoreAssignment (turni)
+        modelBuilder.Entity<TeamChore>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.TeamId);
+            entity.HasOne(e => e.Team).WithMany().HasForeignKey(e => e.TeamId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<MatchChoreAssignment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.MatchId, e.ChoreId }).IsUnique();
+            entity.HasIndex(e => e.PlayerId);
+
+            entity.HasOne(e => e.Match).WithMany().HasForeignKey(e => e.MatchId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Chore).WithMany(c => c.Assignments).HasForeignKey(e => e.ChoreId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Player).WithMany().HasForeignKey(e => e.PlayerId).OnDelete(DeleteBehavior.SetNull);
         });
 
         // Configurazione PendingPlayer

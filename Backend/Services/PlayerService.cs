@@ -29,7 +29,29 @@ public class PlayerService : IPlayerService
         if (team == null) throw new NotFoundException("Team", teamId);
 
         var players = await _context.Players.Where(p => p.TeamId == teamId).OrderBy(p => p.Nome).ToListAsync();
-        return players.Select(p => MapToDto(p, team.RegimePagamentoDefault)).ToList();
+
+        // Affidabilita' alle convocazioni, per aiutare il mister a scegliere
+        var risposte = await _context.Convocations
+            .Where(c => c.Match.TeamId == teamId && c.Match.Stato == StatoPartita.Conclusa)
+            .GroupBy(c => c.PlayerId)
+            .Select(g => new
+            {
+                PlayerId = g.Key,
+                Ricevute = g.Count(),
+                Confermate = g.Count(c => c.StatoRisposta == StatoRisposta.Confermato)
+            })
+            .ToDictionaryAsync(x => x.PlayerId);
+
+        return players.Select(p =>
+        {
+            var dto = MapToDto(p, team.RegimePagamentoDefault);
+            if (risposte.TryGetValue(p.Id, out var r) && r.Ricevute > 0)
+            {
+                dto.ConvocazioniRicevute = r.Ricevute;
+                dto.Affidabilita = (int)Math.Round(100.0 * r.Confermate / r.Ricevute);
+            }
+            return dto;
+        }).ToList();
     }
 
     public async Task<PlayerDetailDto> GetByIdAsync(int teamId, int playerId)

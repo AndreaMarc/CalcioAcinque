@@ -16,6 +16,20 @@ public class PlayerStatsDto
     public int TotaleGoalSubiti { get; set; }
     public double MediaGoalPartita { get; set; }
     public double MediaAssistPartita { get; set; }
+
+    // Migliore in campo
+    public int VotiMvp { get; set; }
+    public int PartiteMvp { get; set; }
+
+    // Affidabilita': come risponde alle convocazioni (solo partite concluse)
+    public int ConvocazioniRicevute { get; set; }
+    public int ConvocazioniConfermate { get; set; }
+    public int Forfait { get; set; }
+    public int SenzaRisposta { get; set; }
+    /// <summary>Percentuale di convocazioni confermate; null senza convocazioni.</summary>
+    public int? Affidabilita { get; set; }
+    /// <summary>Ore medie tra convocazione e risposta; null senza risposte.</summary>
+    public double? OreMedieRisposta { get; set; }
 }
 
 public class TeamStatsDto

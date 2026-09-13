@@ -27,6 +27,9 @@ public class MatchPaymentPreviewDto
     /// <summary>Vero se la partita e' conclusa, quindi le presenze sono in sola lettura.</summary>
     public bool PresenzeBloccate { get; set; }
 
+    /// <summary>Spesa campo gia' registrata per la partita, se c'e'.</summary>
+    public decimal? SpesaCampoRegistrata { get; set; }
+
     public List<MatchPaymentCandidateDto> Candidati { get; set; } = new();
 }
 
@@ -71,6 +74,12 @@ public class ConfirmMatchPaymentDto
     public Dictionary<int, decimal>? ImportiPerGiocatore { get; set; }
 
     public bool InviaNotifica { get; set; } = true;
+
+    /// <summary>Costo totale del campo per questa partita: viene registrato come uscita.</summary>
+    public decimal? SpesaCampo { get; set; }
+
+    /// <summary>Se vero, l'importo a testa e' la spesa campo divisa tra i selezionati (arrotondata a 50 cent).</summary>
+    public bool DividiSpesaCampo { get; set; }
 }
 
 public class ConfirmMatchPaymentResultDto

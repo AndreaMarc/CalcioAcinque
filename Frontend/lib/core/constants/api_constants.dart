@@ -88,4 +88,22 @@ class ApiConstants {
   static String draftLaunch(int id) => '/api/drafts/$id/launch';
   static String draftShare(String code) => '/api/drafts/share/$code';
   static String draftShareJoin(String code) => '/api/drafts/share/$code/join';
+
+  // Uscite di cassa e cruscotto del cassiere
+  static String expenses(int teamId) => '/api/teams/$teamId/expenses';
+  static String expense(int id) => '/api/expenses/$id';
+  static String cassa(int teamId) => '/api/teams/$teamId/cassa';
+
+  // Migliore in campo
+  static String matchMvp(int matchId) => '/api/matches/$matchId/mvp';
+
+  // Turni di squadra (casacche, palloni...)
+  static String teamChores(int teamId) => '/api/teams/$teamId/chores';
+  static String chore(int id) => '/api/chores/$id';
+  static String matchChores(int matchId) => '/api/matches/$matchId/chores';
+  static String matchChoresAssign(int matchId) => '/api/matches/$matchId/chores/assign';
+  static String matchChore(int matchId, int choreId) => '/api/matches/$matchId/chores/$choreId';
+
+  // Revoca di una convocazione (per fare posto al sostituto)
+  static String convocation(int id) => '/api/convocations/$id';
 }

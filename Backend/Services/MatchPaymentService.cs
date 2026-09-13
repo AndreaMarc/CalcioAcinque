@@ -63,6 +63,10 @@ public class MatchPaymentService : IMatchPaymentService
             Data = match.Data,
             Stato = match.Stato.ToString(),
             CostoPartita = team.CostoPartita,
+            SpesaCampoRegistrata = await _context.TeamExpenses
+                .Where(e => e.MatchId == matchId && e.Categoria == CategoriaSpesa.Campo)
+                .Select(e => (decimal?)e.Importo)
+                .FirstOrDefaultAsync(),
             MinutiMinimiPerAddebito = team.MinutiMinimiPerAddebito,
             GiaGestita = giaAddebitati.Count > 0,
             PresenzeDaRegistrare = attendances.All(a => !a.Presente),
@@ -127,6 +131,39 @@ public class MatchPaymentService : IMatchPaymentService
         var result = new ConfirmMatchPaymentResultDto();
         var creati = new List<PlayerPayment>();
 
+        // Spesa campo: finisce tra le uscite (una sola per partita) e, se richiesto,
+        // divisa tra i selezionati diventa l'importo a testa
+        decimal? importoDiviso = null;
+        if (dto.SpesaCampo is > 0)
+        {
+            var spesa = await _context.TeamExpenses
+                .FirstOrDefaultAsync(e => e.MatchId == matchId && e.Categoria == CategoriaSpesa.Campo);
+            if (spesa == null)
+            {
+                _context.TeamExpenses.Add(new TeamExpense
+                {
+                    TeamId = teamId,
+                    SeasonId = match.SeasonId,
+                    MatchId = matchId,
+                    Categoria = CategoriaSpesa.Campo,
+                    Descrizione = $"Campo - {descrizione}",
+                    Importo = dto.SpesaCampo.Value,
+                    Data = match.Data.Date,
+                    AdminId = adminPlayerId,
+                    AdminNome = adminNome,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            else
+            {
+                spesa.Importo = dto.SpesaCampo.Value;
+            }
+            await _context.SaveChangesAsync();
+
+            if (dto.DividiSpesaCampo && players.Count > 0)
+                importoDiviso = Math.Ceiling(dto.SpesaCampo.Value / players.Count * 2) / 2;
+        }
+
         foreach (var player in players)
         {
             if (giaAddebitati.Contains(player.Id))
@@ -135,7 +172,7 @@ public class MatchPaymentService : IMatchPaymentService
                 continue;
             }
 
-            var importo = RisolviImporto(dto, player.Id, team.CostoPartita);
+            var importo = RisolviImporto(dto, player.Id, importoDiviso ?? team.CostoPartita);
             if (importo <= 0)
             {
                 result.Saltati++;

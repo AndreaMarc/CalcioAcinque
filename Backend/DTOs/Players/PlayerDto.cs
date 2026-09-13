@@ -24,6 +24,12 @@ public class PlayerDto
     /// <summary>Regime che vale davvero, default di squadra risolto.</summary>
     public string RegimePagamentoEffettivo { get; set; } = string.Empty;
 
+    /// <summary>Convocazioni ricevute nelle partite concluse (tutte le stagioni).</summary>
+    public int ConvocazioniRicevute { get; set; }
+
+    /// <summary>Percentuale di convocazioni confermate; null se mai convocato.</summary>
+    public int? Affidabilita { get; set; }
+
     public DateTime CreatedAt { get; set; }
 }
 

@@ -14,6 +14,7 @@ import '../providers/theme_provider.dart';
 import '../widgets/app_widgets.dart';
 import '../widgets/payment_links.dart';
 import '../widgets/team_utils.dart';
+import '../widgets/invite_dialog.dart';
 
 /// Vista di societa': elenca le squadre (a 5, a 7, ...) e l'anagrafica condivisa,
 /// da cui una stessa persona si iscrive a piu' squadre con regole e costi diversi.
@@ -199,37 +200,12 @@ class _ClubScreenState extends State<ClubScreen> {
     final provider = context.read<ClubProvider>();
     final code = club.inviteCode ?? await provider.loadInviteCode(club.id);
     if (!mounted || code == null) return;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Codice invito societa'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Chi usa questo codice entra nella societa e scegle a quale squadra unirsi.',
-            ),
-            const SizedBox(height: 16),
-            SelectableText(
-              code,
-              style: GoogleFonts.bebasNeue(fontSize: 34, letterSpacing: 3),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: code));
-              Navigator.of(ctx).pop();
-              _toast('Codice copiato');
-            },
-            child: const Text('Copia'),
-          ),
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Chiudi')),
-        ],
-      ),
+    await showInviteDialog(
+      context,
+      code: code,
+      titolo: 'Invita nella societa\'',
+      nome: club.nome,
+      descrizione: 'Chi usa questo codice entra nella societa\' e sceglie a quale squadra unirsi.',
     );
   }
 

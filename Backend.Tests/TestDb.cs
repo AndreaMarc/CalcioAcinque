@@ -108,6 +108,18 @@ public sealed class TestDb : IDisposable
     public PaymentService Payments() => new(Db, Notifiche, Seasons());
     public MatchService Matches() => new(Db, Notifiche, Seasons());
     public PlayerService Players() => new(Db);
+    public ChoreService Chores() => new(Db);
+    public MatchVoteService Votes() => new(Db);
+    public ExpenseService Expenses() => new(Db, Seasons());
+    public MatchPaymentService MatchPayments() => new(Db, Notifiche, NullLogger<MatchPaymentService>.Instance);
+
+    public Convocation AddConvocation(Match match, Player player, StatoRisposta stato = StatoRisposta.InAttesa)
+    {
+        var c = new Convocation { MatchId = match.Id, PlayerId = player.Id, StatoRisposta = stato };
+        Db.Convocations.Add(c);
+        Db.SaveChanges();
+        return c;
+    }
 
     public void Dispose() => Db.Dispose();
 }

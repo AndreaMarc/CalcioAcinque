@@ -51,6 +51,7 @@ class _StatsScreenState extends State<StatsScreen> {
   Widget build(BuildContext context) {
     final theme = context.watch<ThemeProvider>();
     final initials = teamInitials(theme.teamName);
+    final staff = context.watch<AuthProvider>().puoGestireCampo;
 
     if (_isLoading) {
       return Column(
@@ -77,6 +78,26 @@ class _StatsScreenState extends State<StatsScreen> {
         ? 1
         : (top5.first['totaleGoal'] as int).clamp(1, 99999);
     final seasonNome = _teamStats?['seasonNome'] as String?;
+
+    int iv(Map<String, dynamic> p, String k) => (p[k] as num?)?.toInt() ?? 0;
+    // MVP: chi ha vinto piu' partite, a pari merito chi ha preso piu' voti
+    final mvp = List<Map<String, dynamic>>.from(classifica)
+        .where((p) => iv(p, 'votiMvp') > 0)
+        .toList()
+      ..sort((a, b) {
+        final byWins = iv(b, 'partiteMvp').compareTo(iv(a, 'partiteMvp'));
+        return byWins != 0 ? byWins : iv(b, 'votiMvp').compareTo(iv(a, 'votiMvp'));
+      });
+    final mvpTop = mvp.take(5).toList();
+    final maxMvp = mvpTop.isEmpty ? 1 : iv(mvpTop.first, 'partiteMvp').clamp(1, 99999);
+    // Affidabilita': solo chi ha ricevuto convocazioni su partite concluse
+    final affidabili = List<Map<String, dynamic>>.from(classifica)
+        .where((p) => iv(p, 'convocazioniRicevute') > 0)
+        .toList()
+      ..sort((a, b) {
+        final byPct = iv(b, 'affidabilita').compareTo(iv(a, 'affidabilita'));
+        return byPct != 0 ? byPct : iv(b, 'convocazioniConfermate').compareTo(iv(a, 'convocazioniConfermate'));
+      });
     final seasonLabel = seasonNome != null ? 'Stagione $seasonNome' : 'Tutte le stagioni';
 
     return Column(
@@ -146,6 +167,51 @@ class _StatsScreenState extends State<StatsScreen> {
                       ),
                     );
                   }),
+                if (!_meTab && mvpTop.isNotEmpty) ...[
+                  const SectionHead(title: 'MIGLIORE IN CAMPO'),
+                  ...mvpTop.asMap().entries.map((e) {
+                    final p = e.value;
+                    final voti = iv(p, 'votiMvp');
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: _ScorerRow(
+                        rank: e.key + 1,
+                        nome: p['soprannome'] ?? p['nomeGiocatore'] ?? '',
+                        goals: iv(p, 'partiteMvp'),
+                        maxGoals: maxMvp,
+                        unit: 'MVP',
+                        sub: voti == 1 ? '1 voto' : '$voti voti',
+                      ),
+                    );
+                  }),
+                ],
+                if (!_meTab && staff && affidabili.isNotEmpty) ...[
+                  const SectionHead(title: 'AFFIDABILITA\''),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                    child: Text(
+                      'Quante convocazioni ha confermato ciascuno, sulle partite concluse. Lo vede solo lo staff.',
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 11,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppTokens.darkTextMute
+                            : AppTokens.textMute,
+                      ),
+                    ),
+                  ),
+                  ...affidabili.map((p) => Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                        child: _ReliabilityRow(
+                          nome: p['soprannome'] ?? p['nomeGiocatore'] ?? '',
+                          percentuale: iv(p, 'affidabilita'),
+                          confermate: iv(p, 'convocazioniConfermate'),
+                          ricevute: iv(p, 'convocazioniRicevute'),
+                          forfait: iv(p, 'forfait'),
+                          senzaRisposta: iv(p, 'senzaRisposta'),
+                          oreMedie: (p['oreMedieRisposta'] as num?)?.toDouble(),
+                        ),
+                      )),
+                ],
               ],
             ),
           ),
@@ -449,12 +515,16 @@ class _ScorerRow extends StatelessWidget {
   final String nome;
   final int goals;
   final int maxGoals;
+  final String unit;
+  final String? sub;
 
   const _ScorerRow({
     required this.rank,
     required this.nome,
     required this.goals,
     required this.maxGoals,
+    this.unit = 'GOL',
+    this.sub,
   });
 
   @override
@@ -514,6 +584,8 @@ class _ScorerRow extends StatelessWidget {
                     color: textColor,
                   ),
                 ),
+                if (sub != null)
+                  Text(sub!, style: GoogleFonts.spaceGrotesk(fontSize: 11, color: muteColor)),
                 const SizedBox(height: 5),
                 AppProgressBar(
                   value: maxGoals > 0 ? goals / maxGoals : 0,
@@ -534,7 +606,7 @@ class _ScorerRow extends StatelessWidget {
               ),
               const SizedBox(width: 4),
               Text(
-                'GOL',
+                unit,
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
@@ -544,6 +616,71 @@ class _ScorerRow extends StatelessWidget {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Quanto uno risponde alle convocazioni: % confermate, forfait, tempo di risposta.
+class _ReliabilityRow extends StatelessWidget {
+  final String nome;
+  final int percentuale;
+  final int confermate;
+  final int ricevute;
+  final int forfait;
+  final int senzaRisposta;
+  final double? oreMedie;
+
+  const _ReliabilityRow({
+    required this.nome,
+    required this.percentuale,
+    required this.confermate,
+    required this.ricevute,
+    required this.forfait,
+    required this.senzaRisposta,
+    this.oreMedie,
+  });
+
+  static String _tempo(double ore) {
+    if (ore < 1) return 'risponde in ${(ore * 60).round()} min';
+    if (ore < 48) return 'risponde in ${ore.round()} h';
+    return 'risponde in ${(ore / 24).round()} giorni';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppTokens.darkText : AppTokens.text;
+    final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
+    final colore = percentuale >= 80
+        ? AppTokens.ok
+        : percentuale >= 50
+            ? AppTokens.warn
+            : AppTokens.bad;
+    final dettagli = <String>[
+      '$confermate/$ricevute confermate',
+      if (forfait > 0) '$forfait forfait',
+      if (senzaRisposta > 0) '$senzaRisposta senza risposta',
+      if (oreMedie != null) _tempo(oreMedie!),
+    ];
+    return AppCard(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(nome, style: GoogleFonts.spaceGrotesk(fontSize: 14, fontWeight: FontWeight.w600, color: textColor)),
+                Text(dettagli.join(' · '), style: GoogleFonts.spaceGrotesk(fontSize: 11, color: muteColor)),
+                const SizedBox(height: 6),
+                AppProgressBar(value: percentuale / 100, height: 3, fillColor: colore),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text('$percentuale%', style: GoogleFonts.bebasNeue(fontSize: 26, color: colore)),
         ],
       ),
     );
@@ -580,6 +717,10 @@ class _MyStatsCard extends StatelessWidget {
       (d('mediaGoalPartita'), 'GOL / PARTITA', null),
       ('${n('totaleAmmonizioni')}', 'AMMONIZIONI', AppTokens.warn),
       ('${n('totaleEspulsioni')}', 'ESPULSIONI', AppTokens.bad),
+      ('${n('partiteMvp')}', 'MIGLIORE IN CAMPO', AppTokens.brand),
+      ('${n('votiMvp')}', 'VOTI RICEVUTI', null),
+      if (s['affidabilita'] != null) ('${n('affidabilita')}%', 'AFFIDABILITA\'', null),
+      if (n('forfait') > 0) ('${n('forfait')}', 'FORFAIT', AppTokens.warn),
     ];
     return AppCard(
       padding: const EdgeInsets.all(20),

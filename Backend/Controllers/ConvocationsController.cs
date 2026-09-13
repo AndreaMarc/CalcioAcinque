@@ -44,6 +44,16 @@ public class ConvocationsController : ControllerBase
         return Ok(new ApiResponse<ConvocationDto> { Success = true, Data = result, Message = "Risposta registrata" });
     }
 
+    /// <summary>Toglie una convocazione: libera il posto per un sostituto.</summary>
+    [Authorize(Roles = Ruoli.Campo)]
+    [HttpDelete("api/convocations/{id}")]
+    public async Task<ActionResult<ApiResponse<object>>> Revoke(int id)
+    {
+        var claimTeamId = int.Parse(User.FindFirstValue("TeamId")!);
+        await _convocationService.RevokeAsync(id, claimTeamId);
+        return Ok(new ApiResponse<object> { Success = true, Message = "Convocazione rimossa" });
+    }
+
     [HttpGet("api/players/{playerId}/convocations/pending")]
     public async Task<ActionResult<ApiResponse<List<ConvocationDto>>>> GetPending(int playerId)
     {

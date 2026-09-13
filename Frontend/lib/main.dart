@@ -39,6 +39,7 @@ import 'screens/live_match_screen.dart';
 import 'screens/bacheca_screen.dart';
 import 'screens/team_selection_screen.dart';
 import 'screens/club_screen.dart';
+import 'screens/join_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -151,6 +152,8 @@ class _InCampoAppState extends State<InCampoApp> {
         final isSelectTeamRoute = loc == '/select-team';
         final isDraftRoute = loc == '/draft';
         final isJoinRoute = loc.startsWith('/draft/join/');
+        // Link di invito squadra/societa': chi non ha ancora una squadra puo' aprirlo
+        final isTeamJoin = loc.startsWith('/join/');
         final needsTeamSelection = _authProvider.needsTeamSelection;
 
         // /draft/join/:code è accessibile anche senza login (lo screen gestisce il redirect a /login)
@@ -158,7 +161,7 @@ class _InCampoAppState extends State<InCampoApp> {
           final next = Uri.encodeQueryComponent(state.uri.toString());
           return '/login?next=$next';
         }
-        if (isAuth && needsTeamSelection && !isSelectTeamRoute && !isDraftRoute && !isJoinRoute) {
+        if (isAuth && needsTeamSelection && !isSelectTeamRoute && !isDraftRoute && !isJoinRoute && !isTeamJoin) {
           return '/select-team';
         }
         if (isAuth && !needsTeamSelection && (isLoginRoute || isSelectTeamRoute)) {
@@ -180,6 +183,10 @@ class _InCampoAppState extends State<InCampoApp> {
           builder: (context, state) => DraftScreen(
             initialDraftId: int.tryParse(state.uri.queryParameters['id'] ?? ''),
           ),
+        ),
+        GoRoute(
+          path: '/join/:code',
+          builder: (context, state) => JoinScreen(code: state.pathParameters['code']!),
         ),
         GoRoute(
           path: '/draft/join/:code',

@@ -25,6 +25,10 @@ class PlayerModel {
   /// Regime che vale davvero, risolto dal server.
   final RegimePagamento regimePagamentoEffettivo;
 
+  /// Convocazioni ricevute su partite concluse e % confermate (null senza storia).
+  final int convocazioniRicevute;
+  final int? affidabilita;
+
   PlayerModel({
     required this.id, required this.teamId, required this.userId,
     required this.nome, this.soprannome, this.telefono, required this.ruolo,
@@ -34,6 +38,8 @@ class PlayerModel {
     required this.tesseramentoPagato,
     this.regimePagamento,
     this.regimePagamentoEffettivo = RegimePagamento.stagionale,
+    this.convocazioniRicevute = 0,
+    this.affidabilita,
   });
 
   factory PlayerModel.fromJson(Map<String, dynamic> json) => PlayerModel(
@@ -52,6 +58,8 @@ class PlayerModel {
     regimePagamentoEffettivo:
         RegimePagamentoX.fromApi(json['regimePagamentoEffettivo'] as String?) ??
             RegimePagamento.stagionale,
+    convocazioniRicevute: (json['convocazioniRicevute'] as num?)?.toInt() ?? 0,
+    affidabilita: (json['affidabilita'] as num?)?.toInt(),
   );
 
   String get displayName => soprannome ?? nome;
