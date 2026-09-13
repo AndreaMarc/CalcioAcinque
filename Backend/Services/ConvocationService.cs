@@ -211,7 +211,8 @@ public class ConvocationService : IConvocationService
     private static ConvocationDto MapToDto(Convocation c) => new()
     {
         Id = c.Id, MatchId = c.MatchId, PlayerId = c.PlayerId, NomeGiocatore = c.Player.Nome,
-        Soprannome = c.Player.Soprannome, StatoRisposta = c.StatoRisposta.ToString(),
+        Soprannome = c.Player.Soprannome, NumeroMaglia = c.Player.NumeroMaglia,
+        StatoRisposta = c.StatoRisposta.ToString(),
         DataConvocazione = c.DataConvocazione, DataRisposta = c.DataRisposta,
         DataPartita = c.Match?.Data, OraPartita = c.Match?.Ora.ToString(@"hh\:mm"),
         LuogoPartita = c.Match?.Luogo, NumeroGiornata = c.Match?.NumeroGiornata

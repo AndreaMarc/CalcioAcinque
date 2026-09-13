@@ -4,6 +4,7 @@ class ConvocationModel {
   final int playerId;
   final String nomeGiocatore;
   final String? soprannome;
+  final int? numeroMaglia;
   final String statoRisposta;
   final DateTime dataConvocazione;
   final DateTime? dataRisposta;
@@ -14,7 +15,7 @@ class ConvocationModel {
 
   ConvocationModel({
     required this.id, required this.matchId, required this.playerId,
-    required this.nomeGiocatore, this.soprannome, required this.statoRisposta,
+    required this.nomeGiocatore, this.soprannome, this.numeroMaglia, required this.statoRisposta,
     required this.dataConvocazione, this.dataRisposta, this.dataPartita,
     this.oraPartita, this.luogoPartita, this.numeroGiornata,
   });
@@ -23,6 +24,7 @@ class ConvocationModel {
     id: json['id'], matchId: json['matchId'], playerId: json['playerId'],
     nomeGiocatore: json['nomeGiocatore'] ?? '',
     soprannome: json['soprannome'],
+    numeroMaglia: (json['numeroMaglia'] as num?)?.toInt(),
     statoRisposta: json['statoRisposta'] ?? 'InAttesa',
     dataConvocazione: DateTime.parse(json['dataConvocazione']),
     dataRisposta: json['dataRisposta'] != null ? DateTime.parse(json['dataRisposta']) : null,

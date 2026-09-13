@@ -561,7 +561,7 @@ class _ConvTile extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       child: Row(
         children: [
-          const JerseyNumber(size: 40, fontSize: 19),
+          JerseyNumber(number: conv.numeroMaglia, size: 40, fontSize: 19),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

@@ -1223,7 +1223,7 @@ class _ConvocationRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const JerseyNumber(number: null, bg: AppTokens.ink),
+          JerseyNumber(number: conv.numeroMaglia, bg: AppTokens.ink),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

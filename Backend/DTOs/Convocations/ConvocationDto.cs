@@ -7,6 +7,7 @@ public class ConvocationDto
     public int PlayerId { get; set; }
     public string NomeGiocatore { get; set; } = string.Empty;
     public string? Soprannome { get; set; }
+    public int? NumeroMaglia { get; set; }
     public string StatoRisposta { get; set; } = string.Empty;
     public DateTime DataConvocazione { get; set; }
     public DateTime? DataRisposta { get; set; }
