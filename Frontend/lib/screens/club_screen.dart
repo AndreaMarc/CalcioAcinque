@@ -16,7 +16,7 @@ import '../widgets/payment_links.dart';
 import '../widgets/team_utils.dart';
 import '../widgets/invite_dialog.dart';
 
-/// Vista di societa': elenca le squadre (a 5, a 7, ...) e l'anagrafica condivisa,
+/// Vista di società': elenca le squadre (a 5, a 7, ...) e l'anagrafica condivisa,
 /// da cui una stessa persona si iscrive a piu' squadre con regole e costi diversi.
 class ClubScreen extends StatefulWidget {
   const ClubScreen({super.key});
@@ -73,7 +73,7 @@ class _ClubScreenState extends State<ClubScreen> {
               teamInitials: teamInitials(selected?.nome ?? theme.teamName, fallback: 'SC'),
               showTeamLogo: false,
               title: 'Societa',
-              subtitle: selected?.nome ?? 'Nessuna societa',
+              subtitle: selected?.nome ?? 'Nessuna società',
               onBack: () => context.go('/dashboard'),
               actions: [
                 if (selected != null && selected.isAdmin)
@@ -114,7 +114,7 @@ class _ClubScreenState extends State<ClubScreen> {
                                   onEdit: () => _showPaymentDialog(selected),
                                 ),
                               SectionHead(
-                                title: 'Anagrafica societa',
+                                title: 'Anagrafica società',
                                 more: selected.isAdmin ? '+ Aggiungi' : null,
                                 onMore: selected.isAdmin
                                     ? () => _showMemberDialog(selected, null)
@@ -165,7 +165,7 @@ class _ClubScreenState extends State<ClubScreen> {
           title: _soloCondivisi ? 'NESSUNO IN COMUNE' : 'ANAGRAFICA VUOTA',
           message: _soloCondivisi
               ? 'Nessuno gioca in piu di una squadra.'
-              : 'Aggiungi le persone della societa e poi iscrivile alle squadre.',
+              : 'Aggiungi le persone della società e poi iscrivile alle squadre.',
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
         )
       ];
@@ -203,9 +203,9 @@ class _ClubScreenState extends State<ClubScreen> {
     await showInviteDialog(
       context,
       code: code,
-      titolo: 'Invita nella societa\'',
+      titolo: 'Invita nella società',
       nome: club.nome,
-      descrizione: 'Chi usa questo codice entra nella societa\' e sceglie a quale squadra unirsi.',
+      descrizione: 'Chi usa questo codice entra nella società e sceglie a quale squadra unirsi.',
     );
   }
 
@@ -230,7 +230,7 @@ class _ClubScreenState extends State<ClubScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Valgono per tutte le squadre della societa. Una singola squadra '
+                    'Valgono per tutte le squadre della società. Una singola squadra '
                     'puo sovrascriverli dalle sue impostazioni.',
                     style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                   ),
@@ -305,11 +305,11 @@ class _ClubScreenState extends State<ClubScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Crea societa'),
+        title: const Text('Crea società'),
         content: TextField(
           controller: ctrl,
           autofocus: true,
-          decoration: const InputDecoration(labelText: 'Nome societa'),
+          decoration: const InputDecoration(labelText: 'Nome società'),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Annulla')),
@@ -384,7 +384,7 @@ class _ClubScreenState extends State<ClubScreen> {
     final ok = await showConfirmDialog(
       context,
       title: 'Eliminare ${member.nome}?',
-      message: 'La persona viene rimossa dall\'anagrafica della societa. '
+      message: 'La persona viene rimossa dall\'anagrafica della società. '
           'Funziona solo se non e iscritta a nessuna squadra.',
       confirmLabel: 'Elimina',
       destructive: true,
@@ -438,7 +438,7 @@ class _ClubScreenState extends State<ClubScreen> {
       return;
     }
     if (disponibili.isEmpty) {
-      _toast('${member.nome} e gia in tutte le squadre della societa');
+      _toast('${member.nome} è già in tutte le squadre della società');
       return;
     }
 
@@ -481,14 +481,14 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return EmptyState(
       icon: Icons.shield_outlined,
-      title: 'NESSUNA SOCIETA',
-      message: 'Una societa raggruppa piu squadre (per esempio una a 5 e una a 7) '
+      title: 'NESSUNA SOCIETÀ',
+      message: 'Una società raggruppa più squadre (per esempio una a 5 e una a 7) '
           'che condividono i giocatori ma hanno regole e costi propri.'
           '${error != null ? '\n\n$error' : ''}',
       action: FilledButton.icon(
         onPressed: onCreate,
         icon: const Icon(Icons.add),
-        label: const Text('Crea societa'),
+        label: const Text('Crea società'),
       ),
     );
   }
@@ -606,7 +606,7 @@ class _TeamsSection extends StatelessWidget {
   }
 }
 
-/// Dati per farsi pagare, a livello societa.
+/// Dati per farsi pagare, a livello società.
 class _ClubPaymentSection extends StatelessWidget {
   final ClubModel club;
   final VoidCallback onEdit;
@@ -1173,7 +1173,7 @@ class _MemberFormDialogState extends State<_MemberFormDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'I dati anagrafici valgono in tutte le squadre della societa.',
+              'I dati anagrafici valgono in tutte le squadre della società.',
               style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
             ),
             const SizedBox(height: 12),

@@ -52,7 +52,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     try {
       final auth = context.read<AuthProvider>();
       await context.read<PlayersProvider>().loadPlayers(auth.teamId);
-      // Serve per i dati di pagamento (PayPal/IBAN) risolti su societa e squadra
+      // Serve per i dati di pagamento (PayPal/IBAN) risolti su società e squadra
       _config = await context.read<ClubProvider>().loadTeamConfig(auth.teamId);
 
       await context.read<ClubProvider>().loadSeasons(auth.teamId);
@@ -129,7 +129,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     final righe = c.arretrati.map((a) => '• ${a.displayName}: ${formatEuro(a.importo)}').join('\n');
     final tot = c.arretrati.fold(0.0, (s, a) => s + a.importo);
     final testo = '💰 Arretrati squadra (${formatEuro(tot)})\n$righe\n\n'
-        'Chi ha gia\' pagato lo segni su InCampo: ${appLink('/payments')}';
+        'Chi ha già pagato lo segni su InCampo: ${appLink('/payments')}';
     showShareSheet(context, title: 'Arretrati', text: testo);
   }
 
@@ -206,7 +206,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       children: [
         AppTopBar(
           teamInitials: initials,
-          title: 'Pagamenti',
+          title: auth.puoGestireSoldi ? 'Cassa' : 'Pagamenti',
           subtitle: seasons.length > 1
               ? seasonLabel(seasons, _seasonId)
               : (auth.puoGestireSoldi ? 'Quote e partite' : 'I tuoi pagamenti'),
@@ -335,15 +335,12 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                       ),
 
                       if (filtered.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 60),
-                          child: Center(
-                            child: Text(
-                              _filter == 'daPagare'
-                                  ? 'Niente da pagare'
-                                  : 'Nessun pagamento',
-                            ),
-                          ),
+                        EmptyState(
+                          icon: _filter == 'daPagare' ? Icons.check_circle_outline : Icons.receipt_long_outlined,
+                          title: _filter == 'daPagare' ? 'NIENTE DA PAGARE' : 'NESSUN PAGAMENTO',
+                          message: _filter == 'daPagare'
+                              ? 'Tutto saldato. Quando arriva una voce nuova la trovi qui.'
+                              : 'Con questi filtri non c\'è nessuna voce.',
                         )
                       else
                         ...filtered.map((p) => Padding(
@@ -418,7 +415,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         title: const Text('Hai pagato?'),
         content: Text(
           'Segnalo che hai versato ${formatEuro(p.importo)} per "${p.descrizione}". '
-          'L amministratore lo confermera quando vede i soldi.',
+          'L\'amministratore lo confermerà quando vede i soldi.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annulla')),
@@ -446,7 +443,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     final inArretrato = _payments.where((p) => p.daPagare).map((p) => p.playerId).toSet();
     if (inArretrato.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Non c e nessun arretrato da sollecitare')),
+        const SnackBar(content: Text('Non c\'è nessun arretrato da sollecitare')),
       );
       return;
     }
@@ -547,7 +544,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                   maxLines: 2,
                 ),
                 SwitchListTile(
-                  title: const Text('Gia pagato'),
+                  title: const Text('Già pagato'),
                   value: pagato,
                   onChanged: (v) => setDialogState(() => pagato = v),
                   contentPadding: EdgeInsets.zero,

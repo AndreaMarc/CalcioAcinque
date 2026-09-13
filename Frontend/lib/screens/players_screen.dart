@@ -291,7 +291,7 @@ class _PlayersScreenState extends State<PlayersScreen> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: Text(
-                      'Nome, soprannome e telefono valgono in tutte le squadre della societa.',
+                      'Nome, soprannome e telefono valgono in tutte le squadre della società.',
                       style: TextStyle(
                           fontSize: 12,
                           color: Theme.of(ctx).colorScheme.onSurfaceVariant),
@@ -591,7 +591,7 @@ class _PlayersScreenState extends State<PlayersScreen> {
                   controller: emailCtrl,
                   decoration: const InputDecoration(
                     labelText: 'Email *',
-                    helperText: 'Se gioca gia in un altra squadra della societa, usa la sua email',
+                    helperText: 'Se gioca già in un\'altra squadra della società, usa la sua email',
                   ),
                   keyboardType: TextInputType.emailAddress,
                 ),

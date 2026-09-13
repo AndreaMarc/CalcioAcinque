@@ -10,7 +10,10 @@ import 'app_widgets.dart';
 /// Il migliore in campo: chi e' in testa e il proprio voto (uno, tra i presenti).
 class MvpCard extends StatefulWidget {
   final int matchId;
-  const MvpCard({super.key, required this.matchId});
+
+  /// Quando cambia (pull-to-refresh del padre) la card si ricarica.
+  final int refreshTick;
+  const MvpCard({super.key, required this.matchId, this.refreshTick = 0});
 
   @override
   State<MvpCard> createState() => _MvpCardState();
@@ -19,6 +22,7 @@ class MvpCard extends StatefulWidget {
 class _MvpCardState extends State<MvpCard> {
   MatchMvp? _mvp;
   bool _busy = false;
+  bool _errore = false;
 
   @override
   void initState() {
@@ -26,12 +30,25 @@ class _MvpCardState extends State<MvpCard> {
     _load();
   }
 
+  @override
+  void didUpdateWidget(MvpCard old) {
+    super.didUpdateWidget(old);
+    if (old.refreshTick != widget.refreshTick || old.matchId != widget.matchId) _load();
+  }
+
   Future<void> _load() async {
     try {
       final dio = context.read<AuthProvider>().apiClient.dio;
       final resp = await dio.get(ApiConstants.matchMvp(widget.matchId));
-      if (mounted) setState(() => _mvp = MatchMvp.fromJson(resp.data['data'] as Map<String, dynamic>));
-    } catch (_) {}
+      if (mounted) {
+        setState(() {
+          _mvp = MatchMvp.fromJson(resp.data['data'] as Map<String, dynamic>);
+          _errore = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _errore = true);
+    }
   }
 
   Future<void> _vota(int? playerId) async {
@@ -58,6 +75,18 @@ class _MvpCardState extends State<MvpCard> {
   @override
   Widget build(BuildContext context) {
     final mvp = _mvp;
+    if (mvp == null && _errore) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: NoticeBox(
+          variant: AppChipVariant.warn,
+          icon: Icons.emoji_events_outlined,
+          text: 'Non riesco a caricare il voto del migliore in campo.',
+          actionLabel: 'Riprova',
+          onAction: _load,
+        ),
+      );
+    }
     if (mvp == null || !mvp.aperto) return const SizedBox.shrink();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? AppTokens.darkText : AppTokens.text;
@@ -114,7 +143,7 @@ class _MvpCardState extends State<MvpCard> {
               ),
             const SizedBox(height: 14),
             Text(
-              mvp.mioVotoPlayerId == null ? 'IL TUO VOTO' : 'HAI VOTATO · tocca di nuovo per togliere',
+              mvp.mioVotoPlayerId == null ? 'IL TUO VOTO' : 'IL TUO VOTO · TOCCA DI NUOVO PER TOGLIERLO',
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,

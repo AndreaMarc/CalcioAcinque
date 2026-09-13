@@ -518,7 +518,7 @@ class CassaView extends StatelessWidget {
                   onTap: archivio ? null : () => onSollecitaUno(a),
                   child: Row(
                     children: [
-                      const JerseyNumber(size: 40, fontSize: 17),
+                      JerseyNumber(number: a.numeroMaglia, size: 40, fontSize: 17),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -638,7 +638,7 @@ class _CassaHero extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Incassato meno uscite: quello che c\'e\' davvero.',
+            'Incassato meno uscite: quello che c\'è davvero.',
             style: GoogleFonts.spaceGrotesk(fontSize: 12, color: AppTokens.textOnInkMute),
           ),
           const SizedBox(height: 14),
@@ -656,13 +656,17 @@ class _CassaHero extends StatelessWidget {
                 Expanded(child: _mini(formatEuro(c.uscite), 'USCITE', AppTokens.bad)),
                 _sep(),
                 Expanded(child: _mini(formatEuro(c.daIncassare), 'DA INCASSARE', AppTokens.warn)),
-                if (c.inVerifica > 0) ...[
-                  _sep(),
-                  Expanded(child: _mini(formatEuro(c.inVerifica), 'IN VERIFICA', Colors.white)),
-                ],
               ],
             ),
           ),
+          if (c.inVerifica > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Text(
+                'Di cui ${formatEuro(c.inVerifica)} dichiarati pagati, da confermare.',
+                style: GoogleFonts.spaceGrotesk(fontSize: 12, color: AppTokens.textOnInkMute),
+              ),
+            ),
         ],
       ),
     );

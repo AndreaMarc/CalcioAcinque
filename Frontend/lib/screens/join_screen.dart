@@ -71,6 +71,15 @@ class _JoinScreenState extends State<JoinScreen> {
                     'Codice ${widget.code.toUpperCase()}',
                     style: GoogleFonts.spaceGrotesk(fontSize: 14, color: AppTokens.textOnInkMute),
                   ),
+                  const SizedBox(height: 28),
+                  FilledButton.icon(
+                    onPressed: () {
+                      _opened = false;
+                      _open();
+                    },
+                    icon: const Icon(Icons.login, size: 18),
+                    label: const Text('Entra con il codice'),
+                  ),
                 ],
               ),
             ),

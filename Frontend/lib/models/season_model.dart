@@ -1,5 +1,5 @@
 /// Una stagione della squadra. Ogni squadra apre e chiude le sue, quindi la
-/// C5 e la C7 della stessa societa' possono trovarsi in stagioni diverse.
+/// C5 e la C7 della stessa società' possono trovarsi in stagioni diverse.
 class SeasonModel {
   final int id;
   final int teamId;

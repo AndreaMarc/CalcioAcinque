@@ -82,7 +82,7 @@ class ClubTeam {
   bool get sonoAdmin => mioRuolo == 'Admin';
 }
 
-/// Anagrafica unica di societa': una persona, N iscrizioni alle squadre.
+/// Anagrafica unica di società': una persona, N iscrizioni alle squadre.
 class ClubMember {
   final int id;
   final int clubId;
@@ -132,7 +132,7 @@ class ClubMember {
 
   bool giocaIn(int teamId) => squadre.any((s) => s.teamId == teamId);
 
-  /// Chi gioca in piu' di una squadra della societa'.
+  /// Chi gioca in piu' di una squadra della società'.
   bool get condiviso => squadre.length > 1;
 }
 

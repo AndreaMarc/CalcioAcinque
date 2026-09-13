@@ -128,6 +128,7 @@ class Arretrato {
   final int playerId;
   final String nome;
   final String? soprannome;
+  final int? numeroMaglia;
   final double importo;
   final int voci;
 
@@ -135,6 +136,7 @@ class Arretrato {
     required this.playerId,
     required this.nome,
     this.soprannome,
+    this.numeroMaglia,
     required this.importo,
     required this.voci,
   });
@@ -145,6 +147,7 @@ class Arretrato {
         playerId: json['playerId'] as int,
         nome: json['nome'] as String? ?? '',
         soprannome: json['soprannome'] as String?,
+        numeroMaglia: (json['numeroMaglia'] as num?)?.toInt(),
         importo: (json['importo'] as num?)?.toDouble() ?? 0,
         voci: (json['voci'] as num?)?.toInt() ?? 0,
       );

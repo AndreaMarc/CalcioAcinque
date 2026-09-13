@@ -23,7 +23,7 @@ class PlayerDetailScreen extends StatefulWidget {
 class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
   PlayerModel? _player;
 
-  /// Altre squadre della societa in cui gioca la stessa persona,
+  /// Altre squadre della società in cui gioca la stessa persona,
   /// dal dettaglio giocatore (`altreSquadre`).
   List<Map<String, dynamic>> _altreSquadre = const [];
 

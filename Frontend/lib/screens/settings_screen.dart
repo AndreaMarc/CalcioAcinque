@@ -308,7 +308,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(ok
           ? 'Notifiche attivate su questo dispositivo'
-          : notifications.error ?? 'Non e stato possibile attivare le notifiche'),
+          : notifications.error ?? 'Non è stato possibile attivare le notifiche'),
     ));
   }
 
@@ -769,7 +769,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   /// PayPal e IBAN della squadra. Sono un override: lasciando i campi vuoti
-  /// valgono quelli della societa, che e il caso normale.
+  /// valgono quelli della società, che e il caso normale.
   Future<void> _showPaymentInfoDialog() async {
     final auth = context.read<AuthProvider>();
     final club = context.read<ClubProvider>();
@@ -794,7 +794,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Se lasci vuoto vale quello della societa. Compila solo se questa '
+                    'Se lasci vuoto vale quello della società. Compila solo se questa '
                     'squadra ha un conto suo.',
                     style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                   ),
@@ -912,9 +912,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   static double _parseEuro(String raw) => double.tryParse(raw.replaceAll(',', '.')) ?? 0;
 
-  /// Crea una squadra. Se l'utente amministra gia' una societa' puo' agganciarla
-  /// a quella (e' il caso "la mia societa' ha anche la squadra a 7"), altrimenti
-  /// nasce una societa' nuova insieme alla squadra.
+  /// Crea una squadra. Se l'utente amministra gia' una società' puo' agganciarla
+  /// a quella (e' il caso "la mia società' ha anche la squadra a 7"), altrimenti
+  /// nasce una società' nuova insieme alla squadra.
   void _showCreateTeamDialog() {
     final club = context.read<ClubProvider>();
     final nomeTeamCtrl = TextEditingController();
@@ -949,7 +949,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (societaAmministrate.isNotEmpty) ...[
-                      const Eyebrow('SOCIETA'),
+                      const Eyebrow('SOCIETÀ'),
                       const SizedBox(height: 6),
                       DropdownButtonFormField<int?>(
                         // `value` e non `initialValue`: l'SDK pinnato e Flutter 3.27
@@ -962,7 +962,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               )),
                           const DropdownMenuItem<int?>(
                             value: null,
-                            child: Text('Nuova societa'),
+                            child: Text('Nuova società'),
                           ),
                         ],
                         onChanged: (v) => setDialogState(() => clubId = v),
@@ -970,8 +970,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(height: 4),
                       Text(
                         clubId == null
-                            ? 'La squadra avra una societa tutta sua.'
-                            : 'La squadra condividera l anagrafica con le altre della societa.',
+                            ? 'La squadra avra una società tutta sua.'
+                            : 'La squadra condividera l anagrafica con le altre della società.',
                         style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                       ),
                       const SizedBox(height: 12),
@@ -980,7 +980,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       TextFormField(
                         controller: nomeSocietaCtrl,
                         decoration: const InputDecoration(
-                          labelText: 'Nome societa (opzionale)',
+                          labelText: 'Nome società (opzionale)',
                           helperText: 'Se vuoto viene usato il nome della squadra',
                         ),
                       ),
@@ -1190,7 +1190,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   // SOCIETA
                   if (clubConfig?.clubId != null) ...[
-                    const _Head(text: 'SOCIETA'),
+                    const _Head(text: 'SOCIETÀ'),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
                       child: AppCard(
@@ -1696,7 +1696,7 @@ class _PaymentInfoSettingsCard extends StatelessWidget {
     // Dire da dove arriva il dato evita la domanda "perche non riesco a cambiarlo qui"
     String provenienza(String? proprio, String? effettivo) {
       if (effettivo == null || effettivo.isEmpty) return 'da impostare';
-      return (proprio != null && proprio.isNotEmpty) ? 'squadra' : 'societa';
+      return (proprio != null && proprio.isNotEmpty) ? 'squadra' : 'società';
     }
 
     return AppCard(
@@ -1726,7 +1726,7 @@ class _PaymentInfoSettingsCard extends StatelessWidget {
             dense: true,
             leading: Icon(Icons.shield_outlined, color: muteColor, size: 20),
             title: Text(
-              'Imposta i dati per tutta la societa',
+              'Imposta i dati per tutta la società',
               style: GoogleFonts.spaceGrotesk(fontSize: 13, color: textColor),
             ),
             trailing: const Icon(Icons.chevron_right, size: 20),
@@ -1907,7 +1907,7 @@ class _TeamsCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 6),
-                      // Con due squadre nella stessa societa il nome non basta a distinguerle
+                      // Con due squadre nella stessa società il nome non basta a distinguerle
                       FormatBadge(
                         team.formato,
                         tone: FormatBadgeTone.soft,

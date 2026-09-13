@@ -107,8 +107,8 @@ class _ChoresCardState extends State<ChoresCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Compiti che girano a turno tra i convocati: l\'app sceglie chi non lo fa da piu\' tempo, '
-            'il mister puo\' correggere partita per partita.',
+            'Compiti che girano a turno tra i convocati: l\'app sceglie chi non lo fa da più tempo, '
+            'il mister può correggere partita per partita.',
             style: GoogleFonts.spaceGrotesk(fontSize: 12, color: muteColor, height: 1.35),
           ),
           const SizedBox(height: 12),
@@ -151,7 +151,7 @@ class _ChoresCardState extends State<ChoresCard> {
                         ),
                       ],
                     ),
-                    Divider(color: lineColor, height: 1),
+                    if (c != chores.last) Divider(color: lineColor, height: 1),
                   ],
                 )),
           const SizedBox(height: 12),

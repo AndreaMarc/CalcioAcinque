@@ -15,7 +15,16 @@ class TurniCard extends StatefulWidget {
   final int matchId;
   final bool canEdit;
   final List<ConvocationModel> convocati;
-  const TurniCard({super.key, required this.matchId, required this.canEdit, required this.convocati});
+
+  /// Quando cambia (pull-to-refresh del padre) la card si ricarica.
+  final int refreshTick;
+  const TurniCard({
+    super.key,
+    required this.matchId,
+    required this.canEdit,
+    required this.convocati,
+    this.refreshTick = 0,
+  });
 
   @override
   State<TurniCard> createState() => _TurniCardState();
@@ -29,6 +38,12 @@ class _TurniCardState extends State<TurniCard> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void didUpdateWidget(TurniCard old) {
+    super.didUpdateWidget(old);
+    if (old.refreshTick != widget.refreshTick || old.matchId != widget.matchId) _load();
   }
 
   Future<void> _load() async {
@@ -190,15 +205,20 @@ class _TurniCardState extends State<TurniCard> {
                         Expanded(
                           child: Text(
                             t.nome,
+                            overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.spaceGrotesk(fontSize: 14, fontWeight: FontWeight.w600, color: textColor),
                           ),
                         ),
-                        Text(
-                          t.assegnato ? t.chi : 'da assegnare',
-                          style: GoogleFonts.spaceGrotesk(
-                            fontSize: 13,
-                            color: t.assegnato ? textColor : muteColor,
-                            fontStyle: t.assegnato ? FontStyle.normal : FontStyle.italic,
+                        Flexible(
+                          child: Text(
+                            t.assegnato ? t.chi : 'da assegnare',
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.end,
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 13,
+                              color: t.assegnato ? textColor : muteColor,
+                              fontStyle: t.assegnato ? FontStyle.normal : FontStyle.italic,
+                            ),
                           ),
                         ),
                         if (widget.canEdit) ...[

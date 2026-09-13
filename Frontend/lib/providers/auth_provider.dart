@@ -37,7 +37,7 @@ class AuthProvider extends ChangeNotifier {
   List<TeamMembershipInfo>? get teams => _teams;
   bool get needsTeamSelection => _needsTeamSelection;
 
-  /// Membership del team attivo: da qui la UI legge formato e societa'.
+  /// Membership del team attivo: da qui la UI legge formato e società'.
   TeamMembershipInfo? get currentMembership {
     final id = teamId;
     if (id == 0) return null;
@@ -309,7 +309,7 @@ class AuthProvider extends ChangeNotifier {
           if (soprannome != null && soprannome.isNotEmpty) 'soprannome': soprannome,
           if (telefono != null && telefono.isNotEmpty) 'telefono': telefono,
           if (pendingPlayerId != null) 'pendingPlayerId': pendingPlayerId,
-          // Serve solo con un codice societa' che ha piu' di una squadra
+          // Serve solo con un codice società' che ha piu' di una squadra
           if (teamId != null) 'teamId': teamId,
         },
       );

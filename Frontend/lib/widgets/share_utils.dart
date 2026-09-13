@@ -67,7 +67,7 @@ Future<void> showShareSheet(BuildContext context, {required String title, requir
           AppSheetAction(
             icon: Icons.chat_outlined,
             label: 'Apri WhatsApp',
-            subtitle: 'Con il testo gia\' pronto',
+            subtitle: 'Con il testo già pronto',
             onTap: () {
               Navigator.of(ctx).pop();
               openWhatsApp(text);

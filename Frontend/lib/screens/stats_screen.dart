@@ -149,9 +149,11 @@ class _StatsScreenState extends State<StatsScreen> {
                 if (_meTab)
                   const SizedBox.shrink()
                 else if (top5.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-                    child: Center(child: Text('Nessun dato ancora')),
+                  const EmptyState(
+                    icon: Icons.sports_soccer,
+                    title: 'NESSUN GOL ANCORA',
+                    message: 'La classifica si riempie con le statistiche delle partite concluse.',
+                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 20),
                   )
                 else
                   ...top5.asMap().entries.map((e) {
@@ -162,6 +164,7 @@ class _StatsScreenState extends State<StatsScreen> {
                       child: _ScorerRow(
                         rank: i + 1,
                         nome: p['soprannome'] ?? p['nomeGiocatore'] ?? '',
+                        numero: (p['numeroMaglia'] as num?)?.toInt(),
                         goals: p['totaleGoal'] ?? 0,
                         maxGoals: maxGoals,
                       ),
@@ -177,6 +180,7 @@ class _StatsScreenState extends State<StatsScreen> {
                       child: _ScorerRow(
                         rank: e.key + 1,
                         nome: p['soprannome'] ?? p['nomeGiocatore'] ?? '',
+                        numero: (p['numeroMaglia'] as num?)?.toInt(),
                         goals: iv(p, 'partiteMvp'),
                         maxGoals: maxMvp,
                         unit: 'MVP',
@@ -186,7 +190,7 @@ class _StatsScreenState extends State<StatsScreen> {
                   }),
                 ],
                 if (!_meTab && staff && affidabili.isNotEmpty) ...[
-                  const SectionHead(title: 'AFFIDABILITA\''),
+                  const SectionHead(title: 'AFFIDABILITÀ'),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
                     child: Text(
@@ -517,6 +521,7 @@ class _ScorerRow extends StatelessWidget {
   final int maxGoals;
   final String unit;
   final String? sub;
+  final int? numero;
 
   const _ScorerRow({
     required this.rank,
@@ -525,6 +530,7 @@ class _ScorerRow extends StatelessWidget {
     required this.maxGoals,
     this.unit = 'GOL',
     this.sub,
+    this.numero,
   });
 
   @override
@@ -569,7 +575,7 @@ class _ScorerRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          JerseyNumber(number: rank, size: 40, fontSize: 19),
+          JerseyNumber(number: numero, size: 40, fontSize: 19),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -719,7 +725,7 @@ class _MyStatsCard extends StatelessWidget {
       ('${n('totaleEspulsioni')}', 'ESPULSIONI', AppTokens.bad),
       ('${n('partiteMvp')}', 'MIGLIORE IN CAMPO', AppTokens.brand),
       ('${n('votiMvp')}', 'VOTI RICEVUTI', null),
-      if (s['affidabilita'] != null) ('${n('affidabilita')}%', 'AFFIDABILITA\'', null),
+      if (s['affidabilita'] != null) ('${n('affidabilita')}%', 'AFFIDABILITÀ', null),
       if (n('forfait') > 0) ('${n('forfait')}', 'FORFAIT', AppTokens.warn),
     ];
     return AppCard(

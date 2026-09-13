@@ -42,12 +42,12 @@ class TeamMembershipInfo {
   bool get isAdmin => ruolo == 'Admin';
   String get ruoloLabel => labelRuolo(ruolo);
 
-  /// Etichetta per il raggruppamento: le squadre senza societa' (dati vecchi)
+  /// Etichetta per il raggruppamento: le squadre senza società' (dati vecchi)
   /// finiscono in un gruppo a se' col nome della squadra.
   String get groupLabel => clubName ?? teamName;
 }
 
-/// Raggruppa le squadre dell'utente per societa', mantenendo l'ordine di arrivo.
+/// Raggruppa le squadre dell'utente per società', mantenendo l'ordine di arrivo.
 List<ClubGroup> groupTeamsByClub(List<TeamMembershipInfo> teams) {
   final groups = <String, ClubGroup>{};
   for (final team in teams) {
@@ -68,6 +68,6 @@ class ClubGroup {
 
   ClubGroup({required this.clubId, required this.nome, required this.teams});
 
-  /// Una societa' con una sola squadra non ha bisogno di essere mostrata come gruppo.
+  /// Una società' con una sola squadra non ha bisogno di essere mostrata come gruppo.
   bool get isSingleTeam => teams.length == 1;
 }

@@ -6,7 +6,7 @@ import 'app_widgets.dart';
 
 /// Dialog "Unisciti con codice", unico per scelta squadra e impostazioni.
 ///
-/// Un codice puo' essere di una squadra o di una societa': nel secondo caso
+/// Un codice puo' essere di una squadra o di una società': nel secondo caso
 /// con piu' squadre si sceglie a quale unirsi (il server lo esige, altrimenti
 /// risponde 400). Se chi gestisce la rosa aveva gia' inserito il giocatore, il
 /// suo nome compare sotto "Sei uno di questi?" e riprende la scheda esistente.
@@ -128,7 +128,7 @@ Future<void> showJoinTeamDialog(
                           textCapitalization: TextCapitalization.characters,
                           decoration: const InputDecoration(
                             labelText: 'Codice invito',
-                            helperText: 'Di una squadra o della societa',
+                            helperText: 'Di una squadra o della società',
                           ),
                           onChanged: (_) {
                             if (verificato) setDialogState(() => verificato = false);

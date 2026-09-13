@@ -8,11 +8,19 @@ import '../providers/theme_provider.dart';
 import 'team_utils.dart';
 
 /// Safe initials extractor: returns 1-2 uppercase chars, falls back to [fallback].
+/// Sigla di due lettere dal nome squadra: le iniziali delle prime due parole
+/// "piene" ("I Campioni del Giovedi" -> CG), oppure le prime due lettere
+/// di un nome singolo ("Rocket" -> RO).
 String teamInitials(String name, {String fallback = 'IC'}) {
-  final trimmed = name.trim();
-  if (trimmed.isEmpty) return fallback;
-  if (trimmed.length >= 2) return trimmed.substring(0, 2).toUpperCase();
-  return trimmed[0].toUpperCase();
+  const vuote = {'i', 'il', 'lo', 'la', 'le', 'gli', 'l', 'un', 'una', 'del', 'della', 'dei', 'degli',
+      'delle', 'di', 'da', 'dal', 'e', 'ed', 'a', 'al', 'in', 'con', 'per', 'su', 'the', 'of', 'fc', 'asd'};
+  final words = name.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+  if (words.isEmpty) return fallback;
+  var piene = words.where((w) => !vuote.contains(w.toLowerCase().replaceAll("'", ''))).toList();
+  if (piene.length < 2) piene = words;
+  if (piene.length >= 2) return (piene[0][0] + piene[1][0]).toUpperCase();
+  final w = piene.first;
+  return (w.length >= 2 ? w.substring(0, 2) : w).toUpperCase();
 }
 
 TextStyle _display(double size, {double height = 1, Color? color, double letter = 0.02}) {

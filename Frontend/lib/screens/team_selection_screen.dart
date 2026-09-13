@@ -94,7 +94,7 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
                       return ListView(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         children: [
-                          // Con piu squadre nella stessa societa il nome non basta:
+                          // Con piu squadre nella stessa società il nome non basta:
                           // si raggruppa e si mostra il formato su ogni riga.
                           ...groupTeamsByClub(teams).expand((group) => [
                                 if (group.clubId != null && !group.isSingleTeam)

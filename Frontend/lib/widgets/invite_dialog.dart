@@ -7,7 +7,7 @@ import 'app_widgets.dart';
 import 'share_utils.dart';
 
 /// Codice invito con link diretto, QR da far scansionare a bordo campo e
-/// condivisione pronta. Unico per squadra e societa'.
+/// condivisione pronta. Unico per squadra e società'.
 Future<void> showInviteDialog(
   BuildContext context, {
   required String code,

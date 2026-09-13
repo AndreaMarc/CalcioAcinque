@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
 import '../providers/matches_provider.dart';
 import '../providers/convocations_provider.dart';
+import '../providers/club_provider.dart';
+import '../models/team_format.dart';
 import '../providers/theme_provider.dart';
 import '../models/match_model.dart';
 import '../core/constants/api_constants.dart';
@@ -28,6 +30,9 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
   Map<String, dynamic>? _availabilityData;
   bool _notFound = false;
 
+  /// Cresce a ogni ricarica: le card MVP e Turni lo usano per ricaricarsi.
+  int _refreshTick = 0;
+
   @override
   void initState() {
     super.initState();
@@ -38,6 +43,11 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     final auth = context.read<AuthProvider>();
     await context.read<MatchesProvider>().loadMatches(auth.teamId);
     await context.read<ConvocationsProvider>().loadByMatch(widget.matchId);
+    // Formato e regole della squadra (per il biglietto): non blocca il resto
+    if (context.read<ClubProvider>().teamConfig == null) {
+      context.read<ClubProvider>().loadTeamConfig(auth.teamId);
+    }
+    if (mounted) setState(() => _refreshTick++);
     try {
       final response = await auth.apiClient.dio.get(
         ApiConstants.matchAvailability(widget.matchId),
@@ -209,7 +219,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                       child: EmptyState(
                         icon: Icons.event_busy_outlined,
                         title: 'PARTITA NON TROVATA',
-                        message: 'Forse e\' stata eliminata, o appartiene a un\'altra squadra.',
+                        message: 'Forse è stata eliminata, o appartiene a un\'altra squadra.',
                         action: FilledButton(
                           onPressed: () => context.go('/calendar'),
                           child: const Text('Vai al calendario'),
@@ -261,10 +271,17 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                         match: match,
                         teamInitials: initials,
                         bgColor: paper,
+                        formato: () {
+                          // Il numero vero della squadra (configurabile), non il preset del formato
+                          final n = context.watch<ClubProvider>().teamConfig?.giocatoriInCampo ??
+                              auth.currentMembership?.formato.giocatoriInCampo ??
+                              5;
+                          return '${n}V$n';
+                        }(),
                       ),
                     ),
                     _buildMyResponse(context, match),
-                    if (match.isConclusa) MvpCard(key: ValueKey('mvp-${match.id}'), matchId: match.id),
+                    if (match.isConclusa) MvpCard(key: ValueKey('mvp-${match.id}'), matchId: match.id, refreshTick: _refreshTick),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                       child: _AvailabilitySummary(
@@ -280,6 +297,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                         matchId: match.id,
                         canEdit: auth.puoGestireCampo,
                         convocati: context.watch<ConvocationsProvider>().convocations,
+                        refreshTick: _refreshTick,
                       ),
                     ],
                     Padding(
@@ -523,10 +541,10 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
   void _proponiIncasso(int matchId) {
     if (!context.read<AuthProvider>().puoGestireSoldi) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: const Text('Partita conclusa. Vuoi registrare l incasso?'),
+      content: const Text('Partita conclusa. Vuoi registrare l\'incasso?'),
       duration: const Duration(seconds: 8),
       action: SnackBarAction(
-        label: 'Gestisci',
+        label: 'Registra incasso',
         onPressed: () => MatchIncassoSheet.show(context, matchId),
       ),
     ));
@@ -672,10 +690,12 @@ class _TicketCard extends StatelessWidget {
   final MatchModel match;
   final String teamInitials;
   final Color bgColor;
+  final String formato;
   const _TicketCard({
     required this.match,
     required this.teamInitials,
     required this.bgColor,
+    required this.formato,
   });
 
   @override
@@ -786,7 +806,7 @@ class _TicketCard extends StatelessWidget {
                       VsLayout(
                         homeCrest:
                             CrestBox(initials: teamInitials, size: 48, fontSize: 20, showTeamLogo: true),
-                        homeName: 'Casa',
+                        homeName: context.watch<ThemeProvider>().teamName,
                         awayCrest: CrestBox(
                           initials: awayInitials,
                           filled: false,
@@ -823,7 +843,7 @@ class _TicketCard extends StatelessWidget {
                               context, 'CAMPO', match.luogo ?? '—',
                               small: (match.luogo?.length ?? 0) > 4)),
                       Expanded(
-                          child: _ticketStat(context, 'FORMATO', '5V5')),
+                          child: _ticketStat(context, 'FORMATO', formato)),
                     ],
                   ),
                   if (match.luogo != null || match.note != null) ...[

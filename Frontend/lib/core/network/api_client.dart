@@ -24,7 +24,7 @@ class ApiClient {
         return 'Il server non risponde: controlla la connessione e riprova';
       case DioExceptionType.connectionError:
       case DioExceptionType.unknown:
-        return 'Sei senza rete o il server non e\' raggiungibile';
+        return 'Sei senza rete o il server non è raggiungibile';
       default:
         return 'Il server ha avuto un problema: riprova tra poco';
     }

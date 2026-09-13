@@ -175,7 +175,7 @@ class _LiveMatchScreenState extends State<LiveMatchScreen>
   void _proponiIncasso() {
     if (!context.read<AuthProvider>().puoGestireSoldi) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: const Text('Partita conclusa. Vuoi registrare l incasso?'),
+      content: const Text('Partita conclusa. Vuoi registrare l\'incasso?'),
       duration: const Duration(seconds: 8),
       action: SnackBarAction(
         label: 'Gestisci',

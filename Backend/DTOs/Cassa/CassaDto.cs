@@ -72,6 +72,7 @@ public class ArretratoDto
     public int PlayerId { get; set; }
     public string Nome { get; set; } = string.Empty;
     public string? Soprannome { get; set; }
+    public int? NumeroMaglia { get; set; }
     public decimal Importo { get; set; }
     public int Voci { get; set; }
 }

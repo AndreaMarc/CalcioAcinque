@@ -214,7 +214,7 @@ class _LoginScreenState extends State<LoginScreen>
           style: GoogleFonts.bebasNeue(fontSize: 26, color: Colors.white),
         ),
         content: Text(
-          'Chiedi a chi amministra la tua squadra: dalla Rosa puo\' impostarti una '
+          'Chiedi a chi amministra la tua squadra: dalla Rosa può impostarti una '
           'password nuova in un attimo. Appena entri, cambiala da Impostazioni → Account.',
           style: GoogleFonts.spaceGrotesk(fontSize: 14, height: 1.45, color: AppTokens.textOnInkMute),
         ),

@@ -192,7 +192,7 @@ class _MatchIncassoSheetState extends State<MatchIncassoSheet> {
         children: [
           Icon(Icons.error_outline, size: 40, color: AppTokens.bad),
           const SizedBox(height: 12),
-          Text(_errore ?? 'Non riesco a caricare l incasso', textAlign: TextAlign.center),
+          Text(_errore ?? 'Non riesco a caricare l\'incasso', textAlign: TextAlign.center),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -225,7 +225,7 @@ class _MatchIncassoSheetState extends State<MatchIncassoSheet> {
           const NoticeBox(
             variant: AppChipVariant.brand,
             icon: Icons.check_circle_outline,
-            text: 'Per questa partita hai gia registrato degli addebiti. Chi e gia stato addebitato non ricompare.',
+            text: 'Per questa partita hai già registrato degli addebiti. Chi è già stato addebitato non ricompare.',
             margin: EdgeInsets.only(bottom: 10),
           ),
 
@@ -234,7 +234,7 @@ class _MatchIncassoSheetState extends State<MatchIncassoSheet> {
             variant: AppChipVariant.bad,
             icon: Icons.info_outline,
             text: preview.presenzeBloccate
-                ? 'Nessuna presenza registrata. La partita e conclusa, quindi per correggerle va prima riaperta.'
+                ? 'Nessuna presenza registrata. La partita è conclusa, quindi per correggerle va prima riaperta.'
                 : 'Nessuna presenza registrata: senza quelle non so chi ha giocato.',
             actionLabel: 'Presenze',
             onAction: () {
@@ -250,7 +250,7 @@ class _MatchIncassoSheetState extends State<MatchIncassoSheet> {
             child: Text(
               preview.candidati.isEmpty
                   ? 'Nessun convocato per questa partita.'
-                  : 'Nessuno da addebitare: sono tutti gia a posto.',
+                  : 'Nessuno da addebitare: sono tutti già a posto.',
               style: TextStyle(color: cs.onSurfaceVariant),
             ),
           )
@@ -270,7 +270,7 @@ class _MatchIncassoSheetState extends State<MatchIncassoSheet> {
               Expanded(
                 child: TextField(
                   controller: _spesaCampoCtrl,
-                  keyboardType: TextInputType.number,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(
                     labelText: 'Costo campo (totale)',
                     prefixText: '€ ',
@@ -310,7 +310,7 @@ class _MatchIncassoSheetState extends State<MatchIncassoSheet> {
                       )
                     : TextField(
                         controller: _importoCtrl,
-                        keyboardType: TextInputType.number,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         decoration: const InputDecoration(
                           labelText: 'Importo a testa',
                           prefixText: '€ ',
@@ -319,14 +319,20 @@ class _MatchIncassoSheetState extends State<MatchIncassoSheet> {
                         onChanged: (_) => setState(() {}),
                       ),
               ),
-              const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text('${_selezionati.length} selezionati',
-                      style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
-                  DisplayText(formatEuro(_totale), size: 26, color: cs.onSurface),
-                ],
+              const SizedBox(width: 12),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('${_selezionati.length} selezionati',
+                        style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: DisplayText(formatEuro(_totale), size: 26, color: cs.onSurface),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -379,7 +385,7 @@ class _MatchIncassoSheetState extends State<MatchIncassoSheet> {
       if (c.presente && !c.haGiocato) 'presente, non ha giocato',
       if (!c.presente) 'non presente',
       if (c.minutiGiocati != null) '${c.minutiGiocati} min',
-      if (c.arretratoAttuale > 0) 'deve gia ${formatEuro(c.arretratoAttuale)}',
+      if (c.arretratoAttuale > 0) 'deve già ${formatEuro(c.arretratoAttuale)}',
     ];
 
     return CheckboxListTile(

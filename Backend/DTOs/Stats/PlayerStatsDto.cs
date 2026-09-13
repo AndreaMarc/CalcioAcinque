@@ -5,6 +5,7 @@ public class PlayerStatsDto
     public int PlayerId { get; set; }
     public string NomeGiocatore { get; set; } = string.Empty;
     public string? Soprannome { get; set; }
+    public int? NumeroMaglia { get; set; }
     public int PartiteGiocate { get; set; }
     public int PartitePresente { get; set; }
     public int TotaleMinutiGiocati { get; set; }

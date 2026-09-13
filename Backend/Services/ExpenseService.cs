@@ -141,7 +141,7 @@ public class ExpenseService : IExpenseService
         // soprannome (se c'e' ancora la tessera) serve alla lista
         var soprannomi = await _context.Players
             .Where(p => p.TeamId == teamId)
-            .ToDictionaryAsync(p => p.Id, p => p.Soprannome);
+            .ToDictionaryAsync(p => p.Id, p => (p.Soprannome, p.NumeroMaglia));
         var arretrati = payments
             .Where(p => !p.Pagato && p.PlayerId != null)
             .GroupBy(p => p.PlayerId!.Value)
@@ -149,7 +149,8 @@ public class ExpenseService : IExpenseService
             {
                 PlayerId = g.Key,
                 Nome = g.OrderByDescending(p => p.CreatedAt).First().NomeGiocatore,
-                Soprannome = soprannomi.GetValueOrDefault(g.Key),
+                Soprannome = soprannomi.GetValueOrDefault(g.Key).Soprannome,
+                NumeroMaglia = soprannomi.GetValueOrDefault(g.Key).NumeroMaglia,
                 Importo = g.Sum(p => p.Importo),
                 Voci = g.Count()
             })

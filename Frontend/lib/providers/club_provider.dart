@@ -8,7 +8,7 @@ import '../models/season_model.dart';
 import '../models/team_format.dart';
 import '../models/team_draft.dart' show PlayerPosition, PlayerPositionX;
 
-/// Stato di societa', squadre e anagrafica condivisa.
+/// Stato di società', squadre e anagrafica condivisa.
 class ClubProvider extends ChangeNotifier {
   final ApiClient apiClient;
 
@@ -200,7 +200,7 @@ class ClubProvider extends ChangeNotifier {
         return null;
       });
 
-  /// Aggiorna nome e/o dati di pagamento della societa.
+  /// Aggiorna nome e/o dati di pagamento della società.
   /// Stringa vuota su un campo pagamento = cancellalo; null = lascialo com e.
   Future<bool> updateClub(
     int clubId, {
@@ -221,7 +221,7 @@ class ClubProvider extends ChangeNotifier {
         return null;
       });
 
-  /// Aggiunge una squadra alla societa'. E' la via per avere l'a5 e l'a7 insieme.
+  /// Aggiunge una squadra alla società'. E' la via per avere l'a5 e l'a7 insieme.
   Future<bool> createTeam({
     required int clubId,
     required String nome,
@@ -355,7 +355,7 @@ class ClubProvider extends ChangeNotifier {
       });
 
   /// Iscrive una persona dell'anagrafica a una squadra: e' l'azione che rende
-  /// un giocatore "comune" alle due squadre della societa'.
+  /// un giocatore "comune" alle due squadre della società'.
   Future<bool> enrollMember({
     required int clubId,
     required int memberId,

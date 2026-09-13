@@ -42,8 +42,8 @@ void showTeamSwitcher(BuildContext context) {
   final theme = context.read<ThemeProvider>();
   final teams = auth.teams ?? [];
   final currentTeamId = auth.teamId;
-  // Con piu' squadre nella stessa societa' il nome da solo non basta a distinguerle:
-  // si raggruppa per societa' e si mostra il formato accanto a ognuna.
+  // Con piu' squadre nella stessa società' il nome da solo non basta a distinguerle:
+  // si raggruppa per società' e si mostra il formato accanto a ognuna.
   final groups = groupTeamsByClub(teams);
   final hasClubs = groups.any((g) => g.clubId != null);
 
@@ -141,7 +141,7 @@ void showTeamSwitcher(BuildContext context) {
                 const Divider(height: 24),
                 AppSheetAction(
                   icon: Icons.shield_outlined,
-                  label: 'Gestisci societa',
+                  label: 'Gestisci società',
                   subtitle: 'Squadre, anagrafica condivisa, codice invito',
                   onTap: () {
                     Navigator.of(ctx).pop();

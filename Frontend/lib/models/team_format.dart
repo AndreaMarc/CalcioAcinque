@@ -203,7 +203,7 @@ class TeamConfig {
   /// Ore prima della partita per il promemoria. 0 = spento.
   final int orePromemoriaPartita;
 
-  /// Override della squadra: null = valgono quelli della societa.
+  /// Override della squadra: null = valgono quelli della società.
   final String? paypalLink;
   final String? iban;
   final String? intestatarioIban;

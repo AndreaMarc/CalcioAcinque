@@ -161,11 +161,19 @@ class _InCampoAppState extends State<InCampoApp> {
           final next = Uri.encodeQueryComponent(state.uri.toString());
           return '/login?next=$next';
         }
+        // Il deep link (link condiviso, QR, notifica) sopravvive al ripristino della
+        // sessione: al boot si passa da /login?next=... e, appena il token e' valido,
+        // il router tornerebbe in dashboard prima che il login legga `next`.
+        final next = state.uri.queryParameters['next'];
+        final nextValido = next != null && next.startsWith('/') && !next.startsWith('//');
+        if (isAuth && needsTeamSelection && isLoginRoute && nextValido && next.startsWith('/join/')) {
+          return next;
+        }
         if (isAuth && needsTeamSelection && !isSelectTeamRoute && !isDraftRoute && !isJoinRoute && !isTeamJoin) {
           return '/select-team';
         }
         if (isAuth && !needsTeamSelection && (isLoginRoute || isSelectTeamRoute)) {
-          return '/dashboard';
+          return isLoginRoute && nextValido ? next : '/dashboard';
         }
         return null;
       },

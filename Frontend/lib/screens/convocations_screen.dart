@@ -179,7 +179,7 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
                         ],
                         if (nonVotato.isNotEmpty) ...[
                           _Head(
-                              label: 'NON HANNO VOTATO',
+                              label: 'DISPONIBILITÀ NON DATA',
                               count: nonVotato.length,
                               color: AppTokens.warn),
                           ...nonVotato.map((c) => Padding(
@@ -336,7 +336,7 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
     final available = players.where((p) => !existing.contains(p.id)).toList();
     if (available.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Tutti i giocatori sono gia convocati')));
+          content: Text('Tutti i giocatori sono già convocati')));
       return;
     }
 
@@ -395,7 +395,7 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
                           subtitle: Text([
                             'Gettoni: ${p.gettoniRimanenti}',
                             if (p.posizione != null) p.posizione!.label,
-                            if (p.affidabilita != null) 'affidabilita\' ${p.affidabilita}%',
+                            if (p.affidabilita != null) 'affidabilità ${p.affidabilita}%',
                           ].join(' · ')),
                           value: isSelected,
                           // Oltre il limite si possono solo deselezionare
@@ -642,7 +642,7 @@ class _SubTile extends StatelessWidget {
     final muteColor = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
     final dettagli = <String>[
       if (player.posizione != null) player.posizione!.label,
-      if (player.affidabilita != null) 'affidabilita\' ${player.affidabilita}%',
+      if (player.affidabilita != null) 'affidabilità ${player.affidabilita}%',
       'gettoni ${player.gettoniRimanenti}',
     ];
     return AppCard(
