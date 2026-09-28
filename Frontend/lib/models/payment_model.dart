@@ -1,17 +1,35 @@
 /// Regime con cui un giocatore contribuisce ai costi.
-enum RegimePagamento { stagionale, aPartita }
+/// esente vale solo per il singolo giocatore, mai come default di squadra.
+enum RegimePagamento { stagionale, aPartita, esente }
 
 extension RegimePagamentoX on RegimePagamento {
-  String get apiValue => this == RegimePagamento.stagionale ? 'Stagionale' : 'APartita';
+  String get apiValue => switch (this) {
+        RegimePagamento.stagionale => 'Stagionale',
+        RegimePagamento.aPartita => 'APartita',
+        RegimePagamento.esente => 'Esente',
+      };
 
-  String get label =>
-      this == RegimePagamento.stagionale ? 'Quota stagionale' : 'Paga a partita';
+  String get label => switch (this) {
+        RegimePagamento.stagionale => 'Quota stagionale',
+        RegimePagamento.aPartita => 'Paga a partita',
+        RegimePagamento.esente => 'Esente',
+      };
 
-  String get shortLabel => this == RegimePagamento.stagionale ? 'Stagione' : 'A partita';
+  String get shortLabel => switch (this) {
+        RegimePagamento.stagionale => 'Stagione',
+        RegimePagamento.aPartita => 'A partita',
+        RegimePagamento.esente => 'Esente',
+      };
 
-  String get descrizione => this == RegimePagamento.stagionale
-      ? 'Versa la quota all inizio, poi non paga le singole partite'
-      : 'Riceve un addebito dopo ogni partita giocata';
+  String get descrizione => switch (this) {
+        RegimePagamento.stagionale => 'Versa la quota all inizio, poi non paga le singole partite',
+        RegimePagamento.aPartita => 'Riceve un addebito dopo ogni partita giocata',
+        RegimePagamento.esente => 'Non paga nulla: niente quote e niente addebiti partita',
+      };
+
+  /// I regimi sceglibili come default della squadra.
+  static List<RegimePagamento> get perSquadra =>
+      RegimePagamento.values.where((r) => r != RegimePagamento.esente).toList();
 
   static RegimePagamento? fromApi(String? value) {
     switch (value) {
@@ -19,6 +37,8 @@ extension RegimePagamentoX on RegimePagamento {
         return RegimePagamento.stagionale;
       case 'APartita':
         return RegimePagamento.aPartita;
+      case 'Esente':
+        return RegimePagamento.esente;
       default:
         return null;
     }

@@ -88,7 +88,7 @@ public class MatchPaymentService : IMatchPaymentService
                 HaGiocato = attendance.HaGiocato,
                 MinutiGiocati = attendance.MinutiGiocati,
                 GiaAddebitato = giaAddebitati.Contains(attendance.PlayerId),
-                ImportoProposto = team.CostoPartita,
+                ImportoProposto = attendance.Player.CostoPartitaPersonale ?? team.CostoPartita,
                 ArretratoAttuale = arretrati.TryGetValue(attendance.PlayerId, out var a) ? a : 0m
             };
 
@@ -172,7 +172,7 @@ public class MatchPaymentService : IMatchPaymentService
                 continue;
             }
 
-            var importo = RisolviImporto(dto, player.Id, importoDiviso ?? team.CostoPartita);
+            var importo = RisolviImporto(dto, player, importoDiviso ?? team.CostoPartita);
             if (importo <= 0)
             {
                 result.Saltati++;
@@ -257,6 +257,7 @@ public class MatchPaymentService : IMatchPaymentService
         MatchPaymentCandidateDto candidato, RegimePagamento regime, int minutiMinimi)
     {
         if (candidato.GiaAddebitato) return (false, "già addebitato");
+        if (regime == RegimePagamento.Esente) return (false, "esente");
         if (regime != RegimePagamento.APartita) return (false, "paga a stagione");
         if (!candidato.Presente) return (false, "non presente");
         if (!candidato.HaGiocato) return (false, "non ha giocato");
@@ -267,10 +268,16 @@ public class MatchPaymentService : IMatchPaymentService
         return (true, null);
     }
 
-    private static decimal RisolviImporto(ConfirmMatchPaymentDto dto, int playerId, decimal costoPartita)
+    /// <summary>
+    /// Importo per un giocatore: uno scelto a mano per lui, poi il suo costo
+    /// personale concordato (vince sull'importo uguale per tutti, che il foglio
+    /// incasso manda sempre, e sulla divisione del campo), poi quello comune.
+    /// </summary>
+    private static decimal RisolviImporto(ConfirmMatchPaymentDto dto, Player player, decimal costoPartita)
     {
-        if (dto.ImportiPerGiocatore != null && dto.ImportiPerGiocatore.TryGetValue(playerId, out var perGiocatore))
+        if (dto.ImportiPerGiocatore != null && dto.ImportiPerGiocatore.TryGetValue(player.Id, out var perGiocatore))
             return perGiocatore;
+        if (player.CostoPartitaPersonale.HasValue) return player.CostoPartitaPersonale.Value;
         return dto.Importo ?? costoPartita;
     }
 

@@ -153,19 +153,21 @@ public class PaymentService : IPaymentService
         var team = await _context.Teams.FindAsync(teamId);
         if (team == null) throw new NotFoundException("Team", teamId);
 
+        var players = await _context.Players.Where(p => p.TeamId == teamId).OrderBy(p => p.Nome).ToListAsync();
+
+        // Una quota si genera se la squadra ha un importo o se qualcuno ne ha uno personale
         var quote = new List<QuotaFissa>();
-        if (dto.Iscrizione && team.QuotaIscrizione > 0)
+        if (dto.Iscrizione && (team.QuotaIscrizione > 0 || players.Any(p => p.QuotaIscrizionePersonale > 0)))
             quote.Add(new QuotaFissa(DescrizioneIscrizione, team.QuotaIscrizione, TipoPagamento.Iscrizione,
-                team.ApplicaIscrizioneA, p => p.IscrizionePagata));
-        if (dto.Tesseramento && team.QuotaTesseramento > 0)
+                team.ApplicaIscrizioneA, p => p.IscrizionePagata, p => p.QuotaIscrizionePersonale));
+        if (dto.Tesseramento && (team.QuotaTesseramento > 0 || players.Any(p => p.QuotaTesseramentoPersonale > 0)))
             quote.Add(new QuotaFissa(DescrizioneTesseramento, team.QuotaTesseramento, TipoPagamento.Tesseramento,
-                team.ApplicaTesseramentoA, p => p.TesseramentoPagato));
+                team.ApplicaTesseramentoA, p => p.TesseramentoPagato, p => p.QuotaTesseramentoPersonale));
 
         if (quote.Count == 0)
             throw new BusinessException(
                 "Nessuna quota da generare: configura gli importi nelle impostazioni della squadra");
 
-        var players = await _context.Players.Where(p => p.TeamId == teamId).OrderBy(p => p.Nome).ToListAsync();
         var playerIds = players.Select(p => p.Id).ToList();
         var descrizioni = quote.Select(q => q.Descrizione).ToList();
 
@@ -191,7 +193,9 @@ public class PaymentService : IPaymentService
 
             foreach (var quota in quote)
             {
-                if (!RegimiPagamento.QuotaDovuta(quota.Destinatari, regime))
+                // L'importo personale vince su quello di squadra; 0 = questa quota non la paga
+                var importo = quota.Personale(player) ?? quota.Importo;
+                if (!RegimiPagamento.QuotaDovuta(quota.Destinatari, regime) || importo <= 0)
                 {
                     result.Esentati++;
                     continue;
@@ -209,7 +213,7 @@ public class PaymentService : IPaymentService
                         PlayerId = player.Id,
                         NomeGiocatore = player.Nome,
                         Descrizione = quota.Descrizione,
-                        Importo = quota.Importo,
+                        Importo = importo,
                         Tipo = quota.Tipo,
                         DataPagamento = data,
                         // I flag storici sul giocatore inizializzano il "già pagato";
@@ -221,9 +225,9 @@ public class PaymentService : IPaymentService
                     });
                     result.Create++;
                 }
-                else if (dto.AggiornaEsistenti && !esistente.Pagato && esistente.Importo != quota.Importo)
+                else if (dto.AggiornaEsistenti && !esistente.Pagato && esistente.Importo != importo)
                 {
-                    esistente.Importo = quota.Importo;
+                    esistente.Importo = importo;
                     esistente.Tipo = quota.Tipo;
                     result.Aggiornate++;
                 }
@@ -232,7 +236,7 @@ public class PaymentService : IPaymentService
                     result.Invariate++;
                 }
 
-                result.TotaleAtteso += quota.Importo;
+                result.TotaleAtteso += importo;
             }
         }
 
@@ -358,5 +362,6 @@ public class PaymentService : IPaymentService
         decimal Importo,
         TipoPagamento Tipo,
         DestinatariQuota Destinatari,
-        Func<Player, bool> GiaPagata);
+        Func<Player, bool> GiaPagata,
+        Func<Player, decimal?> Personale);
 }

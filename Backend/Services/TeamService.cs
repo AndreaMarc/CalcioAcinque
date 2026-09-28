@@ -87,8 +87,10 @@ public class TeamService : ITeamService
             team.NumeroTempi = dto.NumeroTempi.Value;
         }
 
+        // "Esente" e' un'eccezione per il singolo: come default svuoterebbe la cassa
         if (dto.RegimePagamentoDefault != null &&
-            Enum.TryParse<RegimePagamento>(dto.RegimePagamentoDefault, true, out var regime))
+            Enum.TryParse<RegimePagamento>(dto.RegimePagamentoDefault, true, out var regime) &&
+            regime != RegimePagamento.Esente)
             team.RegimePagamentoDefault = regime;
 
         if (dto.ApplicaIscrizioneA != null &&

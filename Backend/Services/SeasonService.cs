@@ -1,3 +1,4 @@
+using CalcioAcinque.Backend.Models;
 using Microsoft.EntityFrameworkCore;
 using CalcioAcinque.Backend.Configuration;
 using CalcioAcinque.Backend.DTOs.Seasons;
@@ -170,9 +171,9 @@ public class SeasonService : ISeasonService
 
         foreach (var player in players)
         {
-            var gettoniNuovi = team.UseGettoni ? team.GettoniPerGiocatore : 0;
+            var gettoniNuovi = GettoniGiocatore.Iniziali(player, team);
 
-            if (team.UseGettoni)
+            if (GettoniGiocatore.Attivi(player, team))
             {
                 _context.TokenTransactions.Add(new TokenTransaction
                 {

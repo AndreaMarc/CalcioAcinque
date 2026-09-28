@@ -48,6 +48,22 @@ public class Player
     /// </summary>
     public RegimePagamento? RegimePagamento { get; set; }
 
+    /// <summary>Gettoni solo per questo giocatore: null = come la squadra.</summary>
+    public bool? UsaGettoni { get; set; }
+
+    /// <summary>Gettoni a stagione per questo giocatore: null = GettoniPerGiocatore della squadra.</summary>
+    public int? GettoniPerStagione { get; set; }
+
+    // Importi personali concordati: null = vale quello della squadra, 0 = non la paga
+    [Column(TypeName = "decimal(10,2)")]
+    public decimal? QuotaIscrizionePersonale { get; set; }
+
+    [Column(TypeName = "decimal(10,2)")]
+    public decimal? QuotaTesseramentoPersonale { get; set; }
+
+    [Column(TypeName = "decimal(10,2)")]
+    public decimal? CostoPartitaPersonale { get; set; }
+
     public bool IscrizionePagata { get; set; } = false;
     public bool TesseramentoPagato { get; set; } = false;
 

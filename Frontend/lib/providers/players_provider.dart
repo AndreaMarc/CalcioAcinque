@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import '../core/network/api_client.dart';
 import '../core/constants/api_constants.dart';
@@ -74,7 +75,11 @@ class PlayersProvider extends ChangeNotifier {
     return false;
   }
 
+  /// Messaggio del server sull'ultimo salvataggio fallito (importo negativo...).
+  String? updateError;
+
   Future<bool> updatePlayer(int teamId, int playerId, Map<String, dynamic> data) async {
+    updateError = null;
     try {
       final response = await apiClient.dio.put(
         ApiConstants.player(teamId, playerId),
@@ -84,6 +89,10 @@ class PlayersProvider extends ChangeNotifier {
         await loadPlayers(teamId);
         return true;
       }
+      updateError = response.data['message'] as String?;
+    } on DioException catch (e) {
+      final body = e.response?.data;
+      if (body is Map) updateError = body['message'] as String?;
     } catch (_) {}
     return false;
   }

@@ -13,6 +13,7 @@ import '../models/ruoli.dart';
 import '../models/team_format.dart';
 import '../providers/club_provider.dart';
 import '../widgets/app_widgets.dart';
+import '../widgets/position_picker.dart';
 
 class PlayersScreen extends StatefulWidget {
   const PlayersScreen({super.key});
@@ -65,18 +66,28 @@ class _PlayersScreenState extends State<PlayersScreen> {
           return p.nome.toLowerCase().contains(q) ||
               (p.soprannome ?? '').toLowerCase().contains(q);
         }).toList();
-        switch (_filter) {
+        // Filtri e ordine per gettoni solo se in squadra qualcuno li usa;
+        // chi non li usa resta in fondo, in ordine alfabetico
+        final conGettoni = players.where((p) => p.usaGettoniEffettivo).toList();
+        final filtroGettoni = conGettoni.isNotEmpty ? _filter : 'all';
+        switch (filtroGettoni) {
           case 'low':
-            filtered = filtered.where((p) => p.gettoniRimanenti <= 2).toList();
+            filtered = filtered.where((p) => p.gettoniBassi).toList();
             break;
           case 'full':
-            filtered = filtered.where((p) => !p.gettoniEsauriti).toList();
+            filtered = filtered.where((p) => p.usaGettoniEffettivo && !p.gettoniEsauriti).toList();
             break;
           default:
         }
-        filtered.sort((a, b) => b.gettoniRimanenti.compareTo(a.gettoniRimanenti));
+        if (conGettoni.isNotEmpty) {
+          filtered.sort((a, b) {
+            if (a.usaGettoniEffettivo != b.usaGettoniEffettivo) return a.usaGettoniEffettivo ? -1 : 1;
+            if (!a.usaGettoniEffettivo) return 0;
+            return b.gettoniRimanenti.compareTo(a.gettoniRimanenti);
+          });
+        }
 
-        final low = players.where((p) => p.gettoniRimanenti <= 2).length;
+        final low = conGettoni.where((p) => p.gettoniBassi).length;
 
         return Column(
           children: [
@@ -113,6 +124,7 @@ class _PlayersScreenState extends State<PlayersScreen> {
                               onChanged: (v) => setState(() => _query = v),
                             ),
                           ),
+                          if (conGettoni.isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
                             child: SizedBox(
@@ -135,8 +147,8 @@ class _PlayersScreenState extends State<PlayersScreen> {
                                   ),
                                   const SizedBox(width: 8),
                                   _FilterChip(
-                                    label: 'Attivi',
-                                    count: players.where((p) => !p.gettoniEsauriti).length,
+                                    label: 'Con gettoni',
+                                    count: conGettoni.where((p) => !p.gettoniEsauriti).length,
                                     active: _filter == 'full',
                                     onTap: () => setState(() => _filter = 'full'),
                                   ),
@@ -161,6 +173,8 @@ class _PlayersScreenState extends State<PlayersScreen> {
                                   // Il numero configurato vince sulla posizione in lista
                                   jerseyNumber: p.numeroMaglia ?? i + 1,
                                   isAdmin: auth.puoGestireSquadra,
+                                  // Accordi economici: dato riservato a chi gestisce squadra e cassa
+                                  mostraAccordi: auth.puoGestireSquadra || auth.puoGestireSoldi,
                                   onTap: () =>
                                       context.push('/player/${p.id}'),
                                   onLongPress: auth.puoGestireSquadra
@@ -237,7 +251,7 @@ class _PlayersScreenState extends State<PlayersScreen> {
               title: const Text('Modifica'),
               onTap: () {
                 Navigator.pop(ctx);
-                _showEditPlayerDialog(context, player);
+                context.push('/player/${player.id}/edit');
               },
             ),
             ListTile(
@@ -257,228 +271,6 @@ class _PlayersScreenState extends State<PlayersScreen> {
                 Navigator.pop(ctx);
                 _showDeleteConfirmDialog(context, player);
               },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Ruolo e numero valgono solo per questa squadra: lo stesso giocatore puo'
-  /// essere pivot nell'a5 e ala nell'a7.
-  void _showEditPlayerDialog(BuildContext context, PlayerModel player) {
-    final nomeCtrl = TextEditingController(text: player.nome);
-    final soprannomeCtrl =
-        TextEditingController(text: player.soprannome ?? '');
-    final telefonoCtrl = TextEditingController(text: player.telefono ?? '');
-    final numeroCtrl =
-        TextEditingController(text: player.numeroMaglia?.toString() ?? '');
-    var posizione = player.posizione;
-    var regime = player.regimePagamento;
-    var ruolo = RuoloX.fromApi(player.ruolo);
-    var gioca = player.gioca;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Modifica Giocatore'),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (player.clubMemberId != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Text(
-                      'Nome, soprannome e telefono valgono in tutte le squadre della società.',
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(ctx).colorScheme.onSurfaceVariant),
-                    ),
-                  ),
-                TextField(
-                  controller: nomeCtrl,
-                  decoration: const InputDecoration(labelText: 'Nome e Cognome *'),
-                  textCapitalization: TextCapitalization.words,
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: soprannomeCtrl,
-                  decoration: const InputDecoration(labelText: 'Soprannome'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: telefonoCtrl,
-                  decoration: const InputDecoration(labelText: 'Telefono'),
-                  keyboardType: TextInputType.phone,
-                ),
-                const SizedBox(height: 16),
-                _PositionPicker(
-                  formato: _formato,
-                  selected: posizione,
-                  onChanged: (p) => setDialogState(() => posizione = p),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: numeroCtrl,
-                  decoration: const InputDecoration(labelText: 'Numero di maglia'),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 18),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Ruolo nella squadra',
-                      style: Theme.of(ctx).textTheme.labelLarge),
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: Ruolo.values
-                      .map((r) => ChoiceChip(
-                            label: Text(r.label),
-                            selected: ruolo == r,
-                            onSelected: (_) => setDialogState(() => ruolo = r),
-                          ))
-                      .toList(),
-                ),
-                const SizedBox(height: 6),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    ruolo.descrizione,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(ctx).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  title: const Text('Solo staff, non gioca'),
-                  subtitle: const Text('Allenatore o dirigente: dà la presenza ma resta fuori da convocazioni e statistiche',
-                      style: TextStyle(fontSize: 11)),
-                  value: !gioca,
-                  onChanged: (v) => setDialogState(() => gioca = !v),
-                ),
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Come paga',
-                      style: Theme.of(ctx).textTheme.labelLarge),
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    // null = eredita il default della squadra
-                    ChoiceChip(
-                      label: Text('Come la squadra (${_regimeSquadra.shortLabel})'),
-                      selected: regime == null,
-                      onSelected: (_) => setDialogState(() => regime = null),
-                    ),
-                    ...RegimePagamento.values.map((r) => ChoiceChip(
-                          label: Text(r.label),
-                          selected: regime == r,
-                          onSelected: (_) => setDialogState(() => regime = r),
-                        )),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    (regime ?? _regimeSquadra).descrizione,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(ctx).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Sola lettura di proposito: la verita e la voce in Pagamenti,
-                // questi flag ne sono il riflesso. Si spuntano segnando pagata
-                // la voce, non da qui, altrimenti i due dati divergono.
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Quote', style: Theme.of(ctx).textTheme.labelLarge),
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    Chip(
-                      avatar: Icon(
-                        player.iscrizionePagata ? Icons.check_circle : Icons.schedule,
-                        size: 16,
-                      ),
-                      label: Text(player.iscrizionePagata
-                          ? 'Iscrizione pagata'
-                          : 'Iscrizione da pagare'),
-                    ),
-                    Chip(
-                      avatar: Icon(
-                        player.tesseramentoPagato ? Icons.check_circle : Icons.schedule,
-                        size: 16,
-                      ),
-                      label: Text(player.tesseramentoPagato
-                          ? 'Tesseramento pagato'
-                          : 'Tesseramento da pagare'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Si aggiornano da Pagamenti, segnando pagata la voce.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(ctx).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Annulla')),
-            FilledButton(
-              onPressed: () async {
-                if (nomeCtrl.text.trim().isEmpty) return;
-                Navigator.pop(ctx);
-                final auth = context.read<AuthProvider>();
-                final data = <String, dynamic>{
-                  'nome': nomeCtrl.text.trim(),
-                  // Stringa vuota = azzera il ruolo, null = lascia invariato
-                  'posizione': posizione?.apiValue ?? '',
-                  'numeroMaglia': int.tryParse(numeroCtrl.text) ?? 0,
-                  // Stringa vuota = torna al default della squadra
-                  'ruolo': ruolo.apiValue,
-                  'gioca': gioca,
-                  'regimePagamento': regime?.apiValue ?? '',
-                };
-                if (soprannomeCtrl.text.trim().isNotEmpty) {
-                  data['soprannome'] = soprannomeCtrl.text.trim();
-                }
-                if (telefonoCtrl.text.trim().isNotEmpty) {
-                  data['telefono'] = telefonoCtrl.text.trim();
-                }
-                final success = await context.read<PlayersProvider>()
-                    .updatePlayer(auth.teamId, player.id, data);
-                if (success && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Giocatore aggiornato')));
-                }
-              },
-              child: const Text('Salva'),
             ),
           ],
         ),
@@ -621,7 +413,7 @@ class _PlayersScreenState extends State<PlayersScreen> {
                   keyboardType: TextInputType.phone,
                 ),
                 const SizedBox(height: 16),
-                _PositionPicker(
+                PositionPicker(
                   formato: _formato,
                   selected: posizione,
                   onChanged: (p) => setDialogState(() => posizione = p),
@@ -690,47 +482,6 @@ class _PlayersScreenState extends State<PlayersScreen> {
 }
 
 /// Chip dei ruoli ammessi dal formato della squadra.
-class _PositionPicker extends StatelessWidget {
-  final TeamFormat formato;
-  final PlayerPosition? selected;
-  final ValueChanged<PlayerPosition?> onChanged;
-
-  const _PositionPicker({
-    required this.formato,
-    required this.selected,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final posizioni = context.read<ClubProvider>().positionsFor(formato);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Ruolo (${formato.label})',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-        const SizedBox(height: 6),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            ChoiceChip(
-              label: const Text('Nessuno'),
-              selected: selected == null,
-              onSelected: (_) => onChanged(null),
-            ),
-            ...posizioni.map((p) => ChoiceChip(
-                  label: Text(p.label),
-                  selected: selected == p,
-                  onSelected: (_) => onChanged(p),
-                )),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
 class _SearchBar extends StatelessWidget {
   final ValueChanged<String> onChanged;
   const _SearchBar({required this.onChanged});
@@ -930,6 +681,7 @@ class _PlayerCard extends StatelessWidget {
   final PlayerModel player;
   final int jerseyNumber;
   final bool isAdmin;
+  final bool mostraAccordi;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
 
@@ -937,6 +689,7 @@ class _PlayerCard extends StatelessWidget {
     required this.player,
     required this.jerseyNumber,
     required this.isAdmin,
+    this.mostraAccordi = false,
     required this.onTap,
     this.onLongPress,
   });
@@ -951,7 +704,8 @@ class _PlayerCard extends StatelessWidget {
     final pct = player.gettoniTotali > 0
         ? player.gettoniRimanenti / player.gettoniTotali
         : 0.0;
-    final warn = player.gettoniRimanenti <= 2;
+    final warn = player.gettoniBassi;
+    final accordi = mostraAccordi ? player.accordiPersonali : const <String>[];
 
     return Opacity(
       opacity: player.gettoniEsauriti ? 0.55 : 1,
@@ -1032,6 +786,19 @@ class _PlayerCard extends StatelessWidget {
                           color: muteColor,
                         ),
                       ),
+                    if (accordi.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          accordi.join(' · '),
+                          style: GoogleFonts.spaceGrotesk(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppTokens.brand,
+                          ),
+                        ),
+                      ),
+                    if (player.usaGettoniEffettivo) ...[
                     const SizedBox(height: 6),
                     Row(
                       children: [
@@ -1055,6 +822,7 @@ class _PlayerCard extends StatelessWidget {
                         ),
                       ],
                     ),
+                    ],
                   ],
                 ),
               ),
@@ -1063,7 +831,7 @@ class _PlayerCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '${player.gettoniConsumati}',
+                    '${player.presenze}',
                     style: GoogleFonts.bebasNeue(
                       fontSize: 22,
                       color: textColor,

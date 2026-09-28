@@ -381,6 +381,7 @@ class _MatchIncassoSheetState extends State<MatchIncassoSheet> {
   Widget _riga(ColorScheme cs, MatchPaymentCandidate c) {
     final dettagli = <String>[
       if (c.regime == RegimePagamento.stagionale) 'quota stagionale',
+      if (c.regime == RegimePagamento.esente) 'esente',
       if (c.presente && c.haGiocato) 'ha giocato',
       if (c.presente && !c.haGiocato) 'presente, non ha giocato',
       if (!c.presente) 'non presente',

@@ -10,6 +10,7 @@ import '../providers/players_provider.dart';
 import '../providers/tokens_provider.dart';
 import '../providers/dashboard_provider.dart';
 import '../providers/theme_provider.dart';
+import '../models/payment_model.dart';
 import '../models/player_model.dart';
 import '../widgets/app_widgets.dart';
 
@@ -75,7 +76,8 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
     }
     final player = _player!;
     final auth = context.watch<AuthProvider>();
-    final useGettoni = context.watch<DashboardProvider>().useGettoni;
+    // Per lui, non per la squadra: puo' avere i gettoni solo lui (o esserne escluso)
+    final useGettoni = player.usaGettoniEffettivo;
     final theme = context.watch<ThemeProvider>();
     final initials = teamInitials(theme.teamName);
     final playerIndex = context.read<PlayersProvider>().players.indexWhere((p) => p.id == player.id);
@@ -96,7 +98,10 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
                   AppTopBar.iconAction(
                     context,
                     Icons.edit,
-                    () {},
+                    () async {
+                      await context.push('/player/${player.id}/edit');
+                      if (mounted) _loadData();
+                    },
                   ),
               ],
             ),
@@ -166,6 +171,14 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
                           ],
                         ),
                       ),
+                    // Accordi economici: li vede chi gestisce squadra o cassa, e lui stesso
+                    if (auth.puoGestireSquadra || auth.puoGestireSoldi || auth.playerId == player.id) ...[
+                      const SectionHead(title: 'COME PAGA'),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                        child: _AccordiCard(player: player),
+                      ),
+                    ],
                     if (player.telefono != null || player.nome.isNotEmpty) ...[
                       const SectionHead(title: 'CONTATTI'),
                       Padding(
@@ -320,16 +333,17 @@ class _PlayerHero extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Expanded(
-                  child: _heroStat(
-                    label: 'GETTONI',
-                    value: '${player.gettoniRimanenti}/${player.gettoniTotali}',
+                if (player.usaGettoniEffettivo)
+                  Expanded(
+                    child: _heroStat(
+                      label: 'GETTONI',
+                      value: '${player.gettoniRimanenti}/${player.gettoniTotali}',
+                    ),
                   ),
-                ),
                 Expanded(
                   child: _heroStat(
-                    label: 'CONSUMATI',
-                    value: '${player.gettoniConsumati}',
+                    label: 'PRESENZE',
+                    value: '${player.presenze}',
                     brand: true,
                   ),
                 ),
@@ -469,6 +483,52 @@ class _TokenBreakdown extends StatelessWidget {
   }
 }
 
+/// Regime e importi che valgono per lui, con quelli diversi dalla squadra evidenziati.
+class _AccordiCard extends StatelessWidget {
+  final PlayerModel player;
+  const _AccordiCard({required this.player});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final esente = player.regimePagamentoEffettivo == RegimePagamento.esente;
+    final righe = <(String, String, bool)>[
+      ('Regime', player.regimePagamentoEffettivo.label, player.regimePagamento != null),
+      if (!esente) ...[
+        ('Quota iscrizione', formatEuro(player.quotaIscrizioneEffettiva), player.quotaIscrizionePersonale != null),
+        ('Quota tesseramento', formatEuro(player.quotaTesseramentoEffettiva), player.quotaTesseramentoPersonale != null),
+        ('Costo a partita', formatEuro(player.costoPartitaEffettivo), player.costoPartitaPersonale != null),
+      ],
+      ('Gettoni', player.usaGettoniEffettivo ? '${player.gettoniPerStagioneEffettivi} a stagione' : 'No',
+          player.usaGettoni != null || player.gettoniPerStagione != null),
+    ];
+    return AppCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Column(
+        children: [
+          for (final (etichetta, valore, personale) in righe)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  Expanded(child: Text(etichetta, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant))),
+                  if (personale)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Text('PERSONALE',
+                          style: TextStyle(
+                              fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.7, color: AppTokens.brand)),
+                    ),
+                  Text(valore, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ContactCard extends StatelessWidget {
   final PlayerModel player;
   const _ContactCard({required this.player});
@@ -485,10 +545,11 @@ class _ContactCard extends StatelessWidget {
       _ContactRowData(Icons.person_outline, player.nome),
       if (player.telefono?.isNotEmpty == true)
         _ContactRowData(Icons.phone_outlined, player.telefono!),
-      _ContactRowData(
-        Icons.toll,
-        '${player.gettoniConsumati} gettoni consumati',
-      ),
+      if (player.usaGettoniEffettivo)
+        _ContactRowData(
+          Icons.toll,
+          '${player.gettoniConsumati} gettoni consumati',
+        ),
     ];
 
     return Container(

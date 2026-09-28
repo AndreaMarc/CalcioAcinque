@@ -30,6 +30,7 @@ import 'screens/calendar_screen.dart';
 import 'screens/match_detail_screen.dart';
 import 'screens/players_screen.dart';
 import 'screens/player_detail_screen.dart';
+import 'screens/player_edit_screen.dart';
 import 'screens/tokens_screen.dart';
 import 'screens/payments_screen.dart';
 import 'screens/match_day_screen.dart';
@@ -255,6 +256,13 @@ class _InCampoAppState extends State<InCampoApp> {
           pageBuilder: (context, state) {
             final playerId = int.parse(state.pathParameters['playerId']!);
             return AppPage(key: state.pageKey, child: PlayerDetailScreen(playerId: playerId));
+          },
+        ),
+        GoRoute(
+          path: '/player/:playerId/edit',
+          pageBuilder: (context, state) {
+            final playerId = int.parse(state.pathParameters['playerId']!);
+            return AppPage(key: state.pageKey, child: PlayerEditScreen(playerId: playerId));
           },
         ),
       ],

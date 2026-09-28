@@ -1,3 +1,4 @@
+using CalcioAcinque.Backend.Models;
 using Microsoft.EntityFrameworkCore;
 using CalcioAcinque.Backend.Configuration;
 using CalcioAcinque.Backend.DTOs.Attendance;
@@ -49,12 +50,13 @@ public class AttendanceService : IAttendanceService
 
         var player = attendance.Player;
         var team = await _context.Teams.FindAsync(match.TeamId);
-        var useGettoni = team?.UseGettoni ?? true;
+        // Per il singolo: puo' usare i gettoni anche se la squadra no (o viceversa)
+        var useGettoni = team == null || GettoniGiocatore.Attivi(player, team);
 
         // Gestione campo "Presente" con consumo automatico gettone
         // Congelato sulla transazione: l'admin puo' uscire dalla rosa, il
         // movimento sui gettoni deve restare leggibile
-        var adminNome = !useGettoni ? "" : await _context.Players
+        var adminNome = !useGettoni && !attendance.GettoneConsumato ? "" : await _context.Players
             .Where(p => p.Id == adminPlayerId)
             .Select(p => p.Nome)
             .FirstOrDefaultAsync() ?? "";
@@ -95,7 +97,9 @@ public class AttendanceService : IAttendanceService
             }
             else if (!dto.Presente.Value && attendance.Presente)
             {
-                if (useGettoni && attendance.GettoneConsumato)
+                // Il gettone speso si restituisce comunque, anche se nel frattempo
+                // i gettoni sono stati spenti per lui
+                if (attendance.GettoneConsumato)
                 {
                     player.GettoniConsumati -= 1;
                     attendance.GettoneConsumato = false;

@@ -1,3 +1,4 @@
+using CalcioAcinque.Backend.Models;
 using Microsoft.EntityFrameworkCore;
 using CalcioAcinque.Backend.Configuration;
 using CalcioAcinque.Backend.DTOs.Dashboard;
@@ -18,8 +19,12 @@ public class DashboardService : IDashboardService
     public async Task<DashboardDto> GetDashboardAsync(int teamId, int playerId)
     {
         var team = await _context.Teams.Include(t => t.Club).FirstOrDefaultAsync(t => t.Id == teamId);
-        var useGettoni = team?.UseGettoni ?? true;
         var player = await _context.Players.FindAsync(playerId);
+        var squadra = await _context.Players.Where(p => p.TeamId == teamId).ToListAsync();
+        // "In squadra si usano i gettoni" (tab, classifica) anche se li ha solo qualcuno per eccezione
+        var gettoniInSquadra = squadra.Where(p => team == null || GettoniGiocatore.Attivi(p, team)).ToList();
+        var useGettoni = team == null ? true : gettoniInSquadra.Count > 0;
+        var mieiGettoni = player != null && (team == null || GettoniGiocatore.Attivi(player, team));
 
         // Le prossime partite non concluse: la prima e' l'hero, tutte insieme sono il riepilogo personale
         var upcoming = await _context.Matches.Include(m => m.Convocations)
@@ -57,13 +62,13 @@ public class DashboardService : IDashboardService
         var totalMatches = await _context.Matches.CountAsync(m => m.TeamId == teamId);
         var playedMatches = await _context.Matches.CountAsync(m => m.TeamId == teamId && m.Stato == StatoPartita.Conclusa);
 
-        var tokenSummary = await _context.Players.Where(p => p.TeamId == teamId)
+        var tokenSummary = gettoniInSquadra
             .OrderByDescending(p => p.GettoniTotali - p.GettoniConsumati)
             .Select(p => new PlayerTokenSummaryForDashboard
             {
                 PlayerId = p.Id, Nome = p.Nome, Soprannome = p.Soprannome,
                 GettoniRimanenti = p.GettoniTotali - p.GettoniConsumati, GettoniTotali = p.GettoniTotali
-            }).ToListAsync();
+            }).ToList();
 
         var preset = TeamFormats.Preset(team?.Formato ?? TeamFormat.CalcioA5);
 
@@ -71,6 +76,7 @@ public class DashboardService : IDashboardService
         {
             ProssimaPartita = matchSummary,
             UseGettoni = useGettoni,
+            MieiGettoni = mieiGettoni,
             TeamNome = team?.Nome ?? string.Empty,
             Formato = (team?.Formato ?? TeamFormat.CalcioA5).ToString(),
             FormatoLabel = preset.Label,
@@ -79,8 +85,8 @@ public class DashboardService : IDashboardService
             MaxConvocati = team?.MaxConvocati,
             ClubId = team?.ClubId,
             ClubNome = team?.Club?.Nome,
-            GettoniRimanenti = useGettoni ? (player?.GettoniRimanenti ?? 0) : 0,
-            GettoniTotali = useGettoni ? (player?.GettoniTotali ?? 0) : 0,
+            GettoniRimanenti = mieiGettoni ? (player?.GettoniRimanenti ?? 0) : 0,
+            GettoniTotali = mieiGettoni ? (player?.GettoniTotali ?? 0) : 0,
             ConvocazioniInAttesa = pendingConvocations,
             PartiteGiocate = playedMatches,
             PartiteTotali = totalMatches,

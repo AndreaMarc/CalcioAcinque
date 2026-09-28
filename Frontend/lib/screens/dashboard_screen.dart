@@ -294,7 +294,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: _StatsTokensRow(
                         partiteGiocate: d.partiteGiocate,
                         partiteTotali: d.partiteTotali,
-                        useGettoni: d.useGettoni,
+                        useGettoni: d.mieiGettoni,
                         gettoniRimanenti: d.gettoniRimanenti,
                         gettoniTotali: d.gettoniTotali,
                       ),

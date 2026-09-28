@@ -10,7 +10,11 @@ public enum RegimePagamento
     Stagionale = 0,
 
     /// <summary>Nessuna quota stagionale: riceve un addebito per ogni partita giocata.</summary>
-    APartita = 1
+    APartita = 1,
+
+    /// <summary>Non paga nulla: niente quote e niente addebiti partita (es. portiere
+    /// ospite, sponsor, mister che gioca). Scelta solo per il singolo giocatore.</summary>
+    Esente = 2
 }
 
 /// <summary>A chi si applica una quota fissa (iscrizione, tesseramento).</summary>
@@ -41,6 +45,7 @@ public static class RegimiPagamento
     {
         RegimePagamento.Stagionale => "Quota stagionale",
         RegimePagamento.APartita => "Paga a partita",
+        RegimePagamento.Esente => "Esente",
         _ => regime.ToString()
     };
 
@@ -48,6 +53,7 @@ public static class RegimiPagamento
     {
         RegimePagamento.Stagionale => "Versa la quota all'inizio, poi non paga le singole partite",
         RegimePagamento.APartita => "Riceve un addebito dopo ogni partita giocata",
+        RegimePagamento.Esente => "Non paga quote ne' partite",
         _ => string.Empty
     };
 
@@ -60,5 +66,6 @@ public static class RegimiPagamento
 
     /// <summary>Vero se una quota fissa con questi destinatari e' dovuta da chi ha quel regime.</summary>
     public static bool QuotaDovuta(DestinatariQuota destinatari, RegimePagamento regime) =>
-        destinatari == DestinatariQuota.Tutti || regime == RegimePagamento.Stagionale;
+        regime != RegimePagamento.Esente &&
+        (destinatari == DestinatariQuota.Tutti || regime == RegimePagamento.Stagionale);
 }

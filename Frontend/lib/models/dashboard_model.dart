@@ -2,7 +2,10 @@ import 'team_format.dart';
 
 class DashboardModel {
   final MatchSummary? prossimaPartita;
+  /// In squadra si usano i gettoni (anche solo per qualcuno).
   final bool useGettoni;
+  /// Li uso io: decide la card personale.
+  final bool mieiGettoni;
   final int gettoniRimanenti;
   final int gettoniTotali;
   final int convocazioniInAttesa;
@@ -22,7 +25,7 @@ class DashboardModel {
   final List<MatchSummary> miePartite;
 
   DashboardModel({
-    this.prossimaPartita, this.useGettoni = true,
+    this.prossimaPartita, this.useGettoni = true, this.mieiGettoni = true,
     required this.gettoniRimanenti, required this.gettoniTotali,
     required this.convocazioniInAttesa, required this.partiteGiocate,
     required this.partiteTotali, required this.classificaGettoni,
@@ -43,6 +46,7 @@ class DashboardModel {
     prossimaPartita: json['prossimaPartita'] != null
         ? MatchSummary.fromJson(json['prossimaPartita']) : null,
     useGettoni: json['useGettoni'] ?? true,
+    mieiGettoni: json['mieiGettoni'] as bool? ?? json['useGettoni'] as bool? ?? true,
     gettoniRimanenti: json['gettoniRimanenti'] ?? 0,
     gettoniTotali: json['gettoniTotali'] ?? 0,
     convocazioniInAttesa: json['convocazioniInAttesa'] ?? 0,

@@ -656,7 +656,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 8),
                   AppChoiceChips<RegimePagamento>(
-                    values: RegimePagamento.values,
+                    values: RegimePagamentoX.perSquadra,
                     selected: regimeDefault,
                     label: (r) => r.label,
                     onChanged: (r) => setDialogState(() => regimeDefault = r!),

@@ -1,3 +1,4 @@
+using CalcioAcinque.Backend.Models;
 using Microsoft.EntityFrameworkCore;
 using CalcioAcinque.Backend.Configuration;
 using CalcioAcinque.Backend.DTOs.Tokens;
@@ -22,8 +23,9 @@ public class TokenService : ITokenService
     public async Task<List<PlayerTokenSummaryDto>> GetTeamTokenSummaryAsync(int teamId)
     {
         var team = await _context.Teams.FindAsync(teamId);
-        if (team != null && !team.UseGettoni) return new List<PlayerTokenSummaryDto>();
         var players = await _context.Players.Where(p => p.TeamId == teamId).OrderBy(p => p.Nome).ToListAsync();
+        // Solo chi usa davvero i gettoni: con la squadra senza, restano le eccezioni personali
+        if (team != null) players = players.Where(p => GettoniGiocatore.Attivi(p, team)).ToList();
         return players.Select(p => new PlayerTokenSummaryDto
         {
             PlayerId = p.Id, Nome = p.Nome, Soprannome = p.Soprannome,
@@ -54,8 +56,8 @@ public class TokenService : ITokenService
         if (player.TeamId != teamId) throw new UnauthorizedException("Non sei autorizzato ad accedere a questa risorsa");
 
         var team = await _context.Teams.FindAsync(teamId);
-        if (team != null && !team.UseGettoni)
-            throw new BusinessException("Il sistema gettoni è disabilitato per questo team");
+        if (team != null && !GettoniGiocatore.Attivi(player, team))
+            throw new BusinessException("Questo giocatore non usa i gettoni");
 
         var tipo = dto.Quantita > 0 ? TipoTransazione.AggiuntaManuale : TipoTransazione.RimozioneManuale;
 

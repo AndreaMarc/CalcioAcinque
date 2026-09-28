@@ -26,6 +26,21 @@ public class PlayerDto
     /// <summary>Regime che vale davvero, default di squadra risolto.</summary>
     public string RegimePagamentoEffettivo { get; set; } = string.Empty;
 
+    // Eccezioni personali (null = come la squadra) e valori che valgono davvero
+    public bool? UsaGettoni { get; set; }
+    public bool UsaGettoniEffettivo { get; set; }
+    public int? GettoniPerStagione { get; set; }
+    public int GettoniPerStagioneEffettivi { get; set; }
+    public decimal? QuotaIscrizionePersonale { get; set; }
+    public decimal? QuotaTesseramentoPersonale { get; set; }
+    public decimal? CostoPartitaPersonale { get; set; }
+    public decimal QuotaIscrizioneEffettiva { get; set; }
+    public decimal QuotaTesseramentoEffettiva { get; set; }
+    public decimal CostoPartitaEffettivo { get; set; }
+
+    /// <summary>Partite in cui e' stato segnato presente (tutte le stagioni).</summary>
+    public int Presenze { get; set; }
+
     /// <summary>Convocazioni ricevute nelle partite concluse (tutte le stagioni).</summary>
     public int ConvocazioniRicevute { get; set; }
 
@@ -83,6 +98,21 @@ public class UpdatePlayerDto
 
     /// <summary>Stringa vuota per tornare al default della squadra.</summary>
     public string? RegimePagamento { get; set; }
+
+    /// <summary>
+    /// Eccezioni economiche: il campo `Reimposta*` a true torna al valore della
+    /// squadra (null nel JSON non basta: vuol dire "non toccare").
+    /// </summary>
+    public bool? UsaGettoni { get; set; }
+    public bool ReimpostaUsaGettoni { get; set; }
+    public int? GettoniPerStagione { get; set; }
+    public bool ReimpostaGettoniPerStagione { get; set; }
+    public decimal? QuotaIscrizionePersonale { get; set; }
+    public bool ReimpostaQuotaIscrizione { get; set; }
+    public decimal? QuotaTesseramentoPersonale { get; set; }
+    public bool ReimpostaQuotaTesseramento { get; set; }
+    public decimal? CostoPartitaPersonale { get; set; }
+    public bool ReimpostaCostoPartita { get; set; }
 }
 
 public class ResetPasswordDto

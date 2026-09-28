@@ -1,3 +1,4 @@
+using CalcioAcinque.Backend.Models;
 using Microsoft.EntityFrameworkCore;
 using CalcioAcinque.Backend.Configuration;
 using CalcioAcinque.Backend.DTOs.Players;
@@ -42,9 +43,17 @@ public class PlayerService : IPlayerService
             })
             .ToDictionaryAsync(x => x.PlayerId);
 
+        // Presenze vere: senza gettoni i gettoni consumati non le contano
+        var presenze = await _context.MatchAttendances
+            .Where(a => a.Match.TeamId == teamId && a.Presente)
+            .GroupBy(a => a.PlayerId)
+            .Select(g => new { PlayerId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.PlayerId, x => x.Count);
+
         return players.Select(p =>
         {
-            var dto = MapToDto(p, team.RegimePagamentoDefault);
+            var dto = MapToDto(p, team);
+            dto.Presenze = presenze.GetValueOrDefault(p.Id);
             if (risposte.TryGetValue(p.Id, out var r) && r.Ricevute > 0)
             {
                 dto.ConvocazioniRicevute = r.Ricevute;
@@ -60,7 +69,7 @@ public class PlayerService : IPlayerService
             .FirstOrDefaultAsync(p => p.Id == playerId && p.TeamId == teamId);
         if (player == null) throw new NotFoundException("Giocatore", playerId);
 
-        return new PlayerDetailDto
+        return Economia(new PlayerDetailDto
         {
             Id = player.Id, TeamId = player.TeamId, UserId = player.UserId,
             ClubMemberId = player.ClubMemberId, Nome = player.Nome,
@@ -75,9 +84,10 @@ public class PlayerService : IPlayerService
             Email = player.User.Email,
             PartiteConvocato = player.Attendances.Count(a => a.Convocato),
             PartitePresente = player.Attendances.Count(a => a.Presente),
+            Presenze = player.Attendances.Count(a => a.Presente),
             PartiteGiocate = player.Attendances.Count(a => a.HaGiocato),
             AltreSquadre = await GetOtherTeamsAsync(player)
-        };
+        }, player, player.Team);
     }
 
     public async Task<PlayerDto> CreateAsync(int teamId, CreatePlayerDto dto)
@@ -133,7 +143,7 @@ public class PlayerService : IPlayerService
         };
         _context.Players.Add(player);
         await _context.SaveChangesAsync();
-        return MapToDto(player, team.RegimePagamentoDefault);
+        return MapToDto(player, team);
     }
 
     public async Task<PlayerDto> UpdateAsync(int teamId, int playerId, UpdatePlayerDto dto)
@@ -174,8 +184,10 @@ public class PlayerService : IPlayerService
         if (dto.RegimePagamento != null)
             player.RegimePagamento = ParseRegime(dto.RegimePagamento);
 
+        AggiornaEconomia(player, player.Team, dto);
+
         await _context.SaveChangesAsync();
-        return MapToDto(player, player.Team.RegimePagamentoDefault);
+        return MapToDto(player, player.Team);
     }
 
     public async Task DeleteAsync(int teamId, int playerId)
@@ -250,8 +262,9 @@ public class PlayerService : IPlayerService
         await UpdateIdentityAsync(player, dto.Nome, dto.Soprannome, dto.Telefono);
         await _context.SaveChangesAsync();
 
-        var team = await _context.Teams.FindAsync(teamId);
-        return MapToDto(player, team?.RegimePagamentoDefault ?? RegimePagamento.Stagionale);
+        var team = await _context.Teams.FindAsync(teamId)
+            ?? throw new NotFoundException("Team", teamId);
+        return MapToDto(player, team);
     }
 
     // ---------------------------------------------------------------- interni
@@ -339,13 +352,69 @@ public class PlayerService : IPlayerService
         }).OrderBy(x => x.TeamNome).ToList();
     }
 
+    /// <summary>
+    /// Eccezioni economiche del singolo. Accendere i gettoni a stagione in corso
+    /// gli da' subito la dotazione (senza, partirebbe da 0 fino alla chiusura);
+    /// spegnerli non toglie nulla: i consumi fatti restano nello storico.
+    /// </summary>
+    private void AggiornaEconomia(Player player, Team team, UpdatePlayerDto dto)
+    {
+        var gettoniPrima = GettoniGiocatore.Attivi(player, team);
+
+        if (dto.ReimpostaUsaGettoni) player.UsaGettoni = null;
+        else if (dto.UsaGettoni.HasValue) player.UsaGettoni = dto.UsaGettoni.Value;
+
+        if (dto.ReimpostaGettoniPerStagione) player.GettoniPerStagione = null;
+        else if (dto.GettoniPerStagione.HasValue)
+        {
+            if (dto.GettoniPerStagione.Value is < 0 or > 200)
+                throw new BadRequestException("I gettoni a stagione devono essere tra 0 e 200");
+            player.GettoniPerStagione = dto.GettoniPerStagione.Value;
+        }
+
+        if (dto.ReimpostaQuotaIscrizione) player.QuotaIscrizionePersonale = null;
+        else if (dto.QuotaIscrizionePersonale.HasValue)
+            player.QuotaIscrizionePersonale = NonNegativo(dto.QuotaIscrizionePersonale.Value, "La quota di iscrizione");
+
+        if (dto.ReimpostaQuotaTesseramento) player.QuotaTesseramentoPersonale = null;
+        else if (dto.QuotaTesseramentoPersonale.HasValue)
+            player.QuotaTesseramentoPersonale = NonNegativo(dto.QuotaTesseramentoPersonale.Value, "La quota di tesseramento");
+
+        if (dto.ReimpostaCostoPartita) player.CostoPartitaPersonale = null;
+        else if (dto.CostoPartitaPersonale.HasValue)
+            player.CostoPartitaPersonale = NonNegativo(dto.CostoPartitaPersonale.Value, "Il costo partita");
+
+        if (!gettoniPrima && GettoniGiocatore.Attivi(player, team) && player.GettoniTotali == 0)
+        {
+            var dotazione = GettoniGiocatore.PerStagione(player, team);
+            if (dotazione > 0)
+            {
+                player.GettoniTotali = dotazione;
+                _context.TokenTransactions.Add(new TokenTransaction
+                {
+                    PlayerId = player.Id,
+                    Tipo = TipoTransazione.Override,
+                    Motivazione = "Gettoni attivati per il giocatore",
+                    Quantita = dotazione,
+                    Timestamp = DateTime.UtcNow
+                });
+            }
+        }
+    }
+
+    private static decimal NonNegativo(decimal value, string label)
+    {
+        if (value < 0) throw new BadRequestException($"{label} non può essere negativa");
+        return value;
+    }
+
     private static RegimePagamento? ParseRegime(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return null;
         return Enum.TryParse<RegimePagamento>(value, true, out var regime) ? regime : null;
     }
 
-    private static PlayerDto MapToDto(Player p, RegimePagamento defaultSquadra) => new()
+    private static PlayerDto MapToDto(Player p, Team team) => Economia(new PlayerDto
     {
         Id = p.Id, TeamId = p.TeamId, UserId = p.UserId, ClubMemberId = p.ClubMemberId,
         Nome = p.Nome, Soprannome = p.Soprannome,
@@ -355,7 +424,23 @@ public class PlayerService : IPlayerService
         GettoniConsumati = p.GettoniConsumati, GettoniRimanenti = p.GettoniRimanenti,
         IscrizionePagata = p.IscrizionePagata, TesseramentoPagato = p.TesseramentoPagato,
         RegimePagamento = p.RegimePagamento?.ToString(),
-        RegimePagamentoEffettivo = RegimiPagamento.Effettivo(p.RegimePagamento, defaultSquadra).ToString(),
+        RegimePagamentoEffettivo = RegimiPagamento.Effettivo(p.RegimePagamento, team.RegimePagamentoDefault).ToString(),
         CreatedAt = p.CreatedAt
-    };
+    }, p, team);
+
+    /// <summary>Eccezioni economiche del giocatore e i valori che valgono davvero.</summary>
+    private static T Economia<T>(T dto, Player p, Team team) where T : PlayerDto
+    {
+        dto.UsaGettoni = p.UsaGettoni;
+        dto.UsaGettoniEffettivo = GettoniGiocatore.Attivi(p, team);
+        dto.GettoniPerStagione = p.GettoniPerStagione;
+        dto.GettoniPerStagioneEffettivi = GettoniGiocatore.PerStagione(p, team);
+        dto.QuotaIscrizionePersonale = p.QuotaIscrizionePersonale;
+        dto.QuotaTesseramentoPersonale = p.QuotaTesseramentoPersonale;
+        dto.CostoPartitaPersonale = p.CostoPartitaPersonale;
+        dto.QuotaIscrizioneEffettiva = p.QuotaIscrizionePersonale ?? team.QuotaIscrizione;
+        dto.QuotaTesseramentoEffettiva = p.QuotaTesseramentoPersonale ?? team.QuotaTesseramento;
+        dto.CostoPartitaEffettivo = p.CostoPartitaPersonale ?? team.CostoPartita;
+        return dto;
+    }
 }

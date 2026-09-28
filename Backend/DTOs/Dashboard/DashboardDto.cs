@@ -3,7 +3,11 @@ namespace CalcioAcinque.Backend.DTOs.Dashboard;
 public class DashboardDto
 {
     public MatchSummaryDto? ProssimaPartita { get; set; }
+    /// <summary>In squadra si usano i gettoni (anche solo per qualcuno, per eccezione).</summary>
     public bool UseGettoni { get; set; } = true;
+
+    /// <summary>Il giocatore corrente usa i gettoni.</summary>
+    public bool MieiGettoni { get; set; } = true;
 
     // Contesto squadra: serve al client per etichette e conteggi coerenti col formato
     public string TeamNome { get; set; } = string.Empty;
