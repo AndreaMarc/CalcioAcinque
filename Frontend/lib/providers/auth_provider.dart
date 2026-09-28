@@ -445,16 +445,20 @@ class AuthProvider extends ChangeNotifier {
     return false;
   }
 
-  /// Salva il tema scuro sull'account, cosi' lo ritrovano gli altri dispositivi.
-  Future<bool> saveTemaScuro(bool value) async {
+  /// Salva tema scuro e/o colore sull'account, cosi' li ritrovano gli altri
+  /// dispositivi. [coloreBrand] "#RRGGBB", "" = verde di default.
+  Future<bool> savePreferences({bool? temaScuro, String? coloreBrand}) async {
     try {
       final response = await apiClient.dio.put(
         ApiConstants.preferences,
-        data: {'temaScuro': value},
+        data: {
+          if (temaScuro != null) 'temaScuro': temaScuro,
+          if (coloreBrand != null) 'coloreBrand': coloreBrand,
+        },
       );
       if (response.data['success'] == true) {
         // Senza aggiornare la copia locale, il prossimo sync la riporterebbe indietro
-        _currentPlayer = _currentPlayer?.copyWith(temaScuro: value);
+        _currentPlayer = _currentPlayer?.copyWith(temaScuro: temaScuro, coloreBrand: coloreBrand);
         return true;
       }
     } catch (_) {}

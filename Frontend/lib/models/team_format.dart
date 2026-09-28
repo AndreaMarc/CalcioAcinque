@@ -218,9 +218,6 @@ class TeamConfig {
   /// Logo condiviso della squadra (base64), null se non caricato.
   final String? logoBase64;
 
-  /// Colore brand "#RRGGBB", null = verde InCampo di default.
-  final String? coloreBrand;
-
   TeamConfig({
     required this.id,
     this.clubId,
@@ -252,7 +249,6 @@ class TeamConfig {
     this.intestatarioIbanEffettivo,
     required this.totaleGiocatori,
     this.logoBase64,
-    this.coloreBrand,
   });
 
   factory TeamConfig.fromJson(Map<String, dynamic> json) {
@@ -290,7 +286,6 @@ class TeamConfig {
       intestatarioIbanEffettivo: json['intestatarioIbanEffettivo'] as String?,
       totaleGiocatori: (json['totaleGiocatori'] as num?)?.toInt() ?? 0,
       logoBase64: json['logoBase64'] as String?,
-      coloreBrand: json['coloreBrand'] as String?,
     );
   }
 

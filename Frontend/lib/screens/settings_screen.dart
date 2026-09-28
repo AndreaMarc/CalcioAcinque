@@ -1296,7 +1296,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onToggleDark: (v) {
                         theme.setDarkMode(v);
                         // Sull'account: lo ritrovano gli altri dispositivi al prossimo avvio
-                        auth.saveTemaScuro(v);
+                        auth.savePreferences(temaScuro: v);
                       },
                       hasLogo: theme.hasLogo,
                       logoBytes: theme.logoBytes,
@@ -1336,15 +1336,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         }
                       },
                       onColorPick: (color) async {
-                        // Il colore e' della squadra: prima il server, poi la copia locale
-                        final ok = await context.read<ClubProvider>().updateTeamConfig(
-                            teamId: auth.teamId, coloreBrand: ThemeProvider.toHex(color));
-                        if (!mounted) return;
-                        if (ok) {
-                          await theme.setPrimaryColor(color);
-                        } else {
+                        // Il colore e' di chi lo sceglie: subito qui, poi sull'account
+                        // perche' lo ritrovino gli altri suoi dispositivi
+                        await theme.setPrimaryColor(color);
+                        final ok = await auth.savePreferences(coloreBrand: ThemeProvider.toHex(color));
+                        if (!ok && mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Non riesco a salvare il colore')),
+                            const SnackBar(content: Text('Colore applicato, ma non sincronizzato sugli altri dispositivi')),
                           );
                         }
                       },

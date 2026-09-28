@@ -789,7 +789,8 @@ public class AuthService : IAuthService
             Soprannome = player.Soprannome,
             Telefono = player.Telefono,
             Ruolo = player.Ruolo.ToString(),
-            TemaScuro = user.TemaScuro
+            TemaScuro = user.TemaScuro,
+            ColoreBrand = user.ColoreBrand
         };
     }
 
@@ -822,6 +823,15 @@ public class AuthService : IAuthService
         if (user == null) throw new UnauthorizedException("Utente non trovato");
 
         if (request.TemaScuro.HasValue) user.TemaScuro = request.TemaScuro.Value;
+        if (request.ColoreBrand != null)
+        {
+            // "" resta "" (non null): e' una scelta esplicita del verde di default,
+            // che deve vincere anche sui dispositivi con un altro colore in locale
+            var colore = request.ColoreBrand.Trim().ToUpperInvariant();
+            if (colore.Length > 0 && !System.Text.RegularExpressions.Regex.IsMatch(colore, "^#[0-9A-F]{6}$"))
+                throw new BadRequestException("Colore non valido: serve il formato #RRGGBB");
+            user.ColoreBrand = colore;
+        }
         user.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
     }

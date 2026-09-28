@@ -1,7 +1,7 @@
 // Tema InCampo: token di design (AppTokens), ThemeProvider e buildTheme().
 // I colori vivono SOLO qui: fuori da questo file niente Color(0x...).
 // Font: Space Grotesk (UI) + Bebas Neue (display) via google_fonts.
-// Nome, logo e colore brand stanno sul server (squadra), il tema scuro sull'account:
+// Nome e logo stanno sul server (squadra), tema scuro e colore sull'account:
 // SharedPreferences e' solo la cache per partire subito con l'ultimo stato noto.
 
 import 'dart:convert';
@@ -172,6 +172,8 @@ class _BrandPalette {
 class ThemeProvider extends ChangeNotifier {
   static const String _legacyKeyTeamName = 'team_name';
   static const String _legacyKeyPrimaryColor = 'primary_color';
+  // Il colore e' dell'utente, non della squadra: una chiave sola per tutte
+  static const String _keyBrandColor = 'brand_color';
   static const String _legacyKeyAccentColor = 'accent_color';
   static const String _legacyKeyLogoBase64 = 'team_logo_base64';
   static const String _keyDarkMode = 'dark_mode';
@@ -246,7 +248,8 @@ class ThemeProvider extends ChangeNotifier {
   Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     _teamName = prefs.getString(_keyTeamName()) ?? 'InCampo';
-    final primaryValue = prefs.getInt(_keyPrimaryColor());
+    // Prima il colore era per squadra: resta come ripiego finche' non se ne sceglie uno
+    final primaryValue = prefs.getInt(_keyBrandColor) ?? prefs.getInt(_keyPrimaryColor());
     _primaryColor = primaryValue != null ? Color(primaryValue) : AppTokens.defaultBrand;
     _applyBrand();
     final accentValue = prefs.getInt(_keyAccentColor());
@@ -273,7 +276,6 @@ class ThemeProvider extends ChangeNotifier {
     required int teamId,
     String? teamName,
     String? logoBase64,
-    String? coloreBrand,
     bool syncLogo = false,
   }) async {
     if (teamId != _currentTeamId) return;
@@ -301,28 +303,30 @@ class ThemeProvider extends ChangeNotifier {
       changed = true;
     }
 
-    // Come il logo: solo con la configurazione letta davvero, e null = default
-    if (syncLogo) {
-      final serverColor = parseHex(coloreBrand) ?? AppTokens.defaultBrand;
-      if (serverColor.value != _primaryColor.value) {
-        _primaryColor = serverColor;
-        await prefs.setInt(_keyPrimaryColor(), serverColor.value);
+    if (changed) notifyListeners();
+  }
+
+  /// Tema scuro e colore salvati sull'account: vincono sulla preferenza locale.
+  /// null = l'utente non li ha mai scelti, resta quella del dispositivo;
+  /// colore "" = verde di default scelto esplicitamente.
+  Future<void> syncUserPreferences({bool? temaScuro, String? coloreBrand}) async {
+    final prefs = await SharedPreferences.getInstance();
+    var changed = false;
+    if (temaScuro != null && temaScuro != _dark) {
+      _dark = temaScuro;
+      await prefs.setBool(_keyDarkMode, temaScuro);
+      changed = true;
+    }
+    if (coloreBrand != null) {
+      final color = parseHex(coloreBrand) ?? AppTokens.defaultBrand;
+      if (color.value != _primaryColor.value) {
+        _primaryColor = color;
+        await prefs.setInt(_keyBrandColor, color.value);
         _applyBrand();
         changed = true;
       }
     }
-
     if (changed) notifyListeners();
-  }
-
-  /// Tema scuro salvato sull'account: vince sulla preferenza locale.
-  /// null = l'utente non l'ha mai scelto, resta quella del dispositivo.
-  Future<void> syncDarkModeFromServer(bool? value) async {
-    if (value == null || value == _dark) return;
-    _dark = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyDarkMode, value);
-    notifyListeners();
   }
 
   static Color? parseHex(String? hex) {
@@ -348,13 +352,13 @@ class ThemeProvider extends ChangeNotifier {
     WidgetsBinding.instance.scheduleFrame();
   }
 
-  /// Solo la copia locale: il colore vero va salvato sulla squadra
-  /// (ClubProvider.updateTeamConfig), come fa la pagina Impostazioni.
+  /// Solo la copia locale: sull'account lo salva AuthProvider.savePreferences,
+  /// come fa la pagina Impostazioni.
   Future<void> setPrimaryColor(Color color) async {
     _primaryColor = color;
     _applyBrand();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyPrimaryColor(), color.value);
+    await prefs.setInt(_keyBrandColor, color.value);
     notifyListeners();
   }
 

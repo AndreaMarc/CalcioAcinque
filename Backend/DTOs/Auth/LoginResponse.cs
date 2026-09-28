@@ -22,6 +22,9 @@ public class PlayerInfo
 
     /// <summary>Preferenza dell'utente (non del tesserato): null = mai scelta.</summary>
     public bool? TemaScuro { get; set; }
+
+    /// <summary>Colore brand dell'utente "#RRGGBB"; null = mai scelto, "" = verde di default.</summary>
+    public string? ColoreBrand { get; set; }
 }
 
 public class MeResponse

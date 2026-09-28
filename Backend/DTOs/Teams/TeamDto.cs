@@ -51,9 +51,6 @@ public class TeamDto
 
     /// <summary>Logo condiviso della squadra (base64), null se non caricato.</summary>
     public string? LogoBase64 { get; set; }
-
-    /// <summary>Colore brand "#RRGGBB", null = default InCampo.</summary>
-    public string? ColoreBrand { get; set; }
 }
 
 public class CreateTeamDto
@@ -100,7 +97,4 @@ public class UpdateTeamDto
 
     /// <summary>Logo in base64; stringa vuota per rimuoverlo, null per non toccarlo.</summary>
     public string? LogoBase64 { get; set; }
-
-    /// <summary>Colore brand "#RRGGBB"; stringa vuota per tornare al default, null per non toccarlo.</summary>
-    public string? ColoreBrand { get; set; }
 }

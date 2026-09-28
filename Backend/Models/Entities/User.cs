@@ -24,6 +24,13 @@ public class User
     /// null = mai scelto: ogni dispositivo tiene la sua preferenza locale.
     /// </summary>
     public bool? TemaScuro { get; set; }
+
+    /// <summary>
+    /// Colore brand scelto dall'utente come "#RRGGBB", uguale su tutti i suoi
+    /// dispositivi. null = mai scelto (resta la preferenza locale, o il verde InCampo).
+    /// </summary>
+    [MaxLength(7)]
+    public string? ColoreBrand { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 

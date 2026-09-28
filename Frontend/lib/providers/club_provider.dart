@@ -278,7 +278,6 @@ class ClubProvider extends ChangeNotifier {
     String? iban,
     String? intestatarioIban,
     String? logoBase64,
-    String? coloreBrand,
   }) =>
       _mutate(() async {
         final response = await apiClient.dio.put(
@@ -312,8 +311,6 @@ class ClubProvider extends ChangeNotifier {
             if (intestatarioIban != null) 'intestatarioIban': intestatarioIban,
             // Stringa vuota = rimuovi il logo
             if (logoBase64 != null) 'logoBase64': logoBase64,
-            // "#RRGGBB", stringa vuota = torna al verde di default
-            if (coloreBrand != null) 'coloreBrand': coloreBrand,
           },
         );
         if (response.data['success'] != true) return response.data['message'] as String?;

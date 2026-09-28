@@ -90,13 +90,6 @@ public class Team
     /// </summary>
     public string? LogoBase64 { get; set; }
 
-    /// <summary>
-    /// Colore brand della squadra come "#RRGGBB", null = verde InCampo di default.
-    /// Sta sul server come nome e logo: tutti i membri vedono gli stessi colori.
-    /// </summary>
-    [MaxLength(7)]
-    public string? ColoreBrand { get; set; }
-
     [NotMapped]
     public TeamFormatPreset Preset => TeamFormats.Preset(Formato);
 

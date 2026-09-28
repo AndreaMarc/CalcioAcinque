@@ -1,27 +1,37 @@
-using CalcioAcinque.Backend.DTOs.Teams;
+using CalcioAcinque.Backend.DTOs.Auth;
 using CalcioAcinque.Backend.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CalcioAcinque.Backend.Tests;
 
-/// <summary>Il colore brand sta sul server: tutti i membri e dispositivi lo leggono da qui.</summary>
+/// <summary>Colore e tema sono dell'account: ogni dispositivo li rilegge da qui.</summary>
 public class BrandTests
 {
+    private static AuthService Auth(TestDb t) =>
+        new(t.Db, new ConfigurationBuilder().Build(), NullLogger<AuthService>.Instance);
+
     [Fact]
-    public async Task Il_colore_si_salva_normalizzato_e_si_azzera_con_stringa_vuota()
+    public async Task Colore_e_tema_si_salvano_sull_utente_e_null_non_tocca_nulla()
     {
         using var t = new TestDb();
-        var teams = new TeamService(t.Db);
+        var userId = t.Giocatore.UserId;
 
-        var dto = await teams.UpdateAsync(t.Team.Id, new UpdateTeamDto { ColoreBrand = "#3b7cf2" });
-        Assert.Equal("#3B7CF2", dto.ColoreBrand);
-        Assert.Equal("#3B7CF2", (await teams.GetByIdAsync(t.Team.Id)).ColoreBrand);
+        await Auth(t).UpdatePreferencesAsync(userId, new UpdatePreferencesRequest { ColoreBrand = "#3b7cf2", TemaScuro = true });
+        var user = await t.Db.Users.AsNoTracking().SingleAsync(u => u.Id == userId);
+        Assert.Equal("#3B7CF2", user.ColoreBrand);
+        Assert.True(user.TemaScuro);
 
-        // null = non toccare
-        dto = await teams.UpdateAsync(t.Team.Id, new UpdateTeamDto { Nome = "Altro" });
-        Assert.Equal("#3B7CF2", dto.ColoreBrand);
+        await Auth(t).UpdatePreferencesAsync(userId, new UpdatePreferencesRequest { TemaScuro = false });
+        user = await t.Db.Users.AsNoTracking().SingleAsync(u => u.Id == userId);
+        Assert.Equal("#3B7CF2", user.ColoreBrand);
+        Assert.False(user.TemaScuro);
 
-        dto = await teams.UpdateAsync(t.Team.Id, new UpdateTeamDto { ColoreBrand = "" });
-        Assert.Null(dto.ColoreBrand);
+        // "" = scelta esplicita del verde di default, diversa da "mai scelto"
+        await Auth(t).UpdatePreferencesAsync(userId, new UpdatePreferencesRequest { ColoreBrand = "" });
+        user = await t.Db.Users.AsNoTracking().SingleAsync(u => u.Id == userId);
+        Assert.Equal("", user.ColoreBrand);
     }
 
     [Theory]
@@ -33,6 +43,6 @@ public class BrandTests
     {
         using var t = new TestDb();
         await Assert.ThrowsAsync<Exceptions.BadRequestException>(
-            () => new TeamService(t.Db).UpdateAsync(t.Team.Id, new UpdateTeamDto { ColoreBrand = colore }));
+            () => Auth(t).UpdatePreferencesAsync(t.Giocatore.UserId, new UpdatePreferencesRequest { ColoreBrand = colore }));
     }
 }
