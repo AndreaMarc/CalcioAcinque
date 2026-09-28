@@ -412,6 +412,8 @@ class AppChip extends StatelessWidget {
 
 class JerseyNumber extends StatelessWidget {
   final int? number;
+  /// Testo al posto del numero (es. "ST" per lo staff, che non ha maglia).
+  final String? label;
   final double size;
   final Color? bg;
   final Color? fg;
@@ -421,6 +423,7 @@ class JerseyNumber extends StatelessWidget {
   const JerseyNumber({
     super.key,
     this.number,
+    this.label,
     this.size = 40,
     this.bg,
     this.fg,
@@ -439,7 +442,7 @@ class JerseyNumber extends StatelessWidget {
       ),
       alignment: Alignment.center,
       child: Text(
-        number?.toString() ?? '?',
+        label ?? number?.toString() ?? '–',
         style: _display(fontSize, color: fg ?? AppTokens.brand),
       ),
     );

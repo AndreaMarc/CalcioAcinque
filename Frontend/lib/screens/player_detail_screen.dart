@@ -12,6 +12,7 @@ import '../providers/dashboard_provider.dart';
 import '../providers/theme_provider.dart';
 import '../models/payment_model.dart';
 import '../models/player_model.dart';
+import '../models/team_draft.dart' show PlayerPositionX;
 import '../widgets/app_widgets.dart';
 
 class PlayerDetailScreen extends StatefulWidget {
@@ -80,8 +81,6 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
     final useGettoni = player.usaGettoniEffettivo;
     final theme = context.watch<ThemeProvider>();
     final initials = teamInitials(theme.teamName);
-    final playerIndex = context.read<PlayersProvider>().players.indexWhere((p) => p.id == player.id);
-    final jerseyNum = playerIndex >= 0 ? playerIndex + 1 : 1;
 
     return Scaffold(
       backgroundColor: paper,
@@ -115,7 +114,6 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
                       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                       child: _PlayerHero(
                         player: player,
-                        jerseyNum: jerseyNum,
                       ),
                     ),
                     if (_altreSquadre.isNotEmpty) ...[
@@ -251,8 +249,7 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
 
 class _PlayerHero extends StatelessWidget {
   final PlayerModel player;
-  final int jerseyNum;
-  const _PlayerHero({required this.player, required this.jerseyNum});
+  const _PlayerHero({required this.player});
 
   @override
   Widget build(BuildContext context) {
@@ -273,7 +270,13 @@ class _PlayerHero extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '#$jerseyNum${player.isAdmin ? " · CAPITANO" : ""}',
+                      [
+                        // Lo staff non ha maglia ne' ruolo in campo
+                        if (!player.gioca) 'STAFF'
+                        else if (player.numeroMaglia != null) '#${player.numeroMaglia}',
+                        if (player.gioca && player.posizione != null) player.posizione!.label.toUpperCase(),
+                        if (player.ruoloBadge != null) player.ruoloLabel.toUpperCase(),
+                      ].join(' · '),
                       style: GoogleFonts.spaceGrotesk(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -313,14 +316,17 @@ class _PlayerHero extends StatelessWidget {
                   ],
                 ),
               ),
-              Text(
-                '$jerseyNum',
-                style: GoogleFonts.bebasNeue(
-                  fontSize: 120,
-                  height: 0.8,
-                  color: AppTokens.brand.withOpacity(0.9),
+              if (!player.gioca)
+                Icon(Icons.sports, size: 84, color: AppTokens.brand.withOpacity(0.9))
+              else if (player.numeroMaglia != null)
+                Text(
+                  '${player.numeroMaglia}',
+                  style: GoogleFonts.bebasNeue(
+                    fontSize: 120,
+                    height: 0.8,
+                    color: AppTokens.brand.withOpacity(0.9),
+                  ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -350,7 +356,7 @@ class _PlayerHero extends StatelessWidget {
                 Expanded(
                   child: _heroStat(
                     label: 'RUOLO',
-                    value: player.isAdmin ? 'ADMIN' : 'PLAYER',
+                    value: player.gioca ? player.ruoloLabel.toUpperCase() : 'STAFF',
                     small: true,
                   ),
                 ),

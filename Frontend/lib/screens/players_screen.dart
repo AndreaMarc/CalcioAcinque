@@ -162,16 +162,14 @@ class _PlayersScreenState extends State<PlayersScreen> {
                               child: Center(child: Text('Nessun giocatore')),
                             )
                           else
-                            ...filtered.asMap().entries.map((e) {
-                              final i = e.key;
-                              final p = e.value;
+                            ...filtered.map((p) {
                               return Padding(
                                 padding:
                                     const EdgeInsets.fromLTRB(16, 0, 16, 8),
                                 child: _PlayerCard(
                                   player: p,
-                                  // Il numero configurato vince sulla posizione in lista
-                                  jerseyNumber: p.numeroMaglia ?? i + 1,
+                                  // Solo il numero vero: niente numeri inventati dalla posizione in lista
+                                  jerseyNumber: p.numeroMaglia,
                                   isAdmin: auth.puoGestireSquadra,
                                   // Accordi economici: dato riservato a chi gestisce squadra e cassa
                                   mostraAccordi: auth.puoGestireSquadra || auth.puoGestireSoldi,
@@ -679,7 +677,7 @@ class _PendingCard extends StatelessWidget {
 
 class _PlayerCard extends StatelessWidget {
   final PlayerModel player;
-  final int jerseyNumber;
+  final int? jerseyNumber;
   final bool isAdmin;
   final bool mostraAccordi;
   final VoidCallback onTap;
@@ -727,6 +725,7 @@ class _PlayerCard extends StatelessWidget {
                 children: [
                   JerseyNumber(
                     number: jerseyNumber,
+                    label: player.gioca ? null : 'ST',
                     size: 50,
                     radius: 12,
                     fontSize: 24,
@@ -775,11 +774,13 @@ class _PlayerCard extends StatelessWidget {
                       ),
                     ),
                     if (player.displayName != player.nome ||
-                        player.posizione != null)
+                        player.posizione != null ||
+                        !player.gioca)
                       Text(
                         [
                           if (player.displayName != player.nome) player.nome,
-                          if (player.posizione != null) player.posizione!.label,
+                          if (!player.gioca) 'Staff'
+                          else if (player.posizione != null) player.posizione!.label,
                         ].join(' · '),
                         style: GoogleFonts.spaceGrotesk(
                           fontSize: 11,

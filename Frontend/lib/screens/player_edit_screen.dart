@@ -108,9 +108,9 @@ class _PlayerEditScreenState extends State<PlayerEditScreen> {
       'nome': _nome.text.trim(),
       if (_soprannome.text.trim().isNotEmpty) 'soprannome': _soprannome.text.trim(),
       if (_telefono.text.trim().isNotEmpty) 'telefono': _telefono.text.trim(),
-      // Stringa vuota = azzera il ruolo in campo
-      'posizione': _posizione?.apiValue ?? '',
-      'numeroMaglia': int.tryParse(_numero.text) ?? 0,
+      // Stringa vuota = azzera il ruolo in campo; lo staff non ha ne' ruolo ne' maglia
+      'posizione': _gioca ? (_posizione?.apiValue ?? '') : '',
+      'numeroMaglia': _gioca ? (int.tryParse(_numero.text) ?? 0) : 0,
       'ruolo': _ruolo.apiValue,
       'gioca': _gioca,
       // Stringa vuota = torna al default della squadra
@@ -195,18 +195,31 @@ class _PlayerEditScreenState extends State<PlayerEditScreen> {
                         _card(Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            PositionPicker(
-                              formato: cfg.formato,
-                              selected: _posizione,
-                              onChanged: (p) => setState(() => _posizione = p),
+                            SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Solo staff, non gioca'),
+                              subtitle: const Text(
+                                'Allenatore o dirigente: dà la presenza ma resta fuori da convocazioni e statistiche, senza ruolo in campo né maglia',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                              value: !_gioca,
+                              onChanged: (v) => setState(() => _gioca = !v),
                             ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _numero,
-                              decoration: const InputDecoration(labelText: 'Numero di maglia'),
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                            ),
+                            if (_gioca) ...[
+                              const SizedBox(height: 8),
+                              PositionPicker(
+                                formato: cfg.formato,
+                                selected: _posizione,
+                                onChanged: (p) => setState(() => _posizione = p),
+                              ),
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: _numero,
+                                decoration: const InputDecoration(labelText: 'Numero di maglia'),
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                              ),
+                            ],
                             const SizedBox(height: 16),
                             _titolo(context, 'Ruolo nella squadra'),
                             AppChoiceChips<Ruolo>(
@@ -217,16 +230,6 @@ class _PlayerEditScreenState extends State<PlayerEditScreen> {
                             ),
                             const SizedBox(height: 6),
                             _nota(cs, _ruolo.descrizione),
-                            SwitchListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: const Text('Solo staff, non gioca'),
-                              subtitle: const Text(
-                                'Allenatore o dirigente: dà la presenza ma resta fuori da convocazioni e statistiche',
-                                style: TextStyle(fontSize: 12),
-                              ),
-                              value: !_gioca,
-                              onChanged: (v) => setState(() => _gioca = !v),
-                            ),
                           ],
                         )),
                         const SectionHead(title: 'COME PAGA'),
