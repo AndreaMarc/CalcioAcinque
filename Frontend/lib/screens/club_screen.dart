@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import '../core/navigation/app_page.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -74,7 +75,7 @@ class _ClubScreenState extends State<ClubScreen> {
               showTeamLogo: false,
               title: 'Societa',
               subtitle: selected?.nome ?? 'Nessuna società',
-              onBack: () => context.go('/dashboard'),
+              onBack: () => context.popOr('/dashboard'),
               actions: [
                 if (selected != null && selected.isAdmin)
                   AppTopBar.iconAction(

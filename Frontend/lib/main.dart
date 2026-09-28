@@ -5,6 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:web/web.dart' as web;
 
+import 'core/navigation/app_page.dart';
 import 'core/storage/secure_storage.dart';
 import 'core/network/api_client.dart';
 import 'core/push/push_manager.dart';
@@ -43,6 +44,7 @@ import 'screens/join_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  BrowserBack.install();
   await initializeDateFormatting('it_IT', null);
   // Space Grotesk e Bebas Neue sono asset del pacchetto (pubspec: assets/google_fonts/):
   // niente FOUT al primo frame, funzionano offline, nessuna chiamata a Google.
@@ -180,79 +182,79 @@ class _InCampoAppState extends State<InCampoApp> {
       routes: [
         GoRoute(
           path: '/login',
-          builder: (context, state) => const LoginScreen(),
+          pageBuilder: (context, state) => AppPage(key: state.pageKey, child: const LoginScreen()),
         ),
         GoRoute(
           path: '/select-team',
-          builder: (context, state) => const TeamSelectionScreen(),
+          pageBuilder: (context, state) => AppPage(key: state.pageKey, child: const TeamSelectionScreen()),
         ),
         GoRoute(
           path: '/draft',
-          builder: (context, state) => DraftScreen(
+          pageBuilder: (context, state) => AppPage(key: state.pageKey, child: DraftScreen(
             initialDraftId: int.tryParse(state.uri.queryParameters['id'] ?? ''),
-          ),
+          )),
         ),
         GoRoute(
           path: '/join/:code',
-          builder: (context, state) => JoinScreen(code: state.pathParameters['code']!),
+          pageBuilder: (context, state) => AppPage(key: state.pageKey, child: JoinScreen(code: state.pathParameters['code']!)),
         ),
         GoRoute(
           path: '/draft/join/:code',
-          builder: (context, state) => DraftJoinScreen(code: state.pathParameters['code']!),
+          pageBuilder: (context, state) => AppPage(key: state.pageKey, child: DraftJoinScreen(code: state.pathParameters['code']!)),
         ),
         ShellRoute(
-          builder: (context, state, child) => AppScaffold(child: child),
+          pageBuilder: (context, state, child) => AppPage(key: state.pageKey, child: AppScaffold(child: child)),
           routes: [
-            GoRoute(path: '/dashboard', builder: (context, state) => const DashboardScreen()),
-            GoRoute(path: '/calendar', builder: (context, state) => const CalendarScreen()),
-            GoRoute(path: '/players', builder: (context, state) => const PlayersScreen()),
-            GoRoute(path: '/tokens', builder: (context, state) => const TokensScreen()),
-            GoRoute(path: '/payments', builder: (context, state) => const PaymentsScreen()),
-            GoRoute(path: '/stats', builder: (context, state) => const StatsScreen()),
-            GoRoute(path: '/bacheca', builder: (context, state) => const BachecaScreen()),
+            GoRoute(path: '/dashboard', pageBuilder: (context, state) => NoTransitionPage(key: state.pageKey, child: const DashboardScreen())),
+            GoRoute(path: '/calendar', pageBuilder: (context, state) => NoTransitionPage(key: state.pageKey, child: const CalendarScreen())),
+            GoRoute(path: '/players', pageBuilder: (context, state) => NoTransitionPage(key: state.pageKey, child: const PlayersScreen())),
+            GoRoute(path: '/tokens', pageBuilder: (context, state) => NoTransitionPage(key: state.pageKey, child: const TokensScreen())),
+            GoRoute(path: '/payments', pageBuilder: (context, state) => NoTransitionPage(key: state.pageKey, child: const PaymentsScreen())),
+            GoRoute(path: '/stats', pageBuilder: (context, state) => NoTransitionPage(key: state.pageKey, child: const StatsScreen())),
+            GoRoute(path: '/bacheca', pageBuilder: (context, state) => NoTransitionPage(key: state.pageKey, child: const BachecaScreen())),
           ],
         ),
         GoRoute(
           path: '/club',
-          builder: (context, state) => const ClubScreen(),
+          pageBuilder: (context, state) => AppPage(key: state.pageKey, child: const ClubScreen()),
         ),
         GoRoute(
           path: '/settings',
-          builder: (context, state) => const SettingsScreen(),
+          pageBuilder: (context, state) => AppPage(key: state.pageKey, child: const SettingsScreen()),
         ),
         GoRoute(
           path: '/match/:matchId',
-          builder: (context, state) {
+          pageBuilder: (context, state) {
             final matchId = int.parse(state.pathParameters['matchId']!);
-            return MatchDetailScreen(matchId: matchId);
+            return AppPage(key: state.pageKey, child: MatchDetailScreen(matchId: matchId));
           },
         ),
         GoRoute(
           path: '/match/:matchId/day',
-          builder: (context, state) {
+          pageBuilder: (context, state) {
             final matchId = int.parse(state.pathParameters['matchId']!);
-            return MatchDayScreen(matchId: matchId);
+            return AppPage(key: state.pageKey, child: MatchDayScreen(matchId: matchId));
           },
         ),
         GoRoute(
           path: '/match/:matchId/live',
-          builder: (context, state) {
+          pageBuilder: (context, state) {
             final matchId = int.parse(state.pathParameters['matchId']!);
-            return LiveMatchScreen(matchId: matchId);
+            return AppPage(key: state.pageKey, child: LiveMatchScreen(matchId: matchId));
           },
         ),
         GoRoute(
           path: '/match/:matchId/convocations',
-          builder: (context, state) {
+          pageBuilder: (context, state) {
             final matchId = int.parse(state.pathParameters['matchId']!);
-            return ConvocationsScreen(matchId: matchId);
+            return AppPage(key: state.pageKey, child: ConvocationsScreen(matchId: matchId));
           },
         ),
         GoRoute(
           path: '/player/:playerId',
-          builder: (context, state) {
+          pageBuilder: (context, state) {
             final playerId = int.parse(state.pathParameters['playerId']!);
-            return PlayerDetailScreen(playerId: playerId);
+            return AppPage(key: state.pageKey, child: PlayerDetailScreen(playerId: playerId));
           },
         ),
       ],

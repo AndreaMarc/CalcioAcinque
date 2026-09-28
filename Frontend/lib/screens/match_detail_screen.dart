@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import '../core/navigation/app_page.dart';
 import 'package:web/web.dart' as web;
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -207,15 +208,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     );
   }
 
-  /// Torna da dove si e' arrivati (Home, calendario, notifica...); solo aprendo
-  /// il link diretto non c'e' niente sotto, e allora si va al calendario.
-  void _back() {
-    if (context.canPop()) {
-      context.pop();
-    } else {
-      context.go('/calendar');
-    }
-  }
+  void _back() => context.popOr('/calendar');
 
   @override
   Widget build(BuildContext context) {

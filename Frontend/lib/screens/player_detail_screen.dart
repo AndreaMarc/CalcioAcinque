@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import '../core/navigation/app_page.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/constants/api_constants.dart';
@@ -89,7 +90,7 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
               teamInitials: initials,
               title: 'Giocatore',
               subtitle: 'Scheda atleta',
-              onBack: () => context.go('/players'),
+              onBack: () => context.popOr('/players'),
               actions: [
                 if (auth.puoGestireSquadra)
                   AppTopBar.iconAction(

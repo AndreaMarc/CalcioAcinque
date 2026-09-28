@@ -13,6 +13,7 @@ import '../widgets/chores_card.dart';
 import '../widgets/image_utils.dart';
 import '../widgets/team_utils.dart';
 import 'package:go_router/go_router.dart';
+import '../core/navigation/app_page.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
@@ -1144,7 +1145,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               teamInitials: initials,
               title: 'Impostazioni',
               subtitle: 'Team + account',
-              onBack: () => context.go('/dashboard'),
+              onBack: () => context.popOr('/dashboard'),
             ),
             Expanded(
               child: ListView(
