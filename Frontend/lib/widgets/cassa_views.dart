@@ -493,7 +493,7 @@ class CassaView extends StatelessWidget {
                           ],
                         ),
                       ),
-                      if (!archivio) const Icon(Icons.euro, color: AppTokens.brand, size: 20),
+                      if (!archivio) Icon(Icons.euro, color: AppTokens.brand, size: 20),
                     ],
                   ),
                 ),

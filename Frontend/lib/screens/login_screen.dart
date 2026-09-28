@@ -183,7 +183,7 @@ class _LoginScreenState extends State<LoginScreen>
                         if (success && ctx.mounted) Navigator.pop(ctx, true);
                       },
                 child: auth.isLoading
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 18,
                         width: 18,
                         child: CircularProgressIndicator(
@@ -221,7 +221,7 @@ class _LoginScreenState extends State<LoginScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Ho capito', style: TextStyle(color: AppTokens.brand)),
+            child: Text('Ho capito', style: TextStyle(color: AppTokens.brand)),
           ),
         ],
       ),
@@ -239,7 +239,7 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   Widget build(BuildContext context) {
     if (_tryingAutoLogin) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: AppTokens.ink,
         body: Center(
           child: Column(
@@ -340,7 +340,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   color: Colors.white,
                                   letterSpacing: 0.01 * 52,
                                 ),
-                                children: const [
+                                children: [
                                   TextSpan(text: "CHI C'È\nSTASERA\n"),
                                   TextSpan(
                                     text: 'IN CAMPO?',
@@ -476,7 +476,7 @@ class _LoginScreenState extends State<LoginScreen>
                                         fontSize: 13,
                                         color: AppTokens.textOnInkMute,
                                       ),
-                                      children: const [
+                                      children: [
                                         TextSpan(text: 'Non hai un account? '),
                                         TextSpan(
                                           text: 'Registrati',
@@ -601,7 +601,7 @@ class _BrandBtn extends StatelessWidget {
         ),
         alignment: Alignment.center,
         child: loading
-            ? const SizedBox(
+            ? SizedBox(
                 height: 22,
                 width: 22,
                 child: CircularProgressIndicator(
@@ -622,7 +622,7 @@ class _BrandBtn extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Icon(
+                  Icon(
                     Icons.arrow_forward,
                     color: AppTokens.brandInk,
                     size: 18,

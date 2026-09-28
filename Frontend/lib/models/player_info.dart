@@ -7,11 +7,13 @@ class PlayerInfo {
   final String? soprannome;
   final String? telefono;
   final String ruolo;
+  /// Tema scuro salvato sull'account (vale su ogni dispositivo), null = mai scelto.
+  final bool? temaScuro;
 
   PlayerInfo({
     required this.id, required this.userId, required this.teamId,
     required this.email, required this.nome, this.soprannome,
-    this.telefono, required this.ruolo,
+    this.telefono, required this.ruolo, this.temaScuro,
   });
 
   factory PlayerInfo.fromJson(Map<String, dynamic> json) => PlayerInfo(
@@ -19,6 +21,7 @@ class PlayerInfo {
     email: json['email'] ?? '', nome: json['nome'] ?? '',
     soprannome: json['soprannome'], telefono: json['telefono'],
     ruolo: json['ruolo'] ?? 'User',
+    temaScuro: json['temaScuro'] as bool?,
   );
 
   bool get isAdmin => ruolo == 'Admin';
@@ -37,11 +40,12 @@ class PlayerInfo {
   /// La rettifica dei gettoni sta fra campo e cassa: la aprono entrambi.
   bool get puoGestireGettoni => isAdmin || isMister || isCassiere;
 
-  PlayerInfo copyWith({String? nome, String? soprannome, String? telefono}) => PlayerInfo(
+  PlayerInfo copyWith({String? nome, String? soprannome, String? telefono, bool? temaScuro}) => PlayerInfo(
     id: id, userId: userId, teamId: teamId, email: email,
     nome: nome ?? this.nome,
     soprannome: soprannome ?? this.soprannome,
     telefono: telefono ?? this.telefono,
     ruolo: ruolo,
+    temaScuro: temaScuro ?? this.temaScuro,
   );
 }

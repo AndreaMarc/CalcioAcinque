@@ -1,0 +1,49 @@
+services:
+  mysql:
+    image: mysql:8.0.36
+    restart: unless-stopped
+    environment:
+      # Stessi valori del connection string di default in Backend/appsettings.json:
+      # cosi' un `dotnet run` locale (senza Docker) punta gia' qui senza override.
+      - MYSQL_ROOT_PASSWORD=Maestrale2004!
+      - MYSQL_DATABASE=calcioacinque_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-dev-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pMaestrale2004!"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./Backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      # Development: seed demo (admin@incampo.it / admin123), Swagger attivo,
+      # CORS aperto. La connection string punta al servizio "mysql", non a
+      # localhost (che dentro al container e' il container stesso).
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=mysql;Database=calcioacinque_db;User=root;Password=Maestrale2004!;
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ./Frontend
+      args:
+        # Il browser gira sull'host, non nella rete Docker: deve usare la porta
+        # pubblicata del backend (localhost:8080), non il nome del servizio.
+        - API_BASE_URL=http://localhost:8080
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8081:80"
+
+volumes:
+  mysql-dev-data:

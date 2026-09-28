@@ -1,11 +1,17 @@
 class ApiConstants {
-  static const String baseUrl = 'https://incampo-api.studiorocket.it';
+  // Sovrascrivibile a build time con --dart-define=API_BASE_URL=... (vedi
+  // Frontend/Dockerfile e docker-compose.dev.yml per puntare al backend locale).
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://incampo-api.studiorocket.it',
+  );
   static const String login = '/api/auth/login';
   static const String signup = '/api/auth/signup';
   static const String register = '/api/auth/register';
   static const String refreshToken = '/api/auth/refresh';
   static const String me = '/api/auth/me';
   static const String changePassword = '/api/auth/change-password';
+  static const String preferences = '/api/auth/preferences';
   static const String selectTeam = '/api/auth/select-team';
   static const String myTeams = '/api/auth/teams';
   static const String createTeam = '/api/auth/create-team';

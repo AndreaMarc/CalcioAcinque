@@ -126,6 +126,14 @@ public class TeamService : ITeamService
             team.LogoBase64 = Vuoto(dto.LogoBase64);
         }
 
+        if (dto.ColoreBrand != null)
+        {
+            var colore = Vuoto(dto.ColoreBrand)?.ToUpperInvariant();
+            if (colore != null && !System.Text.RegularExpressions.Regex.IsMatch(colore, "^#[0-9A-F]{6}$"))
+                throw new BadRequestException("Colore non valido: serve il formato #RRGGBB");
+            team.ColoreBrand = colore;
+        }
+
         if (dto.QuotaIscrizione.HasValue) team.QuotaIscrizione = RequireNonNegative(dto.QuotaIscrizione.Value, "La quota di iscrizione");
         if (dto.QuotaTesseramento.HasValue) team.QuotaTesseramento = RequireNonNegative(dto.QuotaTesseramento.Value, "La quota di tesseramento");
         if (dto.CostoPartita.HasValue) team.CostoPartita = RequireNonNegative(dto.CostoPartita.Value, "Il costo partita");
@@ -193,7 +201,8 @@ public class TeamService : ITeamService
             IntestatarioIbanEffettivo = team.IntestatarioIban ?? team.Club?.IntestatarioIban,
             TotaleGiocatori = team.Players?.Count ?? 0,
             CreatedAt = team.CreatedAt,
-            LogoBase64 = team.LogoBase64
+            LogoBase64 = team.LogoBase64,
+            ColoreBrand = team.ColoreBrand
         };
     }
 }

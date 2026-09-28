@@ -63,7 +63,7 @@ class _JoinScreenState extends State<JoinScreen> {
                 children: [
                   const BrandWordmark(markSize: 28),
                   const SizedBox(height: 36),
-                  const Eyebrow('INVITO', color: AppTokens.brand),
+                  Eyebrow('INVITO', color: AppTokens.brand),
                   const SizedBox(height: 10),
                   const DisplayText('ENTRA IN\nSQUADRA', size: 44, color: Colors.white, height: 0.95),
                   const SizedBox(height: 12),

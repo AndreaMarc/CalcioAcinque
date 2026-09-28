@@ -689,7 +689,10 @@ class _StatsTokensRow extends StatelessWidget {
 
     final ratio = partiteTotali > 0 ? partiteGiocate / partiteTotali : 0.0;
 
-    return Row(
+    // IntrinsicHeight: dentro la ListView l'altezza non e' vincolata e lo stretch
+    // senza limite renderebbe la riga infinita (scroll senza fine in release)
+    return IntrinsicHeight(
+      child: Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(
@@ -813,6 +816,7 @@ class _StatsTokensRow extends StatelessWidget {
           ),
         ],
       ],
+      ),
     );
   }
 }

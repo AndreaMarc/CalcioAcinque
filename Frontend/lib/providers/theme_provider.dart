@@ -1,7 +1,8 @@
 // Tema InCampo: token di design (AppTokens), ThemeProvider e buildTheme().
 // I colori vivono SOLO qui: fuori da questo file niente Color(0x...).
 // Font: Space Grotesk (UI) + Bebas Neue (display) via google_fonts.
-// Le preferenze (nome, colori, logo, dark mode) sono per squadra in SharedPreferences.
+// Nome, logo e colore brand stanno sul server (squadra), il tema scuro sull'account:
+// SharedPreferences e' solo la cache per partire subito con l'ultimo stato noto.
 
 import 'dart:convert';
 import 'dart:typed_data';
@@ -12,10 +13,22 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // ─── Design tokens ───
 class AppTokens {
-  // Brand
-  static const Color brand = Color(0xFF00D27F);
-  static const Color brandInk = Color(0xFF003D24);
-  static const Color brandSoft = Color(0xFFE4FBEE);
+  // Brand: il colore lo sceglie la squadra (ThemeProvider.setPrimaryColor), quindi
+  // questi non sono const ma getter sulla palette corrente. Il verde InCampo e'
+  // il default, con le sue sfumature disegnate a mano.
+  static const Color defaultBrand = Color(0xFF00D27F);
+  static _BrandPalette _palette = _BrandPalette.from(defaultBrand);
+  static Color get brand => _palette.brand;
+  /// Testo/icone sopra [brand] e sopra [brandSoft].
+  static Color get brandInk => _palette.ink;
+  static Color get brandSoft => _palette.soft;
+
+  /// Cambia la palette brand; true se e' cambiata davvero.
+  static bool applyBrand(Color color) {
+    if (color.value == _palette.brand.value) return false;
+    _palette = _BrandPalette.from(color);
+    return true;
+  }
 
   // Surface — light
   static const Color ink = Color(0xFF0A0E0F);
@@ -50,7 +63,7 @@ class AppTokens {
   static const Color guest = Color(0xFF9D6BFF);     // ospite / amico / in attesa
   static const Color live = Color(0xFFFF3838);      // pallino LIVE
   static const Color away = Color(0xFFFF5252);      // eventi della squadra avversaria
-  static const Color brandGlow = Color(0xFF00FFA6); // anello luminoso StoryAvatar
+  static Color get brandGlow => _palette.glow; // anello luminoso StoryAvatar
   static const Color inkShadow = Color(0x1A0A0E0F); // ombra delle card scure
 
   // Surface tiers (chiaro) / (scuro)
@@ -60,7 +73,7 @@ class AppTokens {
   static const Color darkPaperLow = Color(0xFF0F1314);
 
   // Dark surfaces
-  static const Color darkBrand = Color(0xFF00E88C);
+  static Color get darkBrand => _palette.dark;
   static const Color darkPaper = Color(0xFF0A0E0F);
   static const Color darkCard = Color(0xFF151A1C);
   static const Color darkLine = Color(0xFF242A2C);
@@ -111,6 +124,51 @@ class AppTokens {
   }
 }
 
+/// Sfumature derivate dal colore brand della squadra.
+class _BrandPalette {
+  final Color brand;
+  final Color ink;
+  final Color soft;
+  final Color dark;
+  final Color glow;
+
+  const _BrandPalette(this.brand, this.ink, this.soft, this.dark, this.glow);
+
+  factory _BrandPalette.from(Color c) {
+    if (c.value == AppTokens.defaultBrand.value) {
+      return const _BrandPalette(
+        AppTokens.defaultBrand,
+        Color(0xFF003D24),
+        Color(0xFFE4FBEE),
+        Color(0xFF00E88C),
+        Color(0xFF00FFA6),
+      );
+    }
+    final hsl = HSLColor.fromColor(c);
+    // Sopra la soglia l'inchiostro e' una versione scurissima dello stesso tono
+    // (leggibile anche sulla tinta chiara); sotto, il brand e' troppo scuro e ci va il bianco
+    final lightBrand = c.computeLuminance() > 0.18;
+    if (lightBrand) {
+      return _BrandPalette(
+        c,
+        hsl.withLightness(0.14).toColor(),
+        Color.lerp(c, Colors.white, 0.85)!,
+        c,
+        Color.lerp(c, Colors.white, 0.3)!,
+      );
+    }
+    return _BrandPalette(
+      c,
+      Colors.white,
+      // Col bianco sopra la tinta non puo' essere chiara: resta vicina al brand
+      Color.lerp(c, Colors.white, 0.15)!,
+      // Su fondo scuro un brand quasi nero sparirebbe
+      hsl.withLightness(hsl.lightness < 0.45 ? 0.45 : hsl.lightness).toColor(),
+      Color.lerp(c, Colors.white, 0.4)!,
+    );
+  }
+}
+
 class ThemeProvider extends ChangeNotifier {
   static const String _legacyKeyTeamName = 'team_name';
   static const String _legacyKeyPrimaryColor = 'primary_color';
@@ -123,7 +181,7 @@ class ThemeProvider extends ChangeNotifier {
   int? _currentTeamId;
   String _teamName = 'InCampo';
   // Default brand = InCampo electric pitch green (was verde scuro 0xFF1B5E20)
-  Color _primaryColor = AppTokens.brand;
+  Color _primaryColor = AppTokens.defaultBrand;
   Color _accentColor = AppTokens.ink;
   String? _logoBase64;
   // Bytes del logo decodificati UNA volta: MemoryImage confronta i bytes per
@@ -189,7 +247,8 @@ class ThemeProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _teamName = prefs.getString(_keyTeamName()) ?? 'InCampo';
     final primaryValue = prefs.getInt(_keyPrimaryColor());
-    _primaryColor = primaryValue != null ? Color(primaryValue) : AppTokens.brand;
+    _primaryColor = primaryValue != null ? Color(primaryValue) : AppTokens.defaultBrand;
+    _applyBrand();
     final accentValue = prefs.getInt(_keyAccentColor());
     _accentColor = accentValue != null ? Color(accentValue) : AppTokens.ink;
     _prefs = prefs;
@@ -214,6 +273,7 @@ class ThemeProvider extends ChangeNotifier {
     required int teamId,
     String? teamName,
     String? logoBase64,
+    String? coloreBrand,
     bool syncLogo = false,
   }) async {
     if (teamId != _currentTeamId) return;
@@ -241,11 +301,58 @@ class ThemeProvider extends ChangeNotifier {
       changed = true;
     }
 
+    // Come il logo: solo con la configurazione letta davvero, e null = default
+    if (syncLogo) {
+      final serverColor = parseHex(coloreBrand) ?? AppTokens.defaultBrand;
+      if (serverColor.value != _primaryColor.value) {
+        _primaryColor = serverColor;
+        await prefs.setInt(_keyPrimaryColor(), serverColor.value);
+        _applyBrand();
+        changed = true;
+      }
+    }
+
     if (changed) notifyListeners();
   }
 
+  /// Tema scuro salvato sull'account: vince sulla preferenza locale.
+  /// null = l'utente non l'ha mai scelto, resta quella del dispositivo.
+  Future<void> syncDarkModeFromServer(bool? value) async {
+    if (value == null || value == _dark) return;
+    _dark = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyDarkMode, value);
+    notifyListeners();
+  }
+
+  static Color? parseHex(String? hex) {
+    if (hex == null || !RegExp(r'^#[0-9a-fA-F]{6}$').hasMatch(hex)) return null;
+    return Color(0xFF000000 | int.parse(hex.substring(1), radix: 16));
+  }
+
+  static String toHex(Color c) =>
+      '#${(c.value & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';
+
+  /// Aggiorna la palette di AppTokens. I widget leggono AppTokens.brand come
+  /// valore statico, senza dipendere dal Theme: al cambio colore si ricostruisce
+  /// tutto l'albero, altrimenti chi non rileggesse il tema resterebbe col vecchio.
+  void _applyBrand() {
+    if (!AppTokens.applyBrand(_primaryColor)) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      void rebuild(Element e) {
+        e.markNeedsBuild();
+        e.visitChildren(rebuild);
+      }
+      WidgetsBinding.instance.rootElement?.visitChildren(rebuild);
+    });
+    WidgetsBinding.instance.scheduleFrame();
+  }
+
+  /// Solo la copia locale: il colore vero va salvato sulla squadra
+  /// (ClubProvider.updateTeamConfig), come fa la pagina Impostazioni.
   Future<void> setPrimaryColor(Color color) async {
     _primaryColor = color;
+    _applyBrand();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyPrimaryColor(), color.value);
     notifyListeners();
@@ -294,7 +401,7 @@ class ThemeProvider extends ChangeNotifier {
     final Color line  = isDark ? AppTokens.darkLine  : AppTokens.line;
     final Color text  = isDark ? AppTokens.darkText  : AppTokens.text;
     final Color mute  = isDark ? AppTokens.darkTextMute : AppTokens.textMute;
-    final Color onBrand = isDark ? AppTokens.brandInk : AppTokens.brandInk;
+    final Color onBrand = AppTokens.brandInk;
 
     final colorScheme = ColorScheme(
       brightness: brightness,

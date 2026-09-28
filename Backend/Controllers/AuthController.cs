@@ -119,6 +119,16 @@ public class AuthController : ControllerBase
         return Ok(new ApiResponse<object> { Success = true, Message = "Password aggiornata" });
     }
 
+    /// <summary>Preferenze d'interfaccia dell'utente (tema scuro), condivise tra i dispositivi.</summary>
+    [Authorize]
+    [HttpPut("preferences")]
+    public async Task<ActionResult<ApiResponse<object>>> UpdatePreferences([FromBody] UpdatePreferencesRequest request)
+    {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        await _authService.UpdatePreferencesAsync(userId, request);
+        return Ok(new ApiResponse<object> { Success = true, Message = "Preferenze salvate" });
+    }
+
     [Authorize(Roles = Ruoli.Squadra)]
     [HttpGet("invite-code")]
     public async Task<ActionResult<ApiResponse<object>>> GetInviteCode()

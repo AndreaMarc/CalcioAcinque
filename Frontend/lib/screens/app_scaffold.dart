@@ -20,19 +20,27 @@ class _AppScaffoldState extends State<AppScaffold> {
   bool _teamsLoaded = false;
   int? _syncedTeamId;
 
-  /// Nome e logo della squadra vengono dal server: prima la top bar diceva
+  /// Nome, logo e colore della squadra vengono dal server: prima la top bar diceva
   /// "InCampo" finche' qualcuno non riscriveva il nome nel proprio browser.
+  /// Il tema scuro invece segue l'account.
   Future<void> _syncBrand(int teamId) async {
     final auth = context.read<AuthProvider>();
     final theme = context.read<ThemeProvider>();
     if (theme.currentTeamId != teamId) await theme.setCurrentTeamId(teamId);
+    await theme.syncDarkModeFromServer(auth.currentPlayer?.temaScuro);
     final membership = auth.teams?.where((t) => t.teamId == teamId).firstOrNull;
     if (membership != null) {
       await theme.syncFromServer(teamId: teamId, teamName: membership.teamName);
     }
     final cfg = await context.read<ClubProvider>().loadTeamConfig(teamId);
     if (!mounted || cfg == null) return;
-    await theme.syncFromServer(teamId: teamId, teamName: cfg.nome, logoBase64: cfg.logoBase64, syncLogo: true);
+    await theme.syncFromServer(
+      teamId: teamId,
+      teamName: cfg.nome,
+      logoBase64: cfg.logoBase64,
+      coloreBrand: cfg.coloreBrand,
+      syncLogo: true,
+    );
   }
 
   @override

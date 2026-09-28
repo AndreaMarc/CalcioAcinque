@@ -207,6 +207,16 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     );
   }
 
+  /// Torna da dove si e' arrivati (Home, calendario, notifica...); solo aprendo
+  /// il link diretto non c'e' niente sotto, e allora si va al calendario.
+  void _back() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/calendar');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -219,7 +229,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
           child: _notFound
               ? Column(
                   children: [
-                    AppTopBar(title: 'Partita', onBack: () => context.go('/calendar')),
+                    AppTopBar(title: 'Partita', onBack: _back),
                     Expanded(
                       child: EmptyState(
                         icon: Icons.event_busy_outlined,
@@ -252,7 +262,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
               teamInitials: initials,
               title: 'Giornata ${match.numeroGiornata}',
               subtitle: '${DateFormat('EEE d MMM', 'it_IT').format(match.data)} · ${match.ora}',
-              onBack: () => context.go('/calendar'),
+              onBack: _back,
               actions: [
                 if (!match.isConclusa)
                   AppTopBar.iconAction(context, Icons.event_available_outlined, () => _aggiungiAlCalendario(match)),
@@ -610,7 +620,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
             // dopo, quando le presenze sono state sistemate
             if (soldi && match.stato == 'Conclusa')
               ListTile(
-                leading: const Icon(Icons.euro, color: AppTokens.brand),
+                leading: Icon(Icons.euro, color: AppTokens.brand),
                 title: const Text('Incasso partita'),
                 subtitle: const Text('Chi deve pagare questa partita'),
                 onTap: () {

@@ -88,7 +88,7 @@ class _DraftScreenState extends State<DraftScreen> with WidgetsBindingObserver {
       backgroundColor: AppTokens.ink,
       body: SafeArea(
         child: loading
-            ? const Center(child: CircularProgressIndicator(color: AppTokens.brand))
+            ? Center(child: CircularProgressIndicator(color: AppTokens.brand))
             : Column(
                 children: [
                   _Header(
@@ -391,7 +391,7 @@ class _DraftScreenState extends State<DraftScreen> with WidgetsBindingObserver {
                           const SnackBar(content: Text('Link copiato'), duration: Duration(seconds: 2)),
                         );
                       },
-                      icon: const Icon(Icons.copy, color: AppTokens.brand),
+                      icon: Icon(Icons.copy, color: AppTokens.brand),
                     ),
                   ],
                 ),
@@ -583,7 +583,7 @@ class _Header extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Eyebrow('CONFIGURATORE', color: AppTokens.brand),
+          Eyebrow('CONFIGURATORE', color: AppTokens.brand),
           if (drafts.length <= 1)
             Text(
               currentDraft?.nomeTeam.toUpperCase() ?? 'Pianifica la squadra',
@@ -625,7 +625,7 @@ class _DraftSwitcher extends StatelessWidget {
                 child: Row(
                   children: [
                     if (d.isOwner)
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.only(right: 8),
                         child: Icon(Icons.star_rounded, size: 14, color: AppTokens.brand),
                       ),
@@ -738,7 +738,7 @@ class _DraftBody extends StatelessWidget {
             ),
             TextButton.icon(
               onPressed: onAddCandidate,
-              icon: const Icon(Icons.add, color: AppTokens.brand),
+              icon: Icon(Icons.add, color: AppTokens.brand),
               label: Text(
                 'Aggiungi',
                 style: GoogleFonts.spaceGrotesk(
@@ -1179,7 +1179,7 @@ class _LaunchBar extends StatelessWidget {
               ),
               if (draft.isOwner) ...[
                 const SizedBox(width: 8),
-                const Icon(Icons.rocket_launch, color: AppTokens.brandInk, size: 18),
+                Icon(Icons.rocket_launch, color: AppTokens.brandInk, size: 18),
               ],
             ],
           ),
@@ -1387,7 +1387,7 @@ class _CandidateEditorState extends State<_CandidateEditor> {
                         foregroundColor: AppTokens.brandInk,
                       ),
                       child: _saving
-                          ? const SizedBox(
+                          ? SizedBox(
                               height: 18,
                               width: 18,
                               child: CircularProgressIndicator(

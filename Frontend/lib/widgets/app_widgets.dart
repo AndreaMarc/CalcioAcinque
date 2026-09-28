@@ -760,7 +760,8 @@ class TeamCrest extends StatelessWidget {
   final double radius;
   final double fontSize;
   final Color bg;
-  final Color fg;
+  /// null = colore brand della squadra (non puo' essere un default const).
+  final Color? fg;
   final BoxBorder? border;
 
   const TeamCrest({
@@ -771,7 +772,7 @@ class TeamCrest extends StatelessWidget {
     this.radius = 10,
     this.fontSize = 18,
     this.bg = AppTokens.ink,
-    this.fg = AppTokens.brand,
+    this.fg,
     this.border,
   });
 
@@ -804,7 +805,7 @@ class TeamCrest extends StatelessWidget {
 
   Widget _initialsText() => Text(
         initials,
-        style: _display(fontSize, color: fg, letter: 0.04),
+        style: _display(fontSize, color: fg ?? AppTokens.brand, letter: 0.04),
       );
 }
 
@@ -959,7 +960,7 @@ class StoryAvatar extends StatelessWidget {
             decoration: ringBrand
                 ? BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: const SweepGradient(
+                    gradient: SweepGradient(
                       colors: [
                         AppTokens.brand,
                         AppTokens.brandGlow,

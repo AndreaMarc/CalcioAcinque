@@ -325,7 +325,7 @@ class _BoardCard extends StatelessWidget {
                 child: Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppTokens.brand,
                     borderRadius: BorderRadius.vertical(
                       bottom: Radius.circular(8),
@@ -334,7 +334,7 @@ class _BoardCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.push_pin, size: 10, color: AppTokens.brandInk),
+                      Icon(Icons.push_pin, size: 10, color: AppTokens.brandInk),
                       const SizedBox(width: 4),
                       Text(
                         'FISSATO',
@@ -377,7 +377,7 @@ class _BoardCard extends StatelessWidget {
                       Container(
                         width: 8,
                         height: 8,
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: AppTokens.brand,
                         ),

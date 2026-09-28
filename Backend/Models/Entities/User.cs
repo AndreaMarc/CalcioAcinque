@@ -18,6 +18,12 @@ public class User
 
     public bool IsActive { get; set; } = true;
     public DateTime? LastLoginAt { get; set; }
+
+    /// <summary>
+    /// Tema scuro scelto dall'utente, uguale su tutti i suoi dispositivi.
+    /// null = mai scelto: ogni dispositivo tiene la sua preferenza locale.
+    /// </summary>
+    public bool? TemaScuro { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 

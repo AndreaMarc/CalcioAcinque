@@ -445,6 +445,22 @@ class AuthProvider extends ChangeNotifier {
     return false;
   }
 
+  /// Salva il tema scuro sull'account, cosi' lo ritrovano gli altri dispositivi.
+  Future<bool> saveTemaScuro(bool value) async {
+    try {
+      final response = await apiClient.dio.put(
+        ApiConstants.preferences,
+        data: {'temaScuro': value},
+      );
+      if (response.data['success'] == true) {
+        // Senza aggiornare la copia locale, il prossimo sync la riporterebbe indietro
+        _currentPlayer = _currentPlayer?.copyWith(temaScuro: value);
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
   /// Cambio password con quella attuale. In caso di errore il messaggio del
   /// server (password attuale sbagliata, troppo corta) finisce in [error].
   Future<bool> changePassword({required String current, required String next}) async {

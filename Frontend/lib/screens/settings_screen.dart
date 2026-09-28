@@ -1195,7 +1195,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
                       child: AppCard(
                         child: ListTile(
-                          leading: const Icon(Icons.shield_outlined, color: AppTokens.brand),
+                          leading: Icon(Icons.shield_outlined, color: AppTokens.brand),
                           title: Text(
                             clubConfig!.clubNome ?? 'Societa',
                             style: GoogleFonts.spaceGrotesk(
@@ -1257,7 +1257,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
                     child: AppCard(
                       child: ListTile(
-                        leading: const Icon(Icons.account_balance_wallet_outlined,
+                        leading: Icon(Icons.account_balance_wallet_outlined,
                             color: AppTokens.brand),
                         title: Text(
                           auth.puoGestireSoldi ? 'Cassa' : 'I miei pagamenti',
@@ -1292,7 +1292,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: _BrandCard(
                       canEditBrand: auth.puoGestireSquadra,
                       isDark: theme.isDark,
-                      onToggleDark: theme.setDarkMode,
+                      onToggleDark: (v) {
+                        theme.setDarkMode(v);
+                        // Sull'account: lo ritrovano gli altri dispositivi al prossimo avvio
+                        auth.saveTemaScuro(v);
+                      },
                       hasLogo: theme.hasLogo,
                       logoBytes: theme.logoBytes,
                       teamName: theme.teamName,
@@ -1330,7 +1334,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           );
                         }
                       },
-                      onColorPick: theme.setPrimaryColor,
+                      onColorPick: (color) async {
+                        // Il colore e' della squadra: prima il server, poi la copia locale
+                        final ok = await context.read<ClubProvider>().updateTeamConfig(
+                            teamId: auth.teamId, coloreBrand: ThemeProvider.toHex(color));
+                        if (!mounted) return;
+                        if (ok) {
+                          await theme.setPrimaryColor(color);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Non riesco a salvare il colore')),
+                          );
+                        }
+                      },
                     ),
                   ),
 
@@ -1575,7 +1591,7 @@ class _IosInstallHint extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.ios_share, color: AppTokens.brand),
+              Icon(Icons.ios_share, color: AppTokens.brand),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -1704,7 +1720,7 @@ class _PaymentInfoSettingsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ListTile(
-            leading: const Icon(Icons.account_balance_outlined, color: AppTokens.brand),
+            leading: Icon(Icons.account_balance_outlined, color: AppTokens.brand),
             title: Text(
               'Come farsi pagare',
               style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w600, fontSize: 14),
@@ -1976,7 +1992,7 @@ class _TeamsCard extends StatelessWidget {
                 BoxDecoration(border: Border(top: BorderSide(color: lineColor))),
             child: ListTile(
               leading:
-                  const Icon(Icons.add_circle_outline, color: AppTokens.brand),
+                  Icon(Icons.add_circle_outline, color: AppTokens.brand),
               title: Text('Crea nuovo team',
                   style: GoogleFonts.spaceGrotesk(
                       fontSize: 14,
@@ -1990,7 +2006,7 @@ class _TeamsCard extends StatelessWidget {
             decoration:
                 BoxDecoration(border: Border(top: BorderSide(color: lineColor))),
             child: ListTile(
-              leading: const Icon(Icons.link, color: AppTokens.brand),
+              leading: Icon(Icons.link, color: AppTokens.brand),
               title: Text('Unisciti con codice',
                   style: GoogleFonts.spaceGrotesk(
                       fontSize: 14,
@@ -2004,7 +2020,7 @@ class _TeamsCard extends StatelessWidget {
             decoration:
                 BoxDecoration(border: Border(top: BorderSide(color: lineColor))),
             child: ListTile(
-              leading: const Icon(Icons.tune, color: AppTokens.brand),
+              leading: Icon(Icons.tune, color: AppTokens.brand),
               title: Text('Configuratore squadra',
                   style: GoogleFonts.spaceGrotesk(
                       fontSize: 14,
@@ -2067,7 +2083,7 @@ class _SeasonCard extends StatelessWidget {
     if (seasons.isEmpty) {
       return AppCard(
         child: ListTile(
-          leading: const Icon(Icons.event_repeat, color: AppTokens.brand),
+          leading: Icon(Icons.event_repeat, color: AppTokens.brand),
           title: Text('Stagione',
               style: GoogleFonts.spaceGrotesk(
                   fontWeight: FontWeight.w600, fontSize: 14, color: textColor)),
@@ -2085,7 +2101,7 @@ class _SeasonCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ListTile(
-            leading: const Icon(Icons.event_repeat, color: AppTokens.brand),
+            leading: Icon(Icons.event_repeat, color: AppTokens.brand),
             title: Text(
               corrente.chiusa ? '${corrente.nome} (chiusa)' : corrente.nome,
               style: GoogleFonts.spaceGrotesk(
@@ -2186,7 +2202,7 @@ class _ConfigCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ListTile(
-            leading: const Icon(Icons.sports_soccer, color: AppTokens.brand),
+            leading: Icon(Icons.sports_soccer, color: AppTokens.brand),
             title: Text(
               cfg?.formatoLabel ?? 'Formato squadra',
               style: GoogleFonts.spaceGrotesk(
@@ -2207,7 +2223,7 @@ class _ConfigCard extends StatelessWidget {
           ),
           Divider(height: 1, color: lineColor),
           SwitchListTile(
-            secondary: const Icon(Icons.toll, color: AppTokens.brand),
+            secondary: Icon(Icons.toll, color: AppTokens.brand),
             title: Text(
               'Sistema gettoni',
               style: GoogleFonts.spaceGrotesk(
@@ -2225,7 +2241,7 @@ class _ConfigCard extends StatelessWidget {
           ),
           Divider(height: 1, color: lineColor),
           ListTile(
-            leading: const Icon(Icons.euro, color: AppTokens.brand),
+            leading: Icon(Icons.euro, color: AppTokens.brand),
             title: Text(
               'Costi',
               style: GoogleFonts.spaceGrotesk(

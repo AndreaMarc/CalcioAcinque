@@ -76,7 +76,7 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
                     children: [
                       const BrandWordmark(markSize: 28),
                       const SizedBox(height: 28),
-                      const Eyebrow('I TUOI TEAM', color: AppTokens.brand),
+                      Eyebrow('I TUOI TEAM', color: AppTokens.brand),
                       const SizedBox(height: 12),
                       const DisplayText(
                         'SCEGLI\nLA SQUADRA',
@@ -120,7 +120,7 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
                                 children: [
                                   Eyebrow('I MIEI DRAFT · ${drafts.length}', color: AppTokens.brand),
                                   if (draftProvider.isLoading)
-                                    const SizedBox(
+                                    SizedBox(
                                       width: 12,
                                       height: 12,
                                       child: CircularProgressIndicator(
@@ -182,7 +182,7 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
                         textStyle: GoogleFonts.spaceGrotesk(fontSize: 15, fontWeight: FontWeight.w700),
                       ),
                       child: _isSelecting
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 22,
                               height: 22,
                               child: CircularProgressIndicator(
@@ -413,7 +413,7 @@ class _TeamTile extends StatelessWidget {
               ),
             ),
             selected
-                ? const Icon(Icons.check_circle, color: AppTokens.brand, size: 22)
+                ? Icon(Icons.check_circle, color: AppTokens.brand, size: 22)
                 : Icon(Icons.chevron_right,
                     color: Colors.white.withOpacity(0.4), size: 18),
           ],
@@ -471,7 +471,7 @@ class _DraftTile extends StatelessWidget {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       alignment: Alignment.center,
-                      child: const Icon(Icons.tune, size: 11, color: AppTokens.brand),
+                      child: Icon(Icons.tune, size: 11, color: AppTokens.brand),
                     ),
                   ),
                 ],

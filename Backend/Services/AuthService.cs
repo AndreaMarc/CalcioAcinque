@@ -27,6 +27,7 @@ public interface IAuthService
     Task<string> GetTeamInviteCodeAsync(int teamId);
     Task<JoinInfoResponse?> GetJoinInfoAsync(string inviteCode);
     Task ChangePasswordAsync(int userId, ChangePasswordRequest request);
+    Task UpdatePreferencesAsync(int userId, UpdatePreferencesRequest request);
 }
 
 public class AuthService : IAuthService
@@ -787,7 +788,8 @@ public class AuthService : IAuthService
             Nome = player.Nome,
             Soprannome = player.Soprannome,
             Telefono = player.Telefono,
-            Ruolo = player.Ruolo.ToString()
+            Ruolo = player.Ruolo.ToString(),
+            TemaScuro = user.TemaScuro
         };
     }
 
@@ -811,5 +813,16 @@ public class AuthService : IAuthService
         user.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
         _logger.LogInformation("Password cambiata dall'utente {UserId}", userId);
+    }
+
+    /// <summary>Preferenze d'interfaccia legate all'utente: seguono l'account su ogni dispositivo.</summary>
+    public async Task UpdatePreferencesAsync(int userId, UpdatePreferencesRequest request)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId && u.IsActive);
+        if (user == null) throw new UnauthorizedException("Utente non trovato");
+
+        if (request.TemaScuro.HasValue) user.TemaScuro = request.TemaScuro.Value;
+        user.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
     }
 }

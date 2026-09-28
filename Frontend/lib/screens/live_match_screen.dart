@@ -195,7 +195,7 @@ class _LiveMatchScreenState extends State<LiveMatchScreen>
             matchProv.matches.where((m) => m.id == widget.matchId).firstOrNull ??
                 _match;
         if (match == null || !attProv.hasLoaded) {
-          return const Scaffold(
+          return Scaffold(
             backgroundColor: AppTokens.ink,
             body: Center(
               child: CircularProgressIndicator(color: AppTokens.brand),

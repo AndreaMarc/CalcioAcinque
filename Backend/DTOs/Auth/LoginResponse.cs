@@ -19,6 +19,9 @@ public class PlayerInfo
     public string? Soprannome { get; set; }
     public string? Telefono { get; set; }
     public string Ruolo { get; set; } = string.Empty;
+
+    /// <summary>Preferenza dell'utente (non del tesserato): null = mai scelta.</summary>
+    public bool? TemaScuro { get; set; }
 }
 
 public class MeResponse

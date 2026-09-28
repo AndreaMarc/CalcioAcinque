@@ -81,7 +81,7 @@ class _DraftJoinScreenState extends State<DraftJoinScreen> {
                 children: [
                   const BrandWordmark(markSize: 28),
                   const SizedBox(height: 36),
-                  const Eyebrow('INVITO AL DRAFT', color: AppTokens.brand),
+                  Eyebrow('INVITO AL DRAFT', color: AppTokens.brand),
                   const SizedBox(height: 10),
                   DisplayText(
                     _preview?['nomeTeam'] ?? 'Caricamento...',
@@ -102,7 +102,7 @@ class _DraftJoinScreenState extends State<DraftJoinScreen> {
                   ],
                   const SizedBox(height: 32),
                   if (_busy)
-                    const Row(
+                    Row(
                       children: [
                         SizedBox(
                           width: 18,
@@ -126,7 +126,7 @@ class _DraftJoinScreenState extends State<DraftJoinScreen> {
                     const SizedBox(height: 16),
                     TextButton(
                       onPressed: () => context.go('/login'),
-                      child: const Text('Torna al login',
+                      child: Text('Torna al login',
                           style: TextStyle(color: AppTokens.brand)),
                     ),
                   ],

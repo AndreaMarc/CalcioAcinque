@@ -11,8 +11,14 @@ Frontend/.dart_tool/
 *.zip
 *.tar.gz
 
-# Impostazioni locali Claude Code
+# Claude Code (impostazioni, memoria, istruzioni locali)
 .claude/
+**/.claude/
+CLAUDE.md
+**/CLAUDE.md
+CLAUDE.local.md
+**/CLAUDE.local.md
+.claude*
 
 # Test
 Backend.Tests/bin/
