@@ -281,7 +281,7 @@ public class MatchPaymentService : IMatchPaymentService
         return dto.Importo ?? costoPartita;
     }
 
-    private static string DescriviPartita(Match match)
+    internal static string DescriviPartita(Match match)
     {
         var avversario = string.IsNullOrWhiteSpace(match.Titolo) ? null : $" vs {match.Titolo}";
         return $"Partita - Giornata {match.NumeroGiornata}{avversario} - {match.Data:dd/MM/yyyy}";
@@ -292,7 +292,7 @@ public class MatchPaymentService : IMatchPaymentService
         if (playerIds.Count == 0) return new Dictionary<int, decimal>();
 
         return await _context.PlayerPayments
-            .Where(p => p.PlayerId != null && playerIds.Contains(p.PlayerId.Value) && !p.Pagato)
+            .Where(p => p.PlayerId != null && playerIds.Contains(p.PlayerId.Value) && !p.Pagato && !p.Ignorato)
             .GroupBy(p => p.PlayerId!.Value)
             .Select(g => new { PlayerId = g.Key, Totale = g.Sum(x => x.Importo) })
             .ToDictionaryAsync(x => x.PlayerId, x => x.Totale);
@@ -342,7 +342,7 @@ public class MatchPaymentService : IMatchPaymentService
             Descrizione = p.Descrizione, Importo = p.Importo, DataPagamento = p.DataPagamento,
             Pagato = p.Pagato, Note = p.Note, AdminNome = p.AdminNome ?? string.Empty,
             CreatedAt = p.CreatedAt, Tipo = p.Tipo.ToString(), MatchId = p.MatchId,
-            DichiaratoPagatoAt = p.DichiaratoPagatoAt, GiocatoreRimosso = p.PlayerId == null
+            DichiaratoPagatoAt = p.DichiaratoPagatoAt, Ignorato = p.Ignorato, GiocatoreRimosso = p.PlayerId == null
         }).ToList();
     }
 }

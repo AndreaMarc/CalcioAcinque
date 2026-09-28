@@ -173,12 +173,16 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         return lista.where((p) => p.daPagare).toList();
       case 'inVerifica':
         return lista.where((p) => p.inVerifica).toList();
+      case 'ignorati':
+        return lista.where((p) => p.ignorato).toList();
       default:
         return lista;
     }
   }
 
-  double get _totaleDovuto => _payments.fold(0.0, (s, p) => s + p.importo);
+  // Le entrate ignorate non si incasseranno: fuori dal dovuto
+  double get _totaleDovuto =>
+      _payments.where((p) => !p.ignorato).fold(0.0, (s, p) => s + p.importo);
   double get _totalePagato =>
       _payments.where((p) => p.pagato).fold(0.0, (s, p) => s + p.importo);
 
@@ -308,6 +312,10 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                               _fc('Pagati',
                                   _payments.where((p) => p.pagato).length, 'pagati'),
                               const SizedBox(width: 8),
+                              if (_payments.any((p) => p.ignorato)) ...[
+                                _fc('Ignorate', _payments.where((p) => p.ignorato).length, 'ignorati'),
+                                const SizedBox(width: 8),
+                              ],
                               _fc('Tutti', _payments.length, 'tutti'),
                             ],
                           ),
@@ -628,6 +636,25 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                 } catch (_) {}
               },
             ),
+            // Ignorare un'entrata prevista (non si incasserà) è una scelta dell'admin
+            if (!payment.pagato && context.read<AuthProvider>().puoGestireSquadra)
+              ListTile(
+                leading: Icon(
+                  payment.ignorato ? Icons.undo : Icons.do_not_disturb_on_outlined,
+                  color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                ),
+                title: Text(payment.ignorato ? 'Ripristina: è da incassare' : 'Ignora: non si incasserà'),
+                subtitle: payment.ignorato && payment.note != null ? Text(payment.note!) : null,
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  try {
+                    final auth = context.read<AuthProvider>();
+                    await auth.apiClient.dio.put(ApiConstants.paymentIgnora(payment.id),
+                        data: {'ignorato': !payment.ignorato});
+                    if (mounted) _loadData();
+                  } catch (_) {}
+                },
+              ),
           ],
         ),
       ),
@@ -761,15 +788,19 @@ class _PaymentRow extends StatelessWidget {
     // Tre stati e non due: in verifica sta fra "da pagare" e "pagato"
     final statusColor = p.pagato
         ? AppTokens.ok
-        : p.inVerifica
-            ? AppTokens.brand
-            : AppTokens.warn;
+        : p.ignorato
+            ? muteColor
+            : p.inVerifica
+                ? AppTokens.brand
+                : AppTokens.warn;
     final statusBg = statusColor.withOpacity(isDark ? 0.15 : 0.12);
     final statusIcon = p.pagato
         ? Icons.check
-        : p.inVerifica
-            ? Icons.hourglass_top
-            : Icons.schedule;
+        : p.ignorato
+            ? Icons.do_not_disturb_on_outlined
+            : p.inVerifica
+                ? Icons.hourglass_top
+                : Icons.schedule;
 
     final mostraLink = mia && p.daPagare && (config?.haDatiPagamento ?? false);
 
@@ -816,6 +847,7 @@ class _PaymentRow extends StatelessWidget {
                         [
                           p.nomeGiocatore,
                           if (p.inVerifica) 'in verifica',
+                          if (p.ignorato) 'ignorata',
                         ].join(' · '),
                         style: GoogleFonts.spaceGrotesk(
                           fontSize: 11,
@@ -830,7 +862,11 @@ class _PaymentRow extends StatelessWidget {
                   children: [
                     Text(
                       formatEuro(p.importo),
-                      style: GoogleFonts.bebasNeue(fontSize: 22, color: statusColor),
+                      style: GoogleFonts.bebasNeue(
+                        fontSize: 22,
+                        color: statusColor,
+                        decoration: p.ignorato ? TextDecoration.lineThrough : null,
+                      ),
                     ),
                     Text(
                       DateFormat('dd/MM/yy').format(p.dataPagamento),

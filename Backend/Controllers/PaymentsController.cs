@@ -116,4 +116,18 @@ public class PaymentsController : ControllerBase
         var result = await _paymentService.UpdateAsync(id, dto, claimTeamId);
         return Ok(new ApiResponse<PlayerPaymentDto> { Success = true, Data = result, Message = "Pagamento aggiornato" });
     }
+
+    /// <summary>Ignora o ripristina un'entrata prevista: solo l'admin.</summary>
+    [Authorize(Roles = Ruoli.Squadra)]
+    [HttpPut("api/payments/{id}/ignora")]
+    public async Task<ActionResult<ApiResponse<PlayerPaymentDto>>> Ignora(int id, [FromBody] IgnoraPaymentDto dto)
+    {
+        var claimTeamId = int.Parse(User.FindFirstValue("TeamId")!);
+        var result = await _paymentService.IgnoraAsync(id, dto.Ignorato, claimTeamId);
+        return Ok(new ApiResponse<PlayerPaymentDto>
+        {
+            Success = true, Data = result,
+            Message = dto.Ignorato ? "Entrata ignorata" : "Entrata ripristinata"
+        });
+    }
 }

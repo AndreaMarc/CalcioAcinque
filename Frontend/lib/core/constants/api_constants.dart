@@ -37,6 +37,7 @@ class ApiConstants {
   static String teamPayments(int teamId) => '/api/teams/$teamId/payments';
   static String playerPayments(int playerId) => '/api/players/$playerId/payments';
   static String payment(int paymentId) => '/api/payments/$paymentId';
+  static String paymentIgnora(int paymentId) => '/api/payments/$paymentId/ignora';
   static String dashboard(int teamId) => '/api/teams/$teamId/dashboard';
   static String matchAvailability(int matchId) => '/api/matches/$matchId/availability';
   static String nextAvailability(int teamId) => '/api/teams/$teamId/next-availability';

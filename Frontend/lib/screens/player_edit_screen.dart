@@ -56,7 +56,9 @@ class _PlayerEditScreenState extends State<PlayerEditScreen> {
     final club = context.read<ClubProvider>();
     final players = context.read<PlayersProvider>();
     if (club.teamConfig == null) await club.loadTeamConfig(auth.teamId);
-    if (players.players.every((p) => p.id != widget.playerId)) await players.loadPlayers(auth.teamId);
+    // Sempre dal server: il form salva tutti i campi, e partire da una copia
+    // vecchia (ruolo, regime cambiati da un altro admin) li riscriverebbe indietro
+    await players.loadPlayers(auth.teamId);
     if (!mounted) return;
     final p = players.players.where((p) => p.id == widget.playerId).firstOrNull;
     if (p == null) return;

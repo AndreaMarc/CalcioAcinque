@@ -31,7 +31,7 @@ public class AttendanceService : IAttendanceService
         if (match == null) throw new NotFoundException("Partita", matchId);
         if (match.TeamId != teamId) throw new UnauthorizedException("Non sei autorizzato ad accedere a questa risorsa");
 
-        var attendances = await _context.MatchAttendances.Include(a => a.Player)
+        var attendances = await _context.MatchAttendances.Include(a => a.Player).ThenInclude(p => p.Team)
             .Where(a => a.MatchId == matchId).OrderBy(a => a.Player.Nome).ToListAsync();
         return attendances.Select(MapToDto).ToList();
     }
@@ -44,7 +44,7 @@ public class AttendanceService : IAttendanceService
         if (match.Stato == StatoPartita.Conclusa)
             throw new BusinessException("Non puoi modificare presenze di una partita conclusa");
 
-        var attendance = await _context.MatchAttendances.Include(a => a.Player)
+        var attendance = await _context.MatchAttendances.Include(a => a.Player).ThenInclude(p => p.Team)
             .FirstOrDefaultAsync(a => a.MatchId == matchId && a.PlayerId == playerId);
         if (attendance == null) throw new NotFoundException("Presenza", $"{matchId}/{playerId}");
 
@@ -142,6 +142,7 @@ public class AttendanceService : IAttendanceService
         Id = a.Id, MatchId = a.MatchId, PlayerId = a.PlayerId, NomeGiocatore = a.Player.Nome,
         Soprannome = a.Player.Soprannome, Convocato = a.Convocato, Presente = a.Presente,
         HaGiocato = a.HaGiocato, GettoneConsumato = a.GettoneConsumato, GettoniRimanenti = a.Player.GettoniRimanenti,
+        UsaGettoni = GettoniGiocatore.Attivi(a.Player, a.Player.Team),
         MinutiGiocati = a.MinutiGiocati, Goal = a.Goal, Assist = a.Assist,
         Autogoal = a.Autogoal, Ammonizioni = a.Ammonizioni, Espulsioni = a.Espulsioni, GoalSubiti = a.GoalSubiti
     };

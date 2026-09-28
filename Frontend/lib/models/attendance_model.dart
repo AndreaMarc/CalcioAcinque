@@ -9,6 +9,8 @@ class AttendanceModel {
   final bool haGiocato;
   final bool gettoneConsumato;
   final int gettoniRimanenti;
+  /// Usa i gettoni (squadra o eccezione personale).
+  final bool usaGettoni;
 
   // Statistiche facoltative
   final int? minutiGiocati;
@@ -25,6 +27,7 @@ class AttendanceModel {
     required this.convocato, required this.presente,
     required this.haGiocato, required this.gettoneConsumato,
     required this.gettoniRimanenti,
+    this.usaGettoni = true,
     this.minutiGiocati, this.goal, this.assist, this.autogoal,
     this.ammonizioni, this.espulsioni, this.goalSubiti,
   });
@@ -36,6 +39,7 @@ class AttendanceModel {
     haGiocato: json['haGiocato'] ?? false,
     gettoneConsumato: json['gettoneConsumato'] ?? false,
     gettoniRimanenti: json['gettoniRimanenti'] ?? 0,
+    usaGettoni: json['usaGettoni'] as bool? ?? true,
     minutiGiocati: json['minutiGiocati'],
     goal: json['goal'],
     assist: json['assist'],

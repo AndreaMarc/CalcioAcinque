@@ -22,7 +22,10 @@ public class PlayerPaymentDto
     /// <summary>Non-null = il giocatore ha dichiarato di aver pagato, in attesa di conferma.</summary>
     public DateTime? DichiaratoPagatoAt { get; set; }
 
-    public bool InVerifica => !Pagato && DichiaratoPagatoAt != null;
+    public bool InVerifica => !Pagato && !Ignorato && DichiaratoPagatoAt != null;
+
+    /// <summary>Entrata prevista che non si incassera': resta solo come traccia.</summary>
+    public bool Ignorato { get; set; }
 
     /// <summary>Il giocatore non e piu in rosa: la voce resta come traccia contabile.</summary>
     public bool GiocatoreRimosso { get; set; }
@@ -36,6 +39,11 @@ public class CreatePaymentDto
     public DateTime DataPagamento { get; set; }
     public bool Pagato { get; set; } = false;
     public string? Note { get; set; }
+}
+
+public class IgnoraPaymentDto
+{
+    public bool Ignorato { get; set; } = true;
 }
 
 public class UpdatePaymentDto

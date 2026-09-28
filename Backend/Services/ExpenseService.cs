@@ -110,8 +110,12 @@ public class ExpenseService : IExpenseService
         var incassate = payments.Where(p => p.Pagato).Sum(p => p.Importo);
         var uscite = expenses.Sum(e => e.Importo);
 
-        // Partite concluse senza nessun addebito: dimenticarne una era invisibile
-        var matchIdsConIncasso = payments.Where(p => p.MatchId != null).Select(p => p.MatchId!.Value).ToHashSet();
+        // Partite concluse senza nessun addebito: dimenticarne una era invisibile.
+        // Gli addebiti creati da soli alla convocazione non contano come incasso
+        // fatto: resta da registrare il campo e chi e' venuto senza convocazione.
+        var matchIdsConIncasso = payments
+            .Where(p => p.MatchId != null && p.AdminNome != AddebitiPartita.AutoreConvocazione)
+            .Select(p => p.MatchId!.Value).ToHashSet();
         var senzaIncasso = matches.Where(m => !matchIdsConIncasso.Contains(m.Id)).ToList();
         var nonIncassate = new List<PartitaNonIncassataDto>();
         if (senzaIncasso.Count > 0)
@@ -143,7 +147,7 @@ public class ExpenseService : IExpenseService
             .Where(p => p.TeamId == teamId)
             .ToDictionaryAsync(p => p.Id, p => (p.Soprannome, p.NumeroMaglia));
         var arretrati = payments
-            .Where(p => !p.Pagato && p.PlayerId != null)
+            .Where(p => !p.Pagato && !p.Ignorato && p.PlayerId != null)
             .GroupBy(p => p.PlayerId!.Value)
             .Select(g => new ArretratoDto
             {
@@ -161,9 +165,10 @@ public class ExpenseService : IExpenseService
         {
             SeasonId = season?.Id,
             SeasonNome = season?.Nome,
-            EntrateAttese = payments.Sum(p => p.Importo),
+            // Le entrate ignorate non si incasseranno: fuori dalle attese
+            EntrateAttese = payments.Where(p => !p.Ignorato).Sum(p => p.Importo),
             EntrateIncassate = incassate,
-            InVerifica = payments.Where(p => !p.Pagato && p.DichiaratoPagatoAt != null).Sum(p => p.Importo),
+            InVerifica = payments.Where(p => !p.Pagato && !p.Ignorato && p.DichiaratoPagatoAt != null).Sum(p => p.Importo),
             Uscite = uscite,
             Saldo = incassate - uscite,
             PartiteNonIncassate = nonIncassate,

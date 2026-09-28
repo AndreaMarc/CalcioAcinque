@@ -705,7 +705,7 @@ String buildCassaCsv(List<PaymentModel> payments, List<ExpenseModel> expenses) {
       q(p.nomeGiocatore),
       q(p.tipo.label),
       n(p.importo),
-      p.pagato ? 'Pagato' : (p.inVerifica ? 'In verifica' : 'Da pagare'),
+      p.pagato ? 'Pagato' : p.ignorato ? 'Ignorato' : (p.inVerifica ? 'In verifica' : 'Da pagare'),
     ].join(';'));
   }
   for (final e in expenses) {

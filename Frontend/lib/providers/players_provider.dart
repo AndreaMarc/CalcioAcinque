@@ -93,6 +93,9 @@ class PlayersProvider extends ChangeNotifier {
     } on DioException catch (e) {
       final body = e.response?.data;
       if (body is Map) updateError = body['message'] as String?;
+      if (updateError == null && e.response?.statusCode == 403) {
+        updateError = 'Non hai i permessi per questa modifica';
+      }
     } catch (_) {}
     return false;
   }

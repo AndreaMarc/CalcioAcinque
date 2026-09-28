@@ -1222,7 +1222,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
                       child: _ConfigCard(
                         config: context.watch<ClubProvider>().teamConfig,
-                        useGettoni: context.watch<DashboardProvider>().useGettoni,
+                        // Il sistema della squadra, non "qualcuno li usa" (eccezioni personali)
+                        useGettoni: context.watch<ClubProvider>().teamConfig?.useGettoni ??
+                            context.watch<DashboardProvider>().useGettoni,
                         onToggleGettoni: _toggleUseGettoni,
                         onEditRules: _showTeamRulesDialog,
                         onGenerateFees: _generateFees,

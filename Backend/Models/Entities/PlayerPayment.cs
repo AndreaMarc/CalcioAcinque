@@ -58,6 +58,13 @@ public class PlayerPayment
     /// </summary>
     public DateTime? DichiaratoPagatoAt { get; set; }
 
+    /// <summary>
+    /// Entrata prevista che non si incassera': l'admin la ignora (o l'app, quando
+    /// l'accordo del giocatore la rende non dovuta). Resta come traccia ma esce
+    /// da arretrati, entrate attese e solleciti. Mai insieme a Pagato.
+    /// </summary>
+    public bool Ignorato { get; set; }
+
     /// <summary>Chi ha registrato la voce. Null se quel giocatore non c e piu.</summary>
     public int? AdminId { get; set; }
 

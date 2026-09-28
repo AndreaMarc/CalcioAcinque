@@ -65,6 +65,24 @@ class ApiClient {
           // Refresh fallito → sessione scaduta: logout + redirect al login
           await onSessionExpired?.call();
         }
+        // 403: il ruolo sta nel token, e un token emesso prima di una promozione
+        // (es. a admin) dice ancora quello vecchio, mentre l'app mostra gia' i
+        // tasti nuovi. Un token rinnovato porta il ruolo attuale: si riprova una
+        // volta sola. Se resta 403 il permesso manca davvero.
+        if (error.response?.statusCode == 403 &&
+            !_isAuthEndpoint(error.requestOptions.path) &&
+            error.requestOptions.extra['retry403'] != true) {
+          if (await _tryRefreshToken()) {
+            final token = await storage.getAccessToken();
+            error.requestOptions.headers['Authorization'] = 'Bearer $token';
+            error.requestOptions.extra['retry403'] = true;
+            try {
+              return handler.resolve(await dio.fetch(error.requestOptions));
+            } on DioException catch (e) {
+              return handler.next(e);
+            }
+          }
+        }
         final status = error.response?.statusCode;
         if (status == null || status >= 500) {
           onNetworkError?.call(describeNetworkError(error));

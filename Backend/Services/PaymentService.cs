@@ -20,6 +20,7 @@ public interface IPaymentService
     Task<List<PlayerPaymentDto>> GetByPlayerAsync(int playerId, int teamId);
     Task<PlayerPaymentDto> CreateAsync(int playerId, CreatePaymentDto dto, int adminPlayerId, int teamId);
     Task<PlayerPaymentDto> UpdateAsync(int paymentId, UpdatePaymentDto dto, int teamId);
+    Task<PlayerPaymentDto> IgnoraAsync(int paymentId, bool ignorato, int teamId);
     Task<GenerateFeesResultDto> GenerateFeesAsync(int teamId, GenerateFeesDto dto, int adminPlayerId);
 
     /// <summary>Il giocatore dichiara di aver pagato: la voce va "in verifica", la conferma resta all'admin.</summary>
@@ -110,6 +111,28 @@ public class PaymentService : IPaymentService
         return MapToDto(payment);
     }
 
+    /// <summary>
+    /// Ignora (o ripristina) un'entrata prevista: non si incassera', ma resta
+    /// visibile come traccia. Una voce gia' incassata non si ignora: prima va
+    /// segnata come non pagata.
+    /// </summary>
+    public async Task<PlayerPaymentDto> IgnoraAsync(int paymentId, bool ignorato, int teamId)
+    {
+        var payment = await _context.PlayerPayments
+            .Include(p => p.Player)
+            .FirstOrDefaultAsync(p => p.Id == paymentId);
+        if (payment == null) throw new NotFoundException("Pagamento", paymentId);
+        if (payment.TeamId != teamId) throw new UnauthorizedException("Non sei autorizzato ad accedere a questa risorsa");
+        if (ignorato && payment.Pagato)
+            throw new BusinessException("Questa voce è già incassata: prima segnala come non pagata");
+
+        payment.Ignorato = ignorato;
+        // Una dichiarazione "ho pagato" su una voce ignorata non ha piu' senso
+        if (ignorato) payment.DichiaratoPagatoAt = null;
+        await _context.SaveChangesAsync();
+        return MapToDto(payment);
+    }
+
     public async Task<PlayerPaymentDto> UpdateAsync(int paymentId, UpdatePaymentDto dto, int teamId)
     {
         var payment = await _context.PlayerPayments
@@ -132,6 +155,8 @@ public class PaymentService : IPaymentService
         if (dto.Pagato.HasValue)
         {
             payment.Pagato = dto.Pagato.Value;
+            // Incassata davvero: non e' piu' un'entrata ignorata
+            if (payment.Pagato) payment.Ignorato = false;
             // Confermato o rifiutato dall'admin: la dichiarazione del giocatore
             // ha esaurito il suo scopo e non deve restare appesa come "in verifica"
             payment.DichiaratoPagatoAt = null;
@@ -225,7 +250,7 @@ public class PaymentService : IPaymentService
                     });
                     result.Create++;
                 }
-                else if (dto.AggiornaEsistenti && !esistente.Pagato && esistente.Importo != importo)
+                else if (dto.AggiornaEsistenti && !esistente.Pagato && !esistente.Ignorato && esistente.Importo != importo)
                 {
                     esistente.Importo = importo;
                     esistente.Tipo = quota.Tipo;
@@ -257,6 +282,8 @@ public class PaymentService : IPaymentService
 
         if (payment.Pagato)
             throw new BusinessException("Questa voce risulta già saldata");
+        if (payment.Ignorato)
+            throw new BusinessException("Questa voce non è da pagare");
 
         payment.DichiaratoPagatoAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
@@ -281,7 +308,7 @@ public class PaymentService : IPaymentService
 
         var stagione = await _seasons.GetCorrenteAsync(teamId);
         var arretrati = await _context.PlayerPayments
-            .Where(p => p.PlayerId != null && playerIds.Contains(p.PlayerId.Value) && !p.Pagato
+            .Where(p => p.PlayerId != null && playerIds.Contains(p.PlayerId.Value) && !p.Pagato && !p.Ignorato
                         && (stagione == null || p.SeasonId == stagione.Id || p.SeasonId == null))
             .GroupBy(p => p.PlayerId!.Value)
             .Select(g => new { PlayerId = g.Key, Totale = g.Sum(x => x.Importo), Voci = g.Count() })
@@ -352,7 +379,7 @@ public class PaymentService : IPaymentService
         Importo = p.Importo, DataPagamento = p.DataPagamento, Pagato = p.Pagato, Note = p.Note,
         AdminNome = p.AdminNome ?? string.Empty, CreatedAt = p.CreatedAt,
         Tipo = p.Tipo.ToString(), MatchId = p.MatchId,
-        DichiaratoPagatoAt = p.DichiaratoPagatoAt,
+        DichiaratoPagatoAt = p.DichiaratoPagatoAt, Ignorato = p.Ignorato,
         GiocatoreRimosso = p.PlayerId == null
     };
 

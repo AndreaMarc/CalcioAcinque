@@ -103,6 +103,10 @@ class PaymentModel {
   final int? matchId;
   final DateTime? dichiaratoPagatoAt;
 
+  /// Entrata prevista che non si incasserà (ignorata dall'admin o non più
+  /// dovuta per l'accordo del giocatore): resta solo come traccia.
+  final bool ignorato;
+
   PaymentModel({
     required this.id,
     required this.playerId,
@@ -116,6 +120,7 @@ class PaymentModel {
     required this.tipo,
     this.matchId,
     this.dichiaratoPagatoAt,
+    this.ignorato = false,
   });
 
   factory PaymentModel.fromJson(Map<String, dynamic> json) => PaymentModel(
@@ -133,12 +138,13 @@ class PaymentModel {
         dichiaratoPagatoAt: json['dichiaratoPagatoAt'] != null
             ? DateTime.tryParse(json['dichiaratoPagatoAt'] as String)
             : null,
+        ignorato: json['ignorato'] as bool? ?? false,
       );
 
   /// Il giocatore ha detto di aver pagato, l'admin non ha ancora confermato.
-  bool get inVerifica => !pagato && dichiaratoPagatoAt != null;
+  bool get inVerifica => !pagato && !ignorato && dichiaratoPagatoAt != null;
 
-  bool get daPagare => !pagato;
+  bool get daPagare => !pagato && !ignorato;
 }
 
 /// Cosa l'admin vede prima di decidere a chi addebitare la partita.

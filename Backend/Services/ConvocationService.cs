@@ -78,6 +78,7 @@ public class ConvocationService : IConvocationService
         }
 
         if (match.Stato == StatoPartita.Programmata) match.Stato = StatoPartita.ConvocazioniInviate;
+        if (team != null) await AddebitiPartita.CreaAsync(_context, match, team, nuovi);
         await _context.SaveChangesAsync();
 
         await NotificaConvocatiAsync(match, team, nuovi);
@@ -98,6 +99,11 @@ public class ConvocationService : IConvocationService
         var eraGiaForfait = convocation.StatoRisposta == StatoRisposta.NonDisponibile;
         convocation.StatoRisposta = stato;
         convocation.DataRisposta = DateTime.UtcNow;
+        // Chi non viene non paga la partita; se poi ci ripensa l'addebito torna
+        if (stato == StatoRisposta.NonDisponibile)
+            await AddebitiPartita.TogliAsync(_context, convocation.MatchId, convocation.PlayerId);
+        else if (eraGiaForfait)
+            await AddebitiPartita.CreaAsync(_context, convocation.Match, convocation.Match.Team, new[] { convocation.Player });
         await _context.SaveChangesAsync();
 
         if (stato == StatoRisposta.NonDisponibile && !eraGiaForfait)
@@ -130,6 +136,7 @@ public class ConvocationService : IConvocationService
             _context.MatchAttendances.Remove(attendance);
         }
         _context.Convocations.Remove(convocation);
+        await AddebitiPartita.TogliAsync(_context, convocation.MatchId, convocation.PlayerId);
         await _context.SaveChangesAsync();
 
         // Chi esce dalla lista lo deve sapere dall'app, non dal gruppo: stessa

@@ -305,7 +305,7 @@ class _AttRow extends StatelessWidget {
                           color: textColor,
                         ),
                       ),
-                      if (useGettoni)
+                      if (useGettoni && attendance.usaGettoni)
                         Text(
                           attendance.gettoneConsumato
                               ? 'Gettone consumato · ${attendance.gettoniRimanenti} rim.'

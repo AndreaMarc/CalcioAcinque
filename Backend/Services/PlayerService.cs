@@ -185,6 +185,7 @@ public class PlayerService : IPlayerService
             player.RegimePagamento = ParseRegime(dto.RegimePagamento);
 
         AggiornaEconomia(player, player.Team, dto);
+        await RiallineaVociAsync(player, player.Team);
 
         await _context.SaveChangesAsync();
         return MapToDto(player, player.Team);
@@ -398,6 +399,58 @@ public class PlayerService : IPlayerService
                     Quantita = dotazione,
                     Timestamp = DateTime.UtcNow
                 });
+            }
+        }
+    }
+
+    /// <summary>Nota delle voci ignorate dall'app per l'accordo: solo queste si ripristinano da sole.</summary>
+    internal const string NotaNonDovuta = "Non dovuta per l'accordo del giocatore";
+
+    /// <summary>
+    /// Le voci ancora da pagare della stagione aperta seguono l'accordo attuale:
+    /// importo aggiornato, o ignorate se non piu' dovute (esente, 0 €, regime
+    /// cambiato). Pagate, dichiarate e ignorate a mano dall'admin non si toccano.
+    /// Per le partite contano solo quelle non ancora concluse.
+    /// </summary>
+    private async Task RiallineaVociAsync(Player player, Team team)
+    {
+        var regime = RegimiPagamento.Effettivo(player.RegimePagamento, team.RegimePagamentoDefault);
+        var voci = await _context.PlayerPayments
+            .Include(p => p.Season)
+            .Include(p => p.Match)
+            .Where(p => p.PlayerId == player.Id && !p.Pagato && p.DichiaratoPagatoAt == null)
+            .ToListAsync();
+
+        foreach (var voce in voci)
+        {
+            if (voce.Season?.Chiusa == true) continue;
+            if (voce.Ignorato && voce.Note != NotaNonDovuta) continue;
+
+            (bool Dovuta, decimal Importo)? atteso = voce.Tipo switch
+            {
+                TipoPagamento.Iscrizione => (RegimiPagamento.QuotaDovuta(team.ApplicaIscrizioneA, regime),
+                    player.QuotaIscrizionePersonale ?? team.QuotaIscrizione),
+                TipoPagamento.Tesseramento => (RegimiPagamento.QuotaDovuta(team.ApplicaTesseramentoA, regime),
+                    player.QuotaTesseramentoPersonale ?? team.QuotaTesseramento),
+                TipoPagamento.Partita when voce.Match != null && voce.Match.Stato != StatoPartita.Conclusa =>
+                    (regime == RegimePagamento.APartita, player.CostoPartitaPersonale ?? team.CostoPartita),
+                _ => null
+            };
+            if (atteso is not { } a) continue;
+
+            if (!a.Dovuta || a.Importo <= 0)
+            {
+                voce.Ignorato = true;
+                voce.Note = NotaNonDovuta;
+            }
+            else
+            {
+                if (voce.Ignorato)
+                {
+                    voce.Ignorato = false;
+                    voce.Note = null;
+                }
+                voce.Importo = a.Importo;
             }
         }
     }

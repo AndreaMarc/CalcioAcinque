@@ -12,6 +12,8 @@ public class MatchAttendanceDto
     public bool HaGiocato { get; set; }
     public bool GettoneConsumato { get; set; }
     public int GettoniRimanenti { get; set; }
+    /// <summary>Il giocatore usa i gettoni (squadra o eccezione personale).</summary>
+    public bool UsaGettoni { get; set; }
 
     // Statistiche facoltative
     public int? MinutiGiocati { get; set; }

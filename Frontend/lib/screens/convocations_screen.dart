@@ -394,7 +394,7 @@ class _ConvocationsScreenState extends State<ConvocationsScreen> {
                         return CheckboxListTile(
                           title: Text(p.displayName),
                           subtitle: Text([
-                            'Gettoni: ${p.gettoniRimanenti}',
+                            if (p.usaGettoniEffettivo) 'Gettoni: ${p.gettoniRimanenti}',
                             if (p.posizione != null) p.posizione!.label,
                             if (p.affidabilita != null) 'affidabilità ${p.affidabilita}%',
                           ].join(' · ')),
@@ -644,7 +644,7 @@ class _SubTile extends StatelessWidget {
     final dettagli = <String>[
       if (player.posizione != null) player.posizione!.label,
       if (player.affidabilita != null) 'affidabilità ${player.affidabilita}%',
-      'gettoni ${player.gettoniRimanenti}',
+      if (player.usaGettoniEffettivo) 'gettoni ${player.gettoniRimanenti}',
     ];
     return AppCard(
       padding: const EdgeInsets.all(10),

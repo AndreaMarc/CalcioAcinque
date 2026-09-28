@@ -66,7 +66,7 @@ public class SeasonService : ISeasonService
             {
                 SeasonId = g.Key,
                 Incassato = g.Where(x => x.Pagato).Sum(x => x.Importo),
-                DaIncassare = g.Where(x => !x.Pagato).Sum(x => x.Importo)
+                DaIncassare = g.Where(x => !x.Pagato && !x.Ignorato).Sum(x => x.Importo)
             })
             .ToDictionaryAsync(x => x.SeasonId, x => x);
 
@@ -121,7 +121,7 @@ public class SeasonService : ISeasonService
         var corrente = await GetOrCreateCorrenteAsync(teamId);
 
         var arretrati = await _context.PlayerPayments
-            .Where(p => p.TeamId == teamId && !p.Pagato && p.SeasonId == corrente.Id)
+            .Where(p => p.TeamId == teamId && !p.Pagato && !p.Ignorato && p.SeasonId == corrente.Id)
             .SumAsync(p => (decimal?)p.Importo) ?? 0m;
 
         // Chiudere lasciando conti aperti e' quasi sempre un errore: si blocca,
