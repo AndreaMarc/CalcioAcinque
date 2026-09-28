@@ -11,7 +11,7 @@ public interface IConvocationService
 {
     Task<List<ConvocationDto>> GetByMatchAsync(int matchId, int teamId);
     Task<List<ConvocationDto>> SendConvocationsAsync(int matchId, SendConvocationsDto dto, int teamId);
-    Task<ConvocationDto> RespondAsync(int convocationId, int playerId, RespondConvocationDto dto);
+    Task<ConvocationDto> RespondAsync(int convocationId, int playerId, RespondConvocationDto dto, int? perContoDelTeamId = null);
     Task<List<ConvocationDto>> GetPendingByPlayerAsync(int playerId, int teamId);
     Task RevokeAsync(int convocationId, int teamId);
 }
@@ -78,7 +78,6 @@ public class ConvocationService : IConvocationService
         }
 
         if (match.Stato == StatoPartita.Programmata) match.Stato = StatoPartita.ConvocazioniInviate;
-        if (team != null) await AddebitiPartita.CreaAsync(_context, match, team, nuovi);
         await _context.SaveChangesAsync();
 
         await NotificaConvocatiAsync(match, team, nuovi);
@@ -86,24 +85,26 @@ public class ConvocationService : IConvocationService
         return await GetByMatchAsync(matchId, teamId);
     }
 
-    public async Task<ConvocationDto> RespondAsync(int convocationId, int playerId, RespondConvocationDto dto)
+    /// <summary>
+    /// Risposta alla convocazione: del giocatore stesso, oppure di chi gestisce il
+    /// campo della sua squadra per suo conto ([perContoDelTeamId]), per chi ha
+    /// risposto a voce o nel gruppo.
+    /// </summary>
+    public async Task<ConvocationDto> RespondAsync(int convocationId, int playerId, RespondConvocationDto dto, int? perContoDelTeamId = null)
     {
         var convocation = await _context.Convocations.Include(c => c.Player)
             .Include(c => c.Match).ThenInclude(m => m.Team)
             .FirstOrDefaultAsync(c => c.Id == convocationId);
         if (convocation == null) throw new NotFoundException("Convocazione", convocationId);
-        if (convocation.PlayerId != playerId) throw new UnauthorizedException("Non puoi rispondere alla convocazione di un altro giocatore");
+        var perConto = perContoDelTeamId.HasValue && convocation.Match.TeamId == perContoDelTeamId.Value;
+        if (convocation.PlayerId != playerId && !perConto)
+            throw new UnauthorizedException("Non puoi rispondere alla convocazione di un altro giocatore");
         if (!Enum.TryParse<StatoRisposta>(dto.Risposta, true, out var stato) || stato == StatoRisposta.InAttesa)
             throw new BadRequestException("Risposta non valida. Usare 'Confermato' o 'NonDisponibile'");
 
         var eraGiaForfait = convocation.StatoRisposta == StatoRisposta.NonDisponibile;
         convocation.StatoRisposta = stato;
         convocation.DataRisposta = DateTime.UtcNow;
-        // Chi non viene non paga la partita; se poi ci ripensa l'addebito torna
-        if (stato == StatoRisposta.NonDisponibile)
-            await AddebitiPartita.TogliAsync(_context, convocation.MatchId, convocation.PlayerId);
-        else if (eraGiaForfait)
-            await AddebitiPartita.CreaAsync(_context, convocation.Match, convocation.Match.Team, new[] { convocation.Player });
         await _context.SaveChangesAsync();
 
         if (stato == StatoRisposta.NonDisponibile && !eraGiaForfait)
@@ -136,7 +137,6 @@ public class ConvocationService : IConvocationService
             _context.MatchAttendances.Remove(attendance);
         }
         _context.Convocations.Remove(convocation);
-        await AddebitiPartita.TogliAsync(_context, convocation.MatchId, convocation.PlayerId);
         await _context.SaveChangesAsync();
 
         // Chi esce dalla lista lo deve sapere dall'app, non dal gruppo: stessa

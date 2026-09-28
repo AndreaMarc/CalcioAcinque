@@ -1,3 +1,4 @@
+using CalcioAcinque.Backend.DTOs.Attendance;
 using CalcioAcinque.Backend.DTOs.Convocations;
 using CalcioAcinque.Backend.DTOs.Payments;
 using CalcioAcinque.Backend.DTOs.Players;
@@ -8,13 +9,13 @@ using Microsoft.EntityFrameworkCore;
 namespace CalcioAcinque.Backend.Tests;
 
 /// <summary>
-/// Addebito partita gia' alla convocazione, entrate ignorate dall'admin e voci
+/// Addebito partita quando il giocatore e' segnato in campo, entrate ignorate dall'admin e voci
 /// riallineate quando cambia l'accordo del giocatore.
 /// </summary>
 public class AddebitiEIgnoratiTests
 {
     [Fact]
-    public async Task Chi_paga_a_partita_riceve_l_addebito_alla_convocazione_e_lo_perde_se_esce()
+    public async Task Chi_paga_a_partita_riceve_l_addebito_solo_quando_e_segnato_in_campo()
     {
         using var t = new TestDb();
         t.Team.CostoPartita = 8m;
@@ -23,43 +24,49 @@ public class AddebitiEIgnoratiTests
         await t.Db.SaveChangesAsync();
         var match = t.AddMatch(StatoPartita.Programmata);
 
+        // La convocazione non addebita nulla
         await t.Convocations().SendConvocationsAsync(match.Id,
             new SendConvocationsDto { PlayerIds = new() { occasionale.Id, t.Giocatore.Id } }, t.Team.Id);
+        Assert.False(await t.Db.PlayerPayments.AnyAsync());
 
-        // Solo chi paga a partita, con il suo costo personale e il riferimento alla partita
+        // Presente non basta: serve "in campo"
+        foreach (var id in new[] { occasionale.Id, t.Giocatore.Id })
+            await t.Attendance().UpdateAttendanceAsync(match.Id, id,
+                new UpdateAttendanceDto { Presente = true }, t.Admin.Id, t.Team.Id);
+        Assert.False(await t.Db.PlayerPayments.AnyAsync());
+
+        foreach (var id in new[] { occasionale.Id, t.Giocatore.Id })
+            await t.Attendance().UpdateAttendanceAsync(match.Id, id,
+                new UpdateAttendanceDto { HaGiocato = true }, t.Admin.Id, t.Team.Id);
+
+        // Solo chi paga a partita, col suo costo personale e il riferimento alla partita
         var voce = await t.Db.PlayerPayments.SingleAsync();
         Assert.Equal(occasionale.Id, voce.PlayerId);
         Assert.Equal(match.Id, voce.MatchId);
         Assert.Equal(TipoPagamento.Partita, voce.Tipo);
         Assert.Equal(6m, voce.Importo);
-        Assert.False(voce.Pagato);
 
-        // Forfait: niente addebito; ci ripensa: torna
-        var conv = await t.Db.Convocations.SingleAsync(c => c.PlayerId == occasionale.Id);
-        await t.Convocations().RespondAsync(conv.Id, occasionale.Id, new RespondConvocationDto { Risposta = "NonDisponibile" });
-        Assert.False(await t.Db.PlayerPayments.AnyAsync());
-        await t.Convocations().RespondAsync(conv.Id, occasionale.Id, new RespondConvocationDto { Risposta = "Confermato" });
-        Assert.Equal(1, await t.Db.PlayerPayments.CountAsync());
-
-        // Revoca: via anche l'addebito
-        await t.Convocations().RevokeAsync(conv.Id, t.Team.Id);
+        // Tolto dal campo: via l'addebito
+        await t.Attendance().UpdateAttendanceAsync(match.Id, occasionale.Id,
+            new UpdateAttendanceDto { HaGiocato = false }, t.Admin.Id, t.Team.Id);
         Assert.False(await t.Db.PlayerPayments.AnyAsync());
     }
 
     [Fact]
-    public async Task Un_addebito_gia_dichiarato_pagato_resta_anche_col_forfait()
+    public async Task Un_addebito_gia_dichiarato_o_messo_a_mano_non_sparisce_togliendolo_dal_campo()
     {
         using var t = new TestDb();
         t.Team.CostoPartita = 8m;
         var occasionale = t.AddPlayer("Occasionale", regime: RegimePagamento.APartita);
-        var match = t.AddMatch(StatoPartita.Programmata);
-        await t.Convocations().SendConvocationsAsync(match.Id,
-            new SendConvocationsDto { PlayerIds = new() { occasionale.Id } }, t.Team.Id);
+        var match = t.AddMatch();
+        t.AddAttendance(match, occasionale);
+        await t.Attendance().UpdateAttendanceAsync(match.Id, occasionale.Id,
+            new UpdateAttendanceDto { Presente = true, HaGiocato = true }, t.Admin.Id, t.Team.Id);
         var voce = await t.Db.PlayerPayments.SingleAsync();
         await t.Payments().DeclareAsync(voce.Id, occasionale.Id, t.Team.Id);
 
-        var conv = await t.Db.Convocations.SingleAsync();
-        await t.Convocations().RespondAsync(conv.Id, occasionale.Id, new RespondConvocationDto { Risposta = "NonDisponibile" });
+        await t.Attendance().UpdateAttendanceAsync(match.Id, occasionale.Id,
+            new UpdateAttendanceDto { HaGiocato = false }, t.Admin.Id, t.Team.Id);
 
         Assert.Equal(1, await t.Db.PlayerPayments.CountAsync());
     }

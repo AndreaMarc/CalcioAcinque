@@ -6,15 +6,14 @@ using CalcioAcinque.Backend.Models.Enums;
 namespace CalcioAcinque.Backend.Services;
 
 /// <summary>
-/// Addebiti partita per chi paga a partita, creati gia' alla convocazione:
-/// la voce "da pagare" legata alla partita c'e' da subito, invece di aspettare
-/// l'incasso a fine partita. Chi esce dai convocati (revoca, forfait) la perde,
-/// finche' non l'ha pagata o dichiarata.
+/// Addebiti partita per chi paga a partita, creati quando l'admin lo segna "in
+/// campo" nel match day (non alla convocazione: si paga solo se si gioca). Se
+/// viene tolto dal campo la voce sparisce, finche' non e' pagata o dichiarata.
 /// </summary>
 internal static class AddebitiPartita
 {
-    /// <summary>Firma delle voci create alla convocazione (al posto del nome dell'admin).</summary>
-    public const string AutoreConvocazione = "Convocazione";
+    /// <summary>Firma delle voci create dal match day (al posto del nome dell'admin).</summary>
+    public const string AutoreAutomatico = "Match day";
 
     public static async Task CreaAsync(ApplicationDbContext context, Match match, Team team, IEnumerable<Player> players)
     {
@@ -45,17 +44,21 @@ internal static class AddebitiPartita
                 Importo = importo,
                 DataPagamento = match.Data.Date,
                 Pagato = false,
-                AdminNome = AutoreConvocazione,
+                AdminNome = AutoreAutomatico,
                 CreatedAt = DateTime.UtcNow
             });
         }
     }
 
-    /// <summary>Toglie l'addebito partita se non e' ancora stato pagato ne' dichiarato.</summary>
+    /// <summary>
+    /// Toglie l'addebito creato dal match day se non e' ancora stato pagato ne'
+    /// dichiarato. Quelli registrati a mano dall'admin (incasso partita) restano.
+    /// </summary>
     public static async Task TogliAsync(ApplicationDbContext context, int matchId, int playerId)
     {
         var voce = await context.PlayerPayments.FirstOrDefaultAsync(p =>
-            p.MatchId == matchId && p.PlayerId == playerId && p.Tipo == TipoPagamento.Partita);
+            p.MatchId == matchId && p.PlayerId == playerId && p.Tipo == TipoPagamento.Partita
+            && p.AdminNome == AutoreAutomatico);
         if (voce != null && !voce.Pagato && voce.DichiaratoPagatoAt == null)
             context.PlayerPayments.Remove(voce);
     }

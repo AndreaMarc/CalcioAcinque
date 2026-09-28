@@ -111,10 +111,10 @@ public class ExpenseService : IExpenseService
         var uscite = expenses.Sum(e => e.Importo);
 
         // Partite concluse senza nessun addebito: dimenticarne una era invisibile.
-        // Gli addebiti creati da soli alla convocazione non contano come incasso
-        // fatto: resta da registrare il campo e chi e' venuto senza convocazione.
+        // Gli addebiti creati da soli dal match day non contano come incasso
+        // fatto: resta da registrare il campo e l'eventuale divisione.
         var matchIdsConIncasso = payments
-            .Where(p => p.MatchId != null && p.AdminNome != AddebitiPartita.AutoreConvocazione)
+            .Where(p => p.MatchId != null && p.AdminNome != AddebitiPartita.AutoreAutomatico)
             .Select(p => p.MatchId!.Value).ToHashSet();
         var senzaIncasso = matches.Where(m => !matchIdsConIncasso.Contains(m.Id)).ToList();
         var nonIncassate = new List<PartitaNonIncassataDto>();

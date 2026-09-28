@@ -40,7 +40,11 @@ public class ConvocationsController : ControllerBase
     public async Task<ActionResult<ApiResponse<ConvocationDto>>> Respond(int id, [FromBody] RespondConvocationDto dto)
     {
         var playerId = int.Parse(User.FindFirstValue("PlayerId")!);
-        var result = await _convocationService.RespondAsync(id, playerId, dto);
+        // Admin e mister possono rispondere per conto dei giocatori della propria squadra
+        int? perConto = User.IsInRole(UserRole.Admin.ToString()) || User.IsInRole(UserRole.Mister.ToString())
+            ? int.Parse(User.FindFirstValue("TeamId")!)
+            : null;
+        var result = await _convocationService.RespondAsync(id, playerId, dto, perConto);
         return Ok(new ApiResponse<ConvocationDto> { Success = true, Data = result, Message = "Risposta registrata" });
     }
 

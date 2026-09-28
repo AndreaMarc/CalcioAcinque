@@ -49,6 +49,7 @@ public class AttendanceService : IAttendanceService
         if (attendance == null) throw new NotFoundException("Presenza", $"{matchId}/{playerId}");
 
         var player = attendance.Player;
+        var avevaGiocato = attendance.HaGiocato;
         var team = await _context.Teams.FindAsync(match.TeamId);
         // Per il singolo: puo' usare i gettoni anche se la squadra no (o viceversa)
         var useGettoni = team == null || GettoniGiocatore.Attivi(player, team);
@@ -123,6 +124,13 @@ public class AttendanceService : IAttendanceService
                 throw new BusinessException("Un giocatore deve essere presente per poter giocare");
             attendance.HaGiocato = dto.HaGiocato.Value;
         }
+
+        // Chi paga a partita riceve l'addebito quando l'admin lo segna in campo,
+        // e lo perde se viene tolto (finche' non l'ha pagato o dichiarato)
+        if (attendance.HaGiocato && !avevaGiocato && team != null)
+            await AddebitiPartita.CreaAsync(_context, match, team, new[] { player });
+        else if (!attendance.HaGiocato && avevaGiocato)
+            await AddebitiPartita.TogliAsync(_context, matchId, playerId);
 
         // Gestione statistiche facoltative
         if (dto.MinutiGiocati.HasValue) attendance.MinutiGiocati = dto.MinutiGiocati.Value;

@@ -73,4 +73,24 @@ public class RuoliTests
         await Assert.ThrowsAsync<Exceptions.BusinessException>(
             () => t.Players().DeleteAsync(t.Team.Id, t.Admin.Id));
     }
+
+    [Fact]
+    public async Task L_admin_risponde_alla_convocazione_per_conto_di_un_giocatore_della_sua_squadra()
+    {
+        using var t = new TestDb();
+        var match = t.AddMatch(StatoPartita.Programmata);
+        await t.Convocations().SendConvocationsAsync(match.Id,
+            new CalcioAcinque.Backend.DTOs.Convocations.SendConvocationsDto { PlayerIds = new() { t.Giocatore.Id } }, t.Team.Id);
+        var conv = await t.Db.Convocations.SingleAsync();
+        var risposta = new CalcioAcinque.Backend.DTOs.Convocations.RespondConvocationDto { Risposta = "Confermato" };
+
+        // Senza delega di squadra no; con quella della sua squadra si'
+        await Assert.ThrowsAsync<Exceptions.UnauthorizedException>(
+            () => t.Convocations().RespondAsync(conv.Id, t.Admin.Id, risposta));
+        await Assert.ThrowsAsync<Exceptions.UnauthorizedException>(
+            () => t.Convocations().RespondAsync(conv.Id, t.Admin.Id, risposta, perContoDelTeamId: t.Team.Id + 99));
+        var dto = await t.Convocations().RespondAsync(conv.Id, t.Admin.Id, risposta, perContoDelTeamId: t.Team.Id);
+
+        Assert.Equal("Confermato", dto.StatoRisposta);
+    }
 }

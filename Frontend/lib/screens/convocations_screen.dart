@@ -587,26 +587,32 @@ class _ConvTile extends StatelessWidget {
               ],
             ),
           ),
-          if (conv.isInAttesa) ...[
+          // Risponde il giocatore; admin e mister anche per suo conto
+          if (conv.isInAttesa && (isAdmin || conv.playerId == context.read<AuthProvider>().playerId)) ...[
             IconButton(
+              tooltip: 'Ci sarà',
               icon: const Icon(Icons.check_circle, size: 26, color: AppTokens.ok),
-              onPressed: () async {
-                await context
-                    .read<ConvocationsProvider>()
-                    .respond(conv.id, 'Confermato');
-                onRespond();
-              },
+              onPressed: () => _rispondi(context, 'Confermato'),
             ),
             IconButton(
+              tooltip: 'Non ci sarà',
               icon: const Icon(Icons.cancel, size: 26, color: AppTokens.bad),
-              onPressed: () async {
-                await context
-                    .read<ConvocationsProvider>()
-                    .respond(conv.id, 'NonDisponibile');
-                onRespond();
-              },
+              onPressed: () => _rispondi(context, 'NonDisponibile'),
             ),
-          ] else
+          ] else if (!conv.isInAttesa && isAdmin)
+            // Risposta gia' data: l'admin la puo' correggere (es. ha cambiato idea a voce)
+            PopupMenuButton<String>(
+              tooltip: 'Cambia risposta',
+              onSelected: (r) => _rispondi(context, r),
+              itemBuilder: (_) => [
+                if (!conv.isConfermato)
+                  const PopupMenuItem(value: 'Confermato', child: Text('Segna: ci sarà')),
+                if (!conv.isNonDisponibile)
+                  const PopupMenuItem(value: 'NonDisponibile', child: Text('Segna: non ci sarà')),
+              ],
+              child: AppChip(text: _statusLabel(), variant: variant, leadingIcon: icon),
+            )
+          else
             AppChip(text: _statusLabel(), variant: variant, leadingIcon: icon),
           if (isAdmin && onRevoke != null)
             IconButton(
@@ -620,6 +626,16 @@ class _ConvTile extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _rispondi(BuildContext context, String risposta) async {
+    final ok = await context.read<ConvocationsProvider>().respond(conv.id, risposta);
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Non riesco a salvare la risposta, riprova')),
+      );
+    }
+    onRespond();
   }
 
   String _statusLabel() {
